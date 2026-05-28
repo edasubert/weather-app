@@ -224,6 +224,14 @@ function getLocationFromUrl(): GeoResult | null {
   };
 }
 
+function readUrlSettings(): void {
+  const p = new URLSearchParams(window.location.search);
+  const u = p.get('unit');
+  if (u === 'F') unit = 'F';
+  const t = p.get('theme');
+  if (t === 'dark' || t === 'light' || t === 'auto') theme = t;
+}
+
 function setUrlParams(location: GeoResult): void {
   const p = new URLSearchParams();
   p.set('lat', location.latitude.toFixed(4));
@@ -231,11 +239,17 @@ function setUrlParams(location: GeoResult): void {
   p.set('name', location.name);
   p.set('country', location.country);
   if (location.admin1) p.set('admin1', location.admin1);
+  p.set('unit', unit);
+  if (theme !== 'auto') p.set('theme', theme);
   history.replaceState(null, '', '?' + p.toString());
 }
 
 function clearUrlParams(): void {
-  history.replaceState(null, '', window.location.pathname);
+  const p = new URLSearchParams();
+  p.set('unit', unit);
+  if (theme !== 'auto') p.set('theme', theme);
+  const str = p.toString();
+  history.replaceState(null, '', str ? '?' + str : window.location.pathname);
 }
 
 // ─── Views ────────────────────────────────────────────────────────────────────
@@ -491,6 +505,7 @@ async function handleGeolocate(): Promise<void> {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
+readUrlSettings();
 applyTheme();
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
