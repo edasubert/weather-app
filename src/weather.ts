@@ -1,0 +1,31 @@
+import type { DailyWeather } from './types';
+
+export async function fetchWeather(
+  lat: number,
+  lon: number,
+): Promise<{ today: DailyWeather; yesterday: DailyWeather }> {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(lat));
+  url.searchParams.set('longitude', String(lon));
+  url.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum');
+  url.searchParams.set('timezone', 'auto');
+  url.searchParams.set('past_days', '1');
+  url.searchParams.set('forecast_days', '1');
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Weather API error ${res.status}`);
+  const data: Record<string, Record<string, unknown[]>> = await res.json();
+
+  return { yesterday: parseDay(data, 0), today: parseDay(data, 1) };
+}
+
+function parseDay(data: Record<string, Record<string, unknown[]>>, i: number): DailyWeather {
+  const d = data.daily;
+  return {
+    date: d.time[i] as string,
+    weatherCode: d.weather_code[i] as number,
+    tempMax: d.temperature_2m_max[i] as number,
+    tempMin: d.temperature_2m_min[i] as number,
+    precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
+  };
+}
