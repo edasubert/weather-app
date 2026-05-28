@@ -495,7 +495,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="flex mb-3 rounded-lg overflow-hidden border ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}">
           ${(['yesterday-today', 'today-tomorrow'] as Comparison[]).map((mode, i) => {
             const active = comparison === mode;
-            const label  = mode === 'yesterday-today' ? 'Yesterday & Today' : 'Today & Tomorrow';
+            const label  = mode === 'yesterday-today' ? 'Yesterday vs Today' : 'Today vs Tomorrow';
             const activeCls  = hc ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-sky-500 text-white';
             const inactiveCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
             const divider = i === 0 ? `border-r ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}` : '';
