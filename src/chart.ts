@@ -2,10 +2,10 @@ import type { HourlyData } from './types';
 
 const W = 600;
 const H = 200;
-const PL = 44; // left (y-axis labels)
-const PR = 16; // right
-const PT = 12; // top
-const PB = 24; // bottom (x-axis labels)
+const PL = 44;
+const PR = 16;
+const PT = 12;
+const PB = 24;
 const CW = W - PL - PR;
 const CH = H - PT - PB;
 
@@ -34,7 +34,7 @@ function precipBars(precips: number[], maxP: number, maxBarH: number, fill: stri
   }).join('');
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F'): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean): string {
   const cvt = (c: number) => unit === 'F' ? c * 9 / 5 + 32 : c;
   const tT = today.temp.map(cvt);
   const tY = yesterday.temp.map(cvt);
@@ -50,47 +50,48 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   const maxBarH = CH * 0.25;
   const barOffset = (CW / 24) * 0.18;
 
-  // Grid lines + y-axis labels
   const tempRange = maxT - minT;
   const step = tempRange > 20 ? 10 : tempRange > 10 ? 5 : 2;
   const grid = [];
   for (let t = Math.ceil(minT / step) * step; t < maxT; t += step) {
     const y = yPos(t, minT, maxT);
     grid.push(`
-      <line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}" stroke="#f1f5f9" stroke-width="1"/>
+      <line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>
       <text x="${(PL - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" class="lbl">${Math.round(t)}°${unit}</text>
     `);
   }
 
-  // X-axis labels
   const xLabels = [0, 6, 12, 18].map(h =>
     `<text x="${xPos(h).toFixed(1)}" y="${H - 4}" text-anchor="middle" class="lbl">${String(h).padStart(2, '0')}:00</text>`
   ).join('');
 
+  const precipToday = dark ? '#38bdf8' : '#bae6fd';
+  const precipYesterday = dark ? '#475569' : '#e2e8f0';
+
   return `
-    <div class="bg-white rounded-2xl shadow-sm p-5">
-      <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Hourly breakdown</div>
+    <div class="rounded-2xl shadow-sm p-5" style="background-color:${dark ? '#1e293b' : '#fff'}">
+      <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-slate-500' : 'text-slate-400'} mb-3">Hourly breakdown</div>
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
-        <style>.lbl{font-size:10px;fill:#94a3b8;font-family:ui-sans-serif,system-ui,sans-serif}</style>
+        <style>.lbl{font-size:10px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
-        ${precipBars(yesterday.precip, maxP, maxBarH, '#e2e8f0', -barOffset)}
-        ${precipBars(today.precip, maxP, maxBarH, '#bae6fd', barOffset)}
-        <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${precipBars(yesterday.precip, maxP, maxBarH, precipYesterday, -barOffset)}
+        ${precipBars(today.precip, maxP, maxBarH, precipToday, barOffset)}
+        <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(tT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
         ${xLabels}
       </svg>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 mt-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} mt-3">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:#38bdf8;border-radius:1px;vertical-align:middle"></span>Today temp
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:#cbd5e1;border-radius:1px;vertical-align:middle"></span>Yesterday temp
+          <span style="display:inline-block;width:18px;height:2px;background:${dark ? '#475569' : '#cbd5e1'};border-radius:1px;vertical-align:middle"></span>Yesterday temp
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:#bae6fd;border-radius:2px;vertical-align:middle"></span>Today rain
+          <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span>Today rain
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:#e2e8f0;border-radius:2px;vertical-align:middle"></span>Yesterday rain
+          <span style="display:inline-block;width:10px;height:10px;background:${precipYesterday};border-radius:2px;vertical-align:middle"></span>Yesterday rain
         </span>
       </div>
     </div>

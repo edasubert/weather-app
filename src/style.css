@@ -1,3 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Theme tokens ─────────────────────────────────── */
+:root {
+  --bg-from: #f0f9ff;
+  --bg-to:   #dbeafe;
+
+  --hover-btn:  #f8fafc;
+  --hover-item: #f0f9ff;
+
+  --chart-grid:  #f1f5f9;
+  --chart-label: #94a3b8;
+
+  --text-subtle:       #94a3b8; /* slate-400 */
+  --text-subtle-hover: #475569; /* slate-600 */
+}
+
+.dark {
+  --bg-from: #0f172a;
+  --bg-to:   #1e293b;
+
+  --hover-btn:  #334155;
+  --hover-item: #334155;
+
+  --chart-grid:  #1e293b;
+  --chart-label: #475569;
+
+  --text-subtle:       #64748b; /* slate-500 */
+  --text-subtle-hover: #cbd5e1; /* slate-300 */
+}
+
+/* ── Page background ──────────────────────────────── */
+body {
+  background: linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
+  min-height: 100vh;
+}
+
+/* ── Hover helpers (used where Tailwind hover:bg-* */
+/*    can't carry the CSS var)                       */
+.hover-btn  { transition: background-color 0.15s; }
+.hover-btn:hover  { background-color: var(--hover-btn); }
+
+.hover-item { transition: background-color 0.15s; }
+.hover-item:hover { background-color: var(--hover-item); }
+
+/* ── Card background ──────────────────────────────── */
+:root { --card-bg: #ffffff; }
+.dark  { --card-bg: #1e293b; } /* slate-800 */
+.bg-card { background-color: var(--card-bg); }
+
+/* ── Theme button text ────────────────────────────── */
+.subtle-text { color: var(--text-subtle); transition: color 0.15s; }
+.subtle-text:hover { color: var(--text-subtle-hover); }
