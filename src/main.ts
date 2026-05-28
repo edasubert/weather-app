@@ -225,9 +225,9 @@ function renderError(msg: string): void {
   document.getElementById('back-btn')!.addEventListener('click', renderSearch);
 }
 
-function renderWeather(location: GeoResult, weather: { today: DailyWeather; yesterday: DailyWeather; model: string }): void {
+function renderWeather(location: GeoResult, weather: { today: DailyWeather; yesterday: DailyWeather }): void {
   setUrlParams(location);
-  const { today, yesterday, model } = weather;
+  const { today, yesterday } = weather;
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
 
   root.innerHTML = `
@@ -263,7 +263,7 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
         </div>
 
         <div class="text-xs text-slate-400 text-right">
-          Open-Meteo · model: ${model}
+          Open-Meteo · best match
         </div>
       </div>
     </div>

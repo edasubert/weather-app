@@ -12,7 +12,7 @@ const DAILY_VARS = [
 export async function fetchWeather(
   lat: number,
   lon: number,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather; model: string }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather }> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
@@ -25,11 +25,7 @@ export async function fetchWeather(
   if (!res.ok) throw new Error(`Weather API error ${res.status}`);
   const data: Record<string, unknown> = await res.json();
 
-  return {
-    yesterday: parseDay(data, 0),
-    today: parseDay(data, 1),
-    model: typeof data.model === 'string' ? data.model : 'best_match',
-  };
+  return { yesterday: parseDay(data, 0), today: parseDay(data, 1) };
 }
 
 function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
