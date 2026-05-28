@@ -38,7 +38,7 @@ There will be a comparison of today's weather forecast to yesterday's weather hi
 * temperature
     * will state the difference in degrees
     * will comment on the significance of change
-* perscipitation
+* precipitation
     * if there is no rain on both days, just state still no rain or something like that
     * if there was rain yesterday but is none forecasted for today, just state no rain today or something like that
     * if there was no rain yesterday but it is forecasted for today, just state it will rain today or something like that

@@ -53,3 +53,23 @@ body {
 /* ── Theme button text ────────────────────────────── */
 .subtle-text { color: var(--text-subtle); transition: color 0.15s; }
 .subtle-text:hover { color: var(--text-subtle-hover); }
+
+/* ── High contrast mode ───────────────────────────── */
+/* font-size on :root scales every rem-based Tailwind text size */
+.hc {
+  font-size: 130%;
+  --bg-from:   #ffffff;
+  --bg-to:     #ffffff;
+  --hover-btn:  #e5e5e5;
+  --hover-item: #e5e5e5;
+  --chart-grid:  #d1d5db;
+  --chart-label: #111827;
+}
+.hc.dark {
+  --bg-from:   #000000;
+  --bg-to:     #000000;
+  --hover-btn:  #1a1a1a;
+  --hover-item: #1a1a1a;
+  --chart-grid:  #374151;
+  --chart-label: #f9fafb;
+}
