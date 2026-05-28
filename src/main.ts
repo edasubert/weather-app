@@ -3,10 +3,33 @@ import { fetchWeather } from './weather';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildChart, setupChartTooltip } from './chart';
+import { t, setLang, getLang, LANGS, type Lang } from './i18n';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
+
+const LANG_NAMES: Record<Lang, string> = {
+  en: 'English', cs: 'Čeština', de: 'Deutsch',
+  es: 'Español', fr: 'Français', ja: '日本語',
+  pt: 'Português', uk: 'Українська',
+};
+
+const LOCALE_MAP: Record<Lang, string> = {
+  en: 'en-US', cs: 'cs-CZ', de: 'de-DE',
+  es: 'es-ES', fr: 'fr-FR', ja: 'ja-JP',
+  pt: 'pt-BR', uk: 'uk-UA',
+};
+
+function langMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls: string, openUp = false): string {
+  const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
+  const items = LANGS.map((lang, i) => {
+    const border = i > 0 ? ` style="border-top:1px solid ${menuBorderColor}"` : '';
+    const active = getLang() === lang ? ' font-semibold' : '';
+    return `<button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${active}" data-lang="${lang}"${border}>${LANG_NAMES[lang]}</button>`;
+  }).join('');
+  return `<div id="lang-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:130px">${items}</div>`;
+}
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let suggestions: GeoResult[] = [];
 
@@ -33,7 +56,7 @@ function isDark(): boolean {
 }
 
 function themeLabel(): string {
-  return theme === 'auto' ? 'Auto' : theme === 'dark' ? 'Dark mode' : 'Light mode';
+  return theme === 'auto' ? t('theme.auto') : theme === 'dark' ? t('theme.dark') : t('theme.light');
 }
 
 function attachThemeHandler(): void {
@@ -48,6 +71,49 @@ function attachHCHandler(): void {
     highContrast = !highContrast;
     applyTheme();
   });
+}
+
+function attachDropdownHandlers(): void {
+  const langBtn  = document.getElementById('lang-btn');
+  const langMenu = document.getElementById('lang-menu');
+  if (langBtn && langMenu) {
+    langBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasHidden = langMenu.classList.contains('hidden');
+      langMenu.classList.toggle('hidden');
+      if (wasHidden) {
+        setTimeout(() => document.addEventListener('click', () => langMenu.classList.add('hidden'), { once: true }), 0);
+      }
+    });
+    langMenu.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setLang(btn.dataset.lang as Lang);
+        if (currentView?.type === 'search') renderSearch();
+        else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+      });
+    });
+  }
+
+  const unitBtn  = document.getElementById('unit-btn');
+  const unitMenu = document.getElementById('unit-menu');
+  if (unitBtn && unitMenu) {
+    unitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasHidden = unitMenu.classList.contains('hidden');
+      unitMenu.classList.toggle('hidden');
+      if (wasHidden) {
+        setTimeout(() => document.addEventListener('click', () => unitMenu.classList.add('hidden'), { once: true }), 0);
+      }
+    });
+    unitMenu.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        unit = btn.dataset.unit as 'C' | 'F';
+        if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+      });
+    });
+  }
 }
 
 function applyTheme(): void {
@@ -93,76 +159,47 @@ function windDirLabel(degrees: number): string {
 function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.tempMean - yesterday.tempMean;
   const abs = Math.abs(diff);
-  if (abs < 0.5) return 'About the same temperature';
-  return `${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${tempSig(abs)}`;
+  if (abs < 0.5) return t('comp.sameTemp');
+  return t(diff > 0 ? 'comp.warmer' : 'comp.cooler', { diff: diffStr(abs) }) + tempSig(abs);
 }
 
-function precipComparison(today: DailyWeather, yesterday: DailyWeather, targetLabel = 'today'): string {
-  const t = today.precipitationSum;
-  const y = yesterday.precipitationSum;
-  if (t < 0.1 && y < 0.1) return 'Still no rain';
-  if (y >= 0.1 && t < 0.1) return `No rain ${targetLabel}`;
-  if (y < 0.1 && t >= 0.1) return `Rain expected ${targetLabel}`;
-  const diff = t - y;
-  if (Math.abs(diff) < 0.5) return 'About the same amount of rain';
-  return diff > 0 ? 'More rain expected' : 'Less rain expected';
+function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
+  const todayMm = today.precipitationSum;
+  const yestMm  = yesterday.precipitationSum;
+  const ctx = isTomorrowMode ? 'tomorrow' : 'today';
+  if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
+  if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}` as string);
+  if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}` as string);
+  const diff = todayMm - yestMm;
+  if (Math.abs(diff) < 0.5) return t('comp.sameRain');
+  return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
 }
 
 function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.apparentTempMean - yesterday.apparentTempMean;
   const abs = Math.abs(diff);
-  if (abs < 0.5) return 'Feels about the same';
-  return `Feels ${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${tempSig(abs)}`;
+  if (abs < 0.5) return t('comp.feelsSame');
+  return t(diff > 0 ? 'comp.feelsWarmer' : 'comp.feelsCooler', { diff: diffStr(abs) }) + tempSig(abs);
 }
 
 function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.windSpeedMax - yesterday.windSpeedMax;
   const abs = Math.abs(diff);
-  if (abs < 1) return 'About the same wind speed';
-  return `${Math.round(abs)} km/h ${diff > 0 ? 'windier' : 'calmer'}${windSig(abs)}`;
+  if (abs < 1) return t('comp.sameWind');
+  return t(diff > 0 ? 'comp.windier' : 'comp.calmer', { diff: Math.round(abs) }) + windSig(abs);
 }
 
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
+const DOCS_HTML = `<a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
 const LINK = 'class="text-sky-500 underline" target="_blank" rel="noopener noreferrer"';
-const DOCS = `<a ${LINK} href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
 
-const METRIC_INFO: Record<string, { title: string; body: string }> = {
-  temp: {
-    title: 'Actual temperature',
-    body: `
-      <p><strong>Air temperature at 2 m above ground</strong> — the raw measured value, unaffected by wind or humidity.</p>
-      <p>The comparison uses the daily mean temperature as reported by the model, not the simple (high + low) ÷ 2 average.</p>
-      <p class="opacity-60 text-xs">Source: <code>temperature_2m_max/mean/min</code> — ${DOCS}</p>
-    `,
-  },
-  apparentTemp: {
-    title: 'Feels-like temperature',
-    body: `
-      <p><strong>Apparent temperature</strong> combines air temperature with wind chill and humidity to estimate how hot or cold conditions actually feel to the human body.</p>
-      <p>It uses the <a ${LINK} href="https://en.wikipedia.org/wiki/Universal_thermal_climate_index">Universal Thermal Climate Index (UTCI)</a> model — on cold windy days it will be lower than the actual temperature; on hot humid days it will be higher.</p>
-      <p class="opacity-60 text-xs">Source: <code>apparent_temperature_max/mean/min</code> — ${DOCS}</p>
-    `,
-  },
-  precip: {
-    title: 'Precipitation',
-    body: `
-      <p>Total precipitation accumulated over the day: <strong>rain, showers, and snowfall combined</strong>, expressed in millimetres of liquid water equivalent.</p>
-      <p>Snowfall is converted to mm using a density factor. Trace amounts below 0.1 mm are shown as "no rain."</p>
-      <p><a ${LINK} href="https://en.wikipedia.org/wiki/Precipitation">About precipitation ↗</a></p>
-      <p class="opacity-60 text-xs">Source: <code>precipitation_sum</code> — ${DOCS}</p>
-    `,
-  },
-  wind: {
-    title: 'Wind speed',
-    body: `
-      <p><strong>Maximum sustained wind speed</strong> at 10 m above ground recorded during the day, paired with the day's dominant wind direction (the direction the wind blows <em>from</em>).</p>
-      <p>Gusts — brief spikes above the sustained speed — are a separate variable and can be considerably higher.</p>
-      <p><a ${LINK} href="https://en.wikipedia.org/wiki/Wind_speed">About wind speed ↗</a></p>
-      <p class="opacity-60 text-xs">Source: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — ${DOCS}</p>
-    `,
-  },
-};
+function getMetricInfo(id: string): { title: string; body: string } {
+  return {
+    title: t(`metric.${id}.title` as string),
+    body:  t(`metric.${id}.body`  as string, { docs: DOCS_HTML }),
+  };
+}
 
 // ─── Comparison row ───────────────────────────────────────────────────────────
 
@@ -188,7 +225,8 @@ function comparisonRowHTML(icon: string, id: string, summary: string, dark: bool
 
 function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc: boolean): string {
   const { emoji, label } = describeCode(data.weatherCode);
-  const date = new Date(data.date + 'T12:00:00').toLocaleDateString('en-US', {
+  const locale = LOCALE_MAP[getLang()] ?? 'en-US';
+  const date = new Date(data.date + 'T12:00:00').toLocaleDateString(locale, {
     weekday: 'short', month: 'short', day: 'numeric',
   });
 
@@ -210,33 +248,33 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc:
         <thead>
           <tr>
             <th></th>
-            <th class="text-right font-normal pb-0.5" title="Temperature">🌡️</th>
-            <th class="text-right font-normal pb-0.5" title="Apparent temperature">🧑</th>
+            <th class="text-right font-normal pb-0.5" title="${t('tooltip.temperature')}">🌡️</th>
+            <th class="text-right font-normal pb-0.5" title="${t('tooltip.apparentTemp')}">🧑</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="text-xs ${tE}">high</td>
+            <td class="text-xs ${tE}">${t('card.high')}</td>
             <td class="${tC} text-right">${tempStr(data.tempMax)}</td>
             <td class="${tC} text-right">${tempStr(data.apparentTempMax)}</td>
           </tr>
           <tr>
-            <td class="text-base font-semibold ${tE}">avg</td>
+            <td class="text-xs font-medium ${tE}">${t('card.avg')}</td>
             <td class="text-base font-semibold ${tA} text-right">${tempStr(data.tempMean)}</td>
             <td class="text-base font-semibold ${tB} text-right">${tempStr(data.apparentTempMean)}</td>
           </tr>
           <tr>
-            <td class="text-xs ${tE}">low</td>
+            <td class="text-xs ${tE}">${t('card.low')}</td>
             <td class="${tC} text-right">${tempStr(data.tempMin)}</td>
             <td class="${tC} text-right">${tempStr(data.apparentTempMin)}</td>
           </tr>
         </tbody>
       </table>
       <div class="text-sm ${tD}">
-        <span title="Precipitation">💧</span> ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm` : 'No rain'}
+        <span title="${t('tooltip.precipitation')}">💧</span> ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm` : t('card.noRain')}
       </div>
       <div class="text-sm ${tD}">
-        <span title="Wind">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
+        <span title="${t('tooltip.wind')}">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
     </div>
   `;
@@ -263,10 +301,12 @@ function readUrlSettings(): void {
   const p = new URLSearchParams(window.location.search);
   const u = p.get('unit');
   if (u === 'F') unit = 'F';
-  const t = p.get('theme');
-  if (t === 'dark' || t === 'light' || t === 'auto') theme = t;
+  const th = p.get('theme');
+  if (th === 'dark' || th === 'light' || th === 'auto') theme = th;
   if (p.get('hc') === '1') highContrast = true;
   if (p.get('comp') === 'tomorrow') comparison = 'today-tomorrow';
+  const lg = p.get('lang');
+  if (lg && (LANGS as string[]).includes(lg)) setLang(lg as Lang);
 }
 
 function settingsParams(): URLSearchParams {
@@ -275,6 +315,7 @@ function settingsParams(): URLSearchParams {
   if (theme !== 'auto') p.set('theme', theme);
   if (highContrast) p.set('hc', '1');
   if (comparison === 'today-tomorrow') p.set('comp', 'tomorrow');
+  if (getLang() !== 'en') p.set('lang', getLang());
   return p;
 }
 
@@ -315,6 +356,9 @@ function renderSearch(): void {
     : (dark ? 'border-slate-700 text-slate-300 bg-slate-800' : 'border-slate-200 text-slate-600 bg-white');
   const hcBtnCls   = hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text';
   const heading    = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
+  const menuBg            = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const menuBorderColor   = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
+  const menuItemTextCls   = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
   const subtext    = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
 
   root.innerHTML = `
@@ -322,15 +366,15 @@ function renderSearch(): void {
       <div class="w-full max-w-sm">
         <div class="text-center mb-8">
           <div class="text-5xl mb-3">🌤️</div>
-          <h1 class="text-2xl font-semibold ${heading}">Weather</h1>
-          <p class="${subtext} mt-1 text-sm">Today's forecast vs yesterday's weather</p>
+          <h1 class="text-2xl font-semibold ${heading}">${t('search.title')}</h1>
+          <p class="${subtext} mt-1 text-sm">${t('search.subtitle')}</p>
         </div>
 
         <div class="relative mb-3">
           <input
             id="city-input"
             type="text"
-            placeholder="Search for a city…"
+            placeholder="${t('search.placeholder')}"
             autocomplete="off"
             class="w-full px-4 py-3 rounded-xl border ${inputCls} shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           />
@@ -343,14 +387,14 @@ function renderSearch(): void {
         ${'geolocation' in navigator ? `
           <div class="flex items-center gap-3 my-4">
             <div class="flex-1 h-px ${dividerBg}"></div>
-            <span class="text-xs ${subtext} uppercase tracking-wide">or</span>
+            <span class="text-xs ${subtext} uppercase tracking-wide">${t('search.or')}</span>
             <div class="flex-1 h-px ${dividerBg}"></div>
           </div>
           <button
             id="geolocate-btn"
             class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border ${geoBtnCls} shadow-sm hover-btn"
           >
-            📍 Use my location
+            📍 ${t('search.useLocation')}
           </button>
         ` : ''}
 
@@ -361,8 +405,15 @@ function renderSearch(): void {
           </button>
           <button id="hc-btn" class="flex items-center gap-2 text-xs ${hcBtnCls}" aria-pressed="${hc}" title="Toggle easy to read mode">
             <span>◑</span>
-            <span>Easy to read${hc ? ' on' : ''}</span>
+            <span>${hc ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
           </button>
+          <div class="relative">
+            <button id="lang-btn" class="flex items-center gap-1 text-xs subtle-text">
+              <span>${getLang().toUpperCase()}</span>
+              <span class="opacity-50">▾</span>
+            </button>
+            ${langMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+          </div>
         </div>
       </div>
     </div>
@@ -413,9 +464,10 @@ function renderSearch(): void {
   document.getElementById('geolocate-btn')?.addEventListener('click', () => void handleGeolocate());
   attachThemeHandler();
   attachHCHandler();
+  attachDropdownHandlers();
 }
 
-function renderLoading(msg = 'Loading weather…'): void {
+function renderLoading(msg = t('error.loading')): void {
   currentView = { type: 'loading' };
   const dark = isDark();
   root.innerHTML = `
@@ -436,7 +488,7 @@ function renderError(msg: string): void {
         <div class="text-4xl mb-4">⚠️</div>
         <p class="${dark ? 'text-slate-200' : 'text-slate-700'} mb-5">${msg}</p>
         <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
-          Try again
+          ${t('error.tryAgain')}
         </button>
       </div>
     </div>
@@ -455,10 +507,10 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   const secondary       = isTomorrow ? today      : yesterday;
   const primaryHourly   = isTomorrow ? tomorrowHourly   : todayHourly;
   const secondaryHourly = isTomorrow ? todayHourly      : yesterdayHourly;
-  const primaryLabel    = isTomorrow ? 'Tomorrow' : 'Today';
-  const secondaryLabel  = isTomorrow ? 'Today'    : 'Yesterday';
-  const primaryLabelShort   = isTomorrow ? 'Tmrw.' : 'Today';
-  const secondaryLabelShort = isTomorrow ? 'Today' : 'Yest.';
+  const primaryLabel    = isTomorrow ? t('card.tomorrow') : t('card.today');
+  const secondaryLabel  = isTomorrow ? t('card.today')    : t('card.yesterday');
+  const primaryLabelShort   = isTomorrow ? t('chart.tomorrowShort') : t('chart.todayShort');
+  const secondaryLabelShort = isTomorrow ? t('chart.todayShort')    : t('chart.yesterdayShort');
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
 
   const btnCls = hc
@@ -476,6 +528,12 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   const modalTitleCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
   const modalBodyCls  = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-300' : 'text-slate-600');
   const footerText = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
+  const menuBg          = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const menuBorderColor = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
+  const menuItemTextCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
+  const compHeader = isTomorrow ? t('comp.headerTodayTomorrow') : t('comp.headerYesterdayToday');
+  const groupBorder = hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200');
+  const dividerCls  = `border-r ${groupBorder}`;
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
@@ -483,33 +541,45 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="flex items-center justify-between gap-4 mb-4">
           <div class="text-sm ${locText} min-w-0 truncate">📍 ${locationLabel}</div>
           <div class="flex gap-2 shrink-0">
-            <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
-              °${unit === 'C' ? 'F' : 'C'}
-            </button>
+            <div class="relative">
+              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+                ${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span>
+              </button>
+              ${langMenuHTML(menuBg, menuBorderColor, menuItemTextCls)}
+            </div>
+            <div class="relative">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+                °${unit} <span class="text-xs opacity-50">▾</span>
+              </button>
+              <div id="unit-menu" class="absolute right-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:72px">
+                <button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
+                <button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid ${menuBorderColor}">°F</button>
+              </div>
+            </div>
             <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
-              Change location
+              ${t('weather.changeLocation')}
             </button>
           </div>
         </div>
 
-        <div class="flex mb-3 rounded-lg overflow-hidden border ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}">
+        <div class="flex mb-3 rounded-lg overflow-hidden border ${groupBorder}">
           ${(['yesterday-today', 'today-tomorrow'] as Comparison[]).map((mode, i) => {
             const active = comparison === mode;
-            const label  = mode === 'yesterday-today' ? 'Yesterday vs Today' : 'Today vs Tomorrow';
-            const activeCls  = hc ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-sky-500 text-white';
+            const label  = mode === 'yesterday-today' ? t('comp.headerYesterdayToday') : t('comp.headerTodayTomorrow');
+            const activeCls   = hc ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-sky-500 text-white';
             const inactiveCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
-            const divider = i === 0 ? `border-r ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}` : '';
+            const divider = i === 0 ? dividerCls : '';
             return `<button class="flex-1 text-sm py-2 text-center transition-colors ${divider} ${active ? activeCls : inactiveCls + ' hover-btn'}" data-comp="${mode}">${label}</button>`;
           }).join('')}
         </div>
 
         <div class="rounded-2xl p-4 mb-4" style="background-color:${cmpBg}">
-          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">${secondaryLabel} vs ${primaryLabel}</h1>
+          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">${compHeader}</h1>
           <div class="flex flex-col gap-2">
             ${comparisonRowHTML('🌡️', 'temp', tempComparison(primary, secondary), dark, hc)}
-            ${comparisonRowHTML('<span title="Apparent temperature">🧑</span>', 'apparentTemp', apparentTempComparison(primary, secondary), dark, hc)}
-            ${comparisonRowHTML('<span title="Precipitation">💧</span>', 'precip', precipComparison(primary, secondary, primaryLabel.toLowerCase()), dark, hc)}
-            ${comparisonRowHTML('<span title="Wind">💨</span>', 'wind', windComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">🧑</span>`, 'apparentTemp', apparentTempComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">💧</span>`, 'precip', precipComparison(primary, secondary, isTomorrow), dark, hc)}
+            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">💨</span>`, 'wind', windComparison(primary, secondary), dark, hc)}
           </div>
         </div>
 
@@ -518,11 +588,11 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           ${weatherCardHTML(primary, primaryLabel, dark, hc)}
         </div>
 
-        ${buildChart(primaryHourly, secondaryHourly, unit, dark, hc, primaryLabel, secondaryLabel)}
+        ${buildChart(primaryHourly, secondaryHourly, unit, dark, hc, t('chart.' + (isTomorrow ? 'tomorrow' : 'today') as string), t('chart.' + (isTomorrow ? 'today' : 'yesterday') as string))}
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
           <div class="text-sm ${footerText}">
-            Data source: <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
+            ${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
           </div>
           <div class="flex items-center gap-4">
             <button id="theme-btn" class="flex items-center gap-1.5 text-xs subtle-text">
@@ -531,7 +601,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             </button>
             <button id="hc-btn" class="flex items-center gap-1.5 text-xs ${hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text'}" aria-pressed="${hc}">
               <span>◑</span>
-              <span>Easy to read${hc ? ' on' : ''}</span>
+              <span>${hc ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
             </button>
           </div>
         </div>
@@ -551,11 +621,6 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   const chartContainer = root.querySelector<HTMLElement>('#chart-container');
   if (chartContainer) setupChartTooltip(chartContainer, primaryHourly, secondaryHourly, unit, dark, hc, primaryLabelShort, secondaryLabelShort);
 
-  document.getElementById('unit-btn')!.addEventListener('click', () => {
-    unit = unit === 'C' ? 'F' : 'C';
-    renderWeather(location, weather);
-  });
-
   document.querySelectorAll<HTMLButtonElement>('[data-comp]').forEach(btn => {
     btn.addEventListener('click', () => {
       comparison = btn.dataset.comp as Comparison;
@@ -565,6 +630,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   document.getElementById('search-btn')!.addEventListener('click', renderSearch);
   attachThemeHandler();
   attachHCHandler();
+  attachDropdownHandlers();
 
   const modal = document.getElementById('info-modal')!;
   const modalTitle = document.getElementById('modal-title')!;
@@ -577,7 +643,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const info = METRIC_INFO[btn.dataset.metric!];
+      const info = getMetricInfo(btn.dataset.metric!);
       if (!info) return;
       modalTitle.textContent = info.title;
       modalBody.innerHTML = info.body;
@@ -589,23 +655,23 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 async function loadWeather(location: GeoResult): Promise<void> {
-  renderLoading(`Loading weather for ${location.name}…`);
+  renderLoading(t('error.loadingFor', { name: location.name }));
   try {
     const weather = await fetchWeather(location.latitude, location.longitude);
     renderWeather(location, weather);
   } catch {
-    renderError('Could not load weather data. Please try again.');
+    renderError(t('error.failed'));
   }
 }
 
 async function handleGeolocate(): Promise<void> {
-  renderLoading('Detecting your location…');
+  renderLoading(t('error.detecting'));
   try {
     const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }),
     );
     const location: GeoResult = {
-      name: 'Your location',
+      name: t('geo.yourLocation'),
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude,
       country: '',
@@ -615,8 +681,8 @@ async function handleGeolocate(): Promise<void> {
   } catch (err) {
     renderError(
       err instanceof GeolocationPositionError
-        ? 'Location access denied. Please search for a city instead.'
-        : 'Could not load weather data. Please try again.',
+        ? t('error.locationDenied')
+        : t('error.failed'),
     );
   }
 }
