@@ -243,7 +243,7 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
               °${unit === 'C' ? 'F' : 'C'}
             </button>
             <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
-              Change
+              Change location
             </button>
           </div>
         </div>
