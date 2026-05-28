@@ -87,7 +87,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   return `
     <div id="chart-container" class="rounded-2xl shadow-sm p-5 relative" style="background-color:${dark ? '#1e293b' : '#fff'}">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
-        <style>.lbl{font-size:10px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
+        <style>.lbl{font-size:11px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         ${precipBars(yesterday.precip, maxP, maxBarH, precipYesterday, -barOffset)}
         ${precipBars(today.precip, maxP, maxBarH, precipToday, barOffset)}

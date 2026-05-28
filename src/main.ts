@@ -157,8 +157,8 @@ const METRIC_INFO: Record<string, { title: string; body: string }> = {
 
 function comparisonRowHTML(icon: string, id: string, summary: string, dark: boolean): string {
   const btnClass = dark
-    ? 'border-slate-600 text-slate-500 hover:border-sky-500 hover:text-sky-400'
-    : 'border-slate-300 text-slate-400 hover:border-sky-400 hover:text-sky-500';
+    ? 'border-slate-500 text-slate-400 hover:border-sky-500 hover:text-sky-400'
+    : 'border-slate-400 text-slate-500 hover:border-sky-400 hover:text-sky-500';
   return `
     <div class="flex items-center gap-2 text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">
       <span class="w-5 shrink-0">${icon}</span>
@@ -177,30 +177,30 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean): st
   });
   return `
     <div class="rounded-2xl shadow-sm p-5 flex flex-col gap-2" style="background-color:${dark ? '#1e293b' : '#fff'}">
-      <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-slate-500' : 'text-slate-400'}">${heading}</div>
-      <div class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">${date}</div>
+      <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-slate-400' : 'text-slate-500'}">${heading}</div>
+      <div class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
       <div class="font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${label}</div>
       <div class="flex items-baseline gap-2">
-        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMax)}</span>
+        <span class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.tempMax)}</span>
         <span class="text-2xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">${tempStr(data.tempMean)}</span>
-        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMin)}</span>
+        <span class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.tempMin)}</span>
       </div>
       <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">high</span>
-        <span class="text-sm font-medium ${dark ? 'text-slate-600' : 'text-slate-300'}">avg</span>
-        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">low</span>
+        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">high</span>
+        <span class="text-xs font-medium ${dark ? 'text-slate-400' : 'text-slate-500'}">avg</span>
+        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">low</span>
       </div>
       <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">Feels</span>
-        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMax)}</span>
-        <span class="text-sm font-medium ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.apparentTempMean)}</span>
-        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMin)}</span>
+        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">Feels</span>
+        <span class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.apparentTempMax)}</span>
+        <span class="text-base font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${tempStr(data.apparentTempMean)}</span>
+        <span class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.apparentTempMin)}</span>
       </div>
-      <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">
+      <div class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">
         ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm rain` : 'No rain'}
       </div>
-      <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">
+      <div class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">
         💨 ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
     </div>
@@ -284,7 +284,7 @@ function renderSearch(): void {
         ${'geolocation' in navigator ? `
           <div class="flex items-center gap-3 my-4">
             <div class="flex-1 h-px ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
-            <span class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wide">or</span>
+            <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wide">or</span>
             <div class="flex-1 h-px ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
           </div>
           <button
@@ -324,7 +324,7 @@ function renderSearch(): void {
             data-i="${i}"
           >
             <span class="font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${r.name}</span>
-            <span class="${dark ? 'text-slate-500' : 'text-slate-400'} text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+            <span class="${dark ? 'text-slate-400' : 'text-slate-500'} text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
           </button>
         `).join('');
 
@@ -388,7 +388,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
         <div class="flex items-center justify-between gap-4 mb-4">
-          <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} min-w-0 truncate">📍 ${locationLabel}</div>
+          <div class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'} min-w-0 truncate">📍 ${locationLabel}</div>
           <div class="flex gap-2 shrink-0">
             <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
               °${unit === 'C' ? 'F' : 'C'}
@@ -421,7 +421,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             <span>${THEME_ICONS[theme]}</span>
             <span>${themeLabel()}</span>
           </button>
-          <div class="text-xs ${dark ? 'text-slate-600' : 'text-slate-400'}">
+          <div class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">
             Data source: <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
           </div>
         </div>
@@ -431,7 +431,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
       <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
       <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:${dark ? '#1e293b' : '#fff'}">
-        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-600'} transition-colors">&times;</button>
+        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'} transition-colors">&times;</button>
         <h2 id="modal-title" class="text-base font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'} mb-3 pr-6"></h2>
         <div id="modal-body" class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'} flex flex-col gap-2"></div>
       </div>

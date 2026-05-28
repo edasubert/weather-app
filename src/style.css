@@ -11,10 +11,10 @@
   --hover-item: #f0f9ff;
 
   --chart-grid:  #f1f5f9;
-  --chart-label: #94a3b8;
+  --chart-label: #64748b; /* slate-500 — was slate-400, too low contrast on white */
 
-  --text-subtle:       #94a3b8; /* slate-400 */
-  --text-subtle-hover: #475569; /* slate-600 */
+  --text-subtle:       #64748b; /* slate-500 */
+  --text-subtle-hover: #334155; /* slate-700 */
 }
 
 .dark {
@@ -25,10 +25,10 @@
   --hover-item: #334155;
 
   --chart-grid:  #1e293b;
-  --chart-label: #475569;
+  --chart-label: #94a3b8; /* slate-400 — was slate-600, barely visible on dark */
 
-  --text-subtle:       #64748b; /* slate-500 */
-  --text-subtle-hover: #cbd5e1; /* slate-300 */
+  --text-subtle:       #94a3b8; /* slate-400 */
+  --text-subtle-hover: #e2e8f0; /* slate-200 */
 }
 
 /* ── Page background ──────────────────────────────── */
