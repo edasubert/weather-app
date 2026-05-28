@@ -248,18 +248,18 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          ${weatherCardHTML(today, "Today's forecast")}
-          ${weatherCardHTML(yesterday, 'Yesterday')}
-        </div>
-
-        <div class="bg-sky-50 rounded-2xl p-4 mb-3">
+        <div class="bg-sky-50 rounded-2xl p-4 mb-4">
           <div class="text-xs font-semibold uppercase tracking-wider text-sky-500 mb-2">Vs yesterday</div>
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
             <span>🌡️ ${tempComparison(today, yesterday)}</span>
             <span>💧 ${precipComparison(today, yesterday)}</span>
             <span>💨 ${windComparison(today, yesterday)}</span>
           </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          ${weatherCardHTML(today, "Today's forecast")}
+          ${weatherCardHTML(yesterday, 'Yesterday')}
         </div>
 
         <div class="text-xs text-slate-400 text-right">
