@@ -13,7 +13,8 @@ let suggestions: GeoResult[] = [];
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
 type Theme = 'auto' | 'dark' | 'light';
-type WeatherData = { today: DailyWeather; yesterday: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData };
+type Comparison = 'yesterday-today' | 'today-tomorrow';
+type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData };
 type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
@@ -22,6 +23,7 @@ type ViewState =
 
 let theme: Theme = 'auto';
 let highContrast = false;
+let comparison: Comparison = 'yesterday-today';
 let currentView: ViewState = null;
 const THEME_ICONS: Record<Theme, string> = { auto: '🌗', dark: '🌙', light: '☀️' };
 const THEME_CYCLE: Record<Theme, Theme> = { auto: 'dark', dark: 'light', light: 'auto' };
@@ -95,12 +97,12 @@ function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
   return `${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${tempSig(abs)}`;
 }
 
-function precipComparison(today: DailyWeather, yesterday: DailyWeather): string {
+function precipComparison(today: DailyWeather, yesterday: DailyWeather, targetLabel = 'today'): string {
   const t = today.precipitationSum;
   const y = yesterday.precipitationSum;
   if (t < 0.1 && y < 0.1) return 'Still no rain';
-  if (y >= 0.1 && t < 0.1) return 'No rain today';
-  if (y < 0.1 && t >= 0.1) return 'Rain expected today';
+  if (y >= 0.1 && t < 0.1) return `No rain ${targetLabel}`;
+  if (y < 0.1 && t >= 0.1) return `Rain expected ${targetLabel}`;
   const diff = t - y;
   if (Math.abs(diff) < 0.5) return 'About the same amount of rain';
   return diff > 0 ? 'More rain expected' : 'Less rain expected';
@@ -264,6 +266,7 @@ function readUrlSettings(): void {
   const t = p.get('theme');
   if (t === 'dark' || t === 'light' || t === 'auto') theme = t;
   if (p.get('hc') === '1') highContrast = true;
+  if (p.get('comp') === 'tomorrow') comparison = 'today-tomorrow';
 }
 
 function settingsParams(): URLSearchParams {
@@ -271,6 +274,7 @@ function settingsParams(): URLSearchParams {
   p.set('unit', unit);
   if (theme !== 'auto') p.set('theme', theme);
   if (highContrast) p.set('hc', '1');
+  if (comparison === 'today-tomorrow') p.set('comp', 'tomorrow');
   return p;
 }
 
@@ -443,9 +447,18 @@ function renderError(msg: string): void {
 function renderWeather(location: GeoResult, weather: WeatherData): void {
   currentView = { type: 'weather', location, weather };
   setUrlParams(location);
-  const { today, yesterday, todayHourly, yesterdayHourly } = weather;
+  const { today, yesterday, tomorrow, todayHourly, yesterdayHourly, tomorrowHourly } = weather;
   const dark = isDark();
   const hc   = highContrast;
+  const isTomorrow = comparison === 'today-tomorrow';
+  const primary         = isTomorrow ? tomorrow   : today;
+  const secondary       = isTomorrow ? today      : yesterday;
+  const primaryHourly   = isTomorrow ? tomorrowHourly   : todayHourly;
+  const secondaryHourly = isTomorrow ? todayHourly      : yesterdayHourly;
+  const primaryLabel    = isTomorrow ? 'Tomorrow' : 'Today';
+  const secondaryLabel  = isTomorrow ? 'Today'    : 'Yesterday';
+  const primaryLabelShort   = isTomorrow ? 'Tmrw.' : 'Today';
+  const secondaryLabelShort = isTomorrow ? 'Today' : 'Yest.';
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
 
   const btnCls = hc
@@ -479,22 +492,33 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           </div>
         </div>
 
+        <div class="flex mb-3 rounded-lg overflow-hidden border ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}">
+          ${(['yesterday-today', 'today-tomorrow'] as Comparison[]).map((mode, i) => {
+            const active = comparison === mode;
+            const label  = mode === 'yesterday-today' ? 'Yesterday & Today' : 'Today & Tomorrow';
+            const activeCls  = hc ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-sky-500 text-white';
+            const inactiveCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
+            const divider = i === 0 ? `border-r ${hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200')}` : '';
+            return `<button class="flex-1 text-sm py-2 text-center transition-colors ${divider} ${active ? activeCls : inactiveCls + ' hover-btn'}" data-comp="${mode}">${label}</button>`;
+          }).join('')}
+        </div>
+
         <div class="rounded-2xl p-4 mb-4" style="background-color:${cmpBg}">
-          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">Today vs Yesterday</h1>
+          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">${secondaryLabel} vs ${primaryLabel}</h1>
           <div class="flex flex-col gap-2">
-            ${comparisonRowHTML('🌡️', 'temp', tempComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('<span title="Apparent temperature">🧑</span>', 'apparentTemp', apparentTempComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('<span title="Precipitation">💧</span>', 'precip', precipComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('<span title="Wind">💨</span>', 'wind', windComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('🌡️', 'temp', tempComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML('<span title="Apparent temperature">🧑</span>', 'apparentTemp', apparentTempComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML('<span title="Precipitation">💧</span>', 'precip', precipComparison(primary, secondary, primaryLabel.toLowerCase()), dark, hc)}
+            ${comparisonRowHTML('<span title="Wind">💨</span>', 'wind', windComparison(primary, secondary), dark, hc)}
           </div>
         </div>
 
         <div class="${hc ? 'grid grid-cols-1' : 'grid grid-cols-2'} gap-3 mb-3">
-          ${weatherCardHTML(yesterday, 'Yesterday', dark, hc)}
-          ${weatherCardHTML(today, 'Today', dark, hc)}
+          ${weatherCardHTML(secondary, secondaryLabel, dark, hc)}
+          ${weatherCardHTML(primary, primaryLabel, dark, hc)}
         </div>
 
-        ${buildChart(todayHourly, yesterdayHourly, unit, dark, hc)}
+        ${buildChart(primaryHourly, secondaryHourly, unit, dark, hc, primaryLabel, secondaryLabel)}
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
           <div class="text-sm ${footerText}">
@@ -525,11 +549,18 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   `;
 
   const chartContainer = root.querySelector<HTMLElement>('#chart-container');
-  if (chartContainer) setupChartTooltip(chartContainer, todayHourly, yesterdayHourly, unit, dark, hc);
+  if (chartContainer) setupChartTooltip(chartContainer, primaryHourly, secondaryHourly, unit, dark, hc, primaryLabelShort, secondaryLabelShort);
 
   document.getElementById('unit-btn')!.addEventListener('click', () => {
     unit = unit === 'C' ? 'F' : 'C';
     renderWeather(location, weather);
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-comp]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      comparison = btn.dataset.comp as Comparison;
+      renderWeather(location, weather);
+    });
   });
   document.getElementById('search-btn')!.addEventListener('click', renderSearch);
   attachThemeHandler();

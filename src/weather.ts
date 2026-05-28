@@ -18,7 +18,7 @@ const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation';
 export async function fetchWeather(
   lat: number,
   lon: number,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData }> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
@@ -26,7 +26,7 @@ export async function fetchWeather(
   url.searchParams.set('hourly', HOURLY_VARS);
   url.searchParams.set('timezone', 'auto');
   url.searchParams.set('past_days', '1');
-  url.searchParams.set('forecast_days', '1');
+  url.searchParams.set('forecast_days', '2');
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Weather API error ${res.status}`);
@@ -35,8 +35,10 @@ export async function fetchWeather(
   return {
     yesterday: parseDay(data, 0),
     today: parseDay(data, 1),
+    tomorrow: parseDay(data, 2),
     yesterdayHourly: parseHourly(data, 0),
     todayHourly: parseHourly(data, 24),
+    tomorrowHourly: parseHourly(data, 48),
   };
 }
 
