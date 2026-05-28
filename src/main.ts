@@ -21,6 +21,14 @@ function diffStr(diffC: number): string {
   return `${Math.abs(Math.round(diffC))}°C`;
 }
 
+// ─── Wind helpers ────────────────────────────────────────────────────────────
+
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+function windDirLabel(degrees: number): string {
+  return COMPASS[Math.round(degrees / 45) % 8];
+}
+
 // ─── Comparison summaries ───────────────────────────────────────────────────
 
 function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
@@ -35,6 +43,12 @@ function precipComparison(today: DailyWeather, yesterday: DailyWeather): string 
   return diff > 0
     ? `${Math.abs(diff).toFixed(1)} mm more rain`
     : `${Math.abs(diff).toFixed(1)} mm less rain`;
+}
+
+function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
+  const diff = today.windSpeedMax - yesterday.windSpeedMax;
+  if (Math.abs(diff) < 1) return 'Similar wind';
+  return diff > 0 ? `${Math.round(diff)} km/h windier` : `${Math.round(-diff)} km/h calmer`;
 }
 
 // ─── Card HTML ───────────────────────────────────────────────────────────────
@@ -56,6 +70,9 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
       </div>
       <div class="text-sm text-slate-400">
         ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm rain` : 'No rain'}
+      </div>
+      <div class="text-sm text-slate-400">
+        💨 ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
     </div>
   `;
@@ -208,9 +225,9 @@ function renderError(msg: string): void {
   document.getElementById('back-btn')!.addEventListener('click', renderSearch);
 }
 
-function renderWeather(location: GeoResult, weather: { today: DailyWeather; yesterday: DailyWeather }): void {
+function renderWeather(location: GeoResult, weather: { today: DailyWeather; yesterday: DailyWeather; model: string }): void {
   setUrlParams(location);
-  const { today, yesterday } = weather;
+  const { today, yesterday, model } = weather;
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
 
   root.innerHTML = `
@@ -236,12 +253,17 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
           ${weatherCardHTML(yesterday, 'Yesterday')}
         </div>
 
-        <div class="bg-sky-50 rounded-2xl p-4">
+        <div class="bg-sky-50 rounded-2xl p-4 mb-3">
           <div class="text-xs font-semibold uppercase tracking-wider text-sky-500 mb-2">Vs yesterday</div>
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
             <span>🌡️ ${tempComparison(today, yesterday)}</span>
             <span>💧 ${precipComparison(today, yesterday)}</span>
+            <span>💨 ${windComparison(today, yesterday)}</span>
           </div>
+        </div>
+
+        <div class="text-xs text-slate-400 text-right">
+          Open-Meteo · model: ${model}
         </div>
       </div>
     </div>

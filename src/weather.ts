@@ -1,31 +1,46 @@
 import type { DailyWeather } from './types';
 
+const DAILY_VARS = [
+  'weather_code',
+  'temperature_2m_max',
+  'temperature_2m_min',
+  'precipitation_sum',
+  'wind_speed_10m_max',
+  'wind_direction_10m_dominant',
+].join(',');
+
 export async function fetchWeather(
   lat: number,
   lon: number,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; model: string }> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
-  url.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum');
+  url.searchParams.set('daily', DAILY_VARS);
   url.searchParams.set('timezone', 'auto');
   url.searchParams.set('past_days', '1');
   url.searchParams.set('forecast_days', '1');
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Weather API error ${res.status}`);
-  const data: Record<string, Record<string, unknown[]>> = await res.json();
+  const data: Record<string, unknown> = await res.json();
 
-  return { yesterday: parseDay(data, 0), today: parseDay(data, 1) };
+  return {
+    yesterday: parseDay(data, 0),
+    today: parseDay(data, 1),
+    model: typeof data.model === 'string' ? data.model : 'best_match',
+  };
 }
 
-function parseDay(data: Record<string, Record<string, unknown[]>>, i: number): DailyWeather {
-  const d = data.daily;
+function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
+  const d = data.daily as Record<string, unknown[]>;
   return {
     date: d.time[i] as string,
     weatherCode: d.weather_code[i] as number,
     tempMax: d.temperature_2m_max[i] as number,
     tempMin: d.temperature_2m_min[i] as number,
     precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
+    windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
+    windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
   };
 }

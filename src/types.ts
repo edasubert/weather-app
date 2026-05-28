@@ -4,6 +4,8 @@ export interface DailyWeather {
   tempMax: number;
   tempMin: number;
   precipitationSum: number;
+  windSpeedMax: number;
+  windDirection: number;
 }
 
 export interface GeoResult {
