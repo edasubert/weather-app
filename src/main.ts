@@ -21,7 +21,7 @@ type ViewState =
   | null;
 
 let theme: Theme = 'auto';
-let _currentView: ViewState = null;
+let currentView: ViewState = null;
 const THEME_ICONS: Record<Theme, string> = { auto: '🌗', dark: '🌙', light: '☀️' };
 const THEME_CYCLE: Record<Theme, Theme> = { auto: 'dark', dark: 'light', light: 'auto' };
 
@@ -42,10 +42,10 @@ function attachThemeHandler(): void {
 
 function applyTheme(): void {
   document.documentElement.classList.toggle('dark', isDark());
-  if (_currentView?.type === 'search') {
+  if (currentView?.type === 'search') {
     renderSearch();
-  } else if (_currentView?.type === 'weather') {
-    renderWeather(_currentView.location, _currentView.weather);
+  } else if (currentView?.type === 'weather') {
+    renderWeather(currentView.location, currentView.weather);
   }
 }
 
@@ -56,9 +56,17 @@ function tempStr(c: number): string {
   return `${Math.round(c)}°C`;
 }
 
-function diffStr(diffC: number): string {
-  if (unit === 'F') return `${Math.abs(Math.round(diffC * 9 / 5))}°F`;
-  return `${Math.abs(Math.round(diffC))}°C`;
+function diffStr(abs: number): string {
+  if (unit === 'F') return `${Math.round(abs * 9 / 5)}°F`;
+  return `${Math.round(abs)}°C`;
+}
+
+function tempSig(abs: number): string {
+  return abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
+}
+
+function windSig(abs: number): string {
+  return abs < 5 ? '' : abs < 10 ? ' 👀' : abs < 20 ? ' ⚠️' : ' 🤯';
 }
 
 // ─── Wind helpers ─────────────────────────────────────────────────────────────
@@ -74,9 +82,8 @@ function windDirLabel(degrees: number): string {
 function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.tempMean - yesterday.tempMean;
   const abs = Math.abs(diff);
-  const sig = abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
   if (abs < 0.5) return 'About the same temperature';
-  return `${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${sig}`;
+  return `${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${tempSig(abs)}`;
 }
 
 function precipComparison(today: DailyWeather, yesterday: DailyWeather): string {
@@ -93,17 +100,15 @@ function precipComparison(today: DailyWeather, yesterday: DailyWeather): string 
 function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.apparentTempMean - yesterday.apparentTempMean;
   const abs = Math.abs(diff);
-  const sig = abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
   if (abs < 0.5) return 'Feels about the same';
-  return `Feels ${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${sig}`;
+  return `Feels ${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${tempSig(abs)}`;
 }
 
 function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.windSpeedMax - yesterday.windSpeedMax;
   const abs = Math.abs(diff);
-  const sig = abs < 5 ? '' : abs < 10 ? ' 👀' : abs < 20 ? ' ⚠️' : ' 🤯';
   if (abs < 1) return 'About the same wind speed';
-  return `${Math.round(abs)} km/h ${diff > 0 ? 'windier' : 'calmer'}${sig}`;
+  return `${Math.round(abs)} km/h ${diff > 0 ? 'windier' : 'calmer'}${windSig(abs)}`;
 }
 
 // ─── Metric info (modal content) ─────────────────────────────────────────────
@@ -236,7 +241,7 @@ function clearUrlParams(): void {
 // ─── Views ────────────────────────────────────────────────────────────────────
 
 function renderSearch(): void {
-  _currentView = { type: 'search' };
+  currentView = { type: 'search' };
   clearUrlParams();
   const dark = isDark();
   root.innerHTML = `
@@ -330,7 +335,7 @@ function renderSearch(): void {
 }
 
 function renderLoading(msg = 'Loading weather…'): void {
-  _currentView = { type: 'loading' };
+  currentView = { type: 'loading' };
   const dark = isDark();
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center">
@@ -359,7 +364,7 @@ function renderError(msg: string): void {
 }
 
 function renderWeather(location: GeoResult, weather: WeatherData): void {
-  _currentView = { type: 'weather', location, weather };
+  currentView = { type: 'weather', location, weather };
   setUrlParams(location);
   const { today, yesterday, todayHourly, yesterdayHourly } = weather;
   const dark = isDark();
@@ -368,17 +373,15 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
-        <div class="mb-4">
-          <div class="flex items-center justify-between gap-4 mb-4">
-            <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} min-w-0 truncate">📍 ${locationLabel}</div>
-            <div class="flex gap-2 shrink-0">
-              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
-                °${unit === 'C' ? 'F' : 'C'}
-              </button>
-              <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
-                Change location
-              </button>
-            </div>
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} min-w-0 truncate">📍 ${locationLabel}</div>
+          <div class="flex gap-2 shrink-0">
+            <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
+              °${unit === 'C' ? 'F' : 'C'}
+            </button>
+            <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
+              Change location
+            </button>
           </div>
         </div>
 
@@ -405,7 +408,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             <span>${themeLabel()}</span>
           </button>
           <div class="text-xs ${dark ? 'text-slate-600' : 'text-slate-400'}">
-            Open-Meteo · best match
+            Data source: <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
           </div>
         </div>
       </div>
@@ -435,7 +438,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
   document.getElementById('modal-close')!.addEventListener('click', closeModal);
   document.getElementById('modal-backdrop')!.addEventListener('click', closeModal);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); }, { once: true });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => {
