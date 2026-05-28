@@ -2,10 +2,10 @@ import type { HourlyData } from './types';
 
 const W = 600;
 const H = 200;
-const PL = 44;
+const PL = 52;
 const PR = 16;
 const PT = 12;
-const PB = 24;
+const PB = 28;
 const CW = W - PL - PR;
 const CH = H - PT - PB;
 
@@ -51,7 +51,7 @@ function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F')
   };
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean, hc = false): string {
   const { cvt, minT, maxT, maxP } = computeRange(today, yesterday, unit);
   const tT  = today.temp.map(cvt);
   const tY  = yesterday.temp.map(cvt);
@@ -76,42 +76,47 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
     `<text x="${xPos(h).toFixed(1)}" y="${H - 4}" text-anchor="middle" class="lbl">${String(h).padStart(2, '0')}:00</text>`
   ).join('');
 
-  const precipToday     = dark ? '#38bdf8' : '#bae6fd';
-  const precipYesterday = dark ? '#475569' : '#e2e8f0';
+  // Normal-mode colours
+  const precipToday     = hc ? (dark ? '#bfdbfe' : '#1e40af') : (dark ? '#38bdf8' : '#bae6fd');
+  const precipYesterday = hc ? (dark ? '#9ca3af' : '#374151') : (dark ? '#475569' : '#e2e8f0');
+  const todayLine       = '#38bdf8';
   const yLine           = dark ? '#475569' : '#cbd5e1';
-  const dotBg           = dark ? '#1e293b' : '#ffffff';
-  const hoverStroke     = dark ? '#64748b' : '#94a3b8';
-  const tooltipBg       = dark ? '#0f172a' : '#ffffff';
-  const tooltipBorder   = dark ? '#334155' : '#e2e8f0';
+  const dotBg           = hc ? (dark ? '#000000'  : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const hoverStroke     = hc ? (dark ? '#ffffff'  : '#000000') : (dark ? '#64748b' : '#94a3b8');
+  const tooltipBg       = hc ? (dark ? '#000000'  : '#ffffff') : (dark ? '#0f172a' : '#ffffff');
+  const tooltipBorder   = hc ? (dark ? '#ffffff'  : '#000000') : (dark ? '#334155' : '#e2e8f0');
+  const cardBg          = hc ? (dark ? '#000000'  : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const cardBorder      = hc ? `;border:2px solid ${dark ? '#ffffff' : '#000000'}` : '';
+  const legendText      = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
 
   return `
-    <div id="chart-container" class="rounded-2xl shadow-sm p-5 relative" style="background-color:${dark ? '#1e293b' : '#fff'}">
+    <div id="chart-container" class="rounded-2xl p-5 relative" style="background-color:${cardBg}${cardBorder}">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
-        <style>.lbl{font-size:10px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
+        <style>.lbl{font-size:${hc ? 18 : 16}px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         ${precipBars(yesterday.precip, maxP, maxBarH, precipYesterday, -barOffset)}
         ${precipBars(today.precip, maxP, maxBarH, precipToday, barOffset)}
         <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="${yLine}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(aY, minT, maxT)}" fill="none" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
-        <path d="${linePath(tT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        <path d="${linePath(aT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(tT, minT, maxT)}" fill="none" stroke="${todayLine}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(aT, minT, maxT)}" fill="none" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
         ${xLabels}
         <g id="chart-hover" style="display:none">
           <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + CH}" stroke="${hoverStroke}" stroke-width="1" stroke-dasharray="3 3"/>
-          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="#38bdf8" stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="#38bdf8" stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${yLine}" stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${yLine}" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${todayLine}" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${todayLine}" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${yLine}"     stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${yLine}"     stroke="${dotBg}" stroke-width="1.5"/>
         </g>
         <rect id="chart-overlay" x="${PL}" y="${PT}" width="${CW}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
       </svg>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:${tooltipBg};border:1px solid ${tooltipBorder}"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} mt-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${legendText} mt-3">
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:#38bdf8;vertical-align:middle"></span>Today temp
+          <span style="display:inline-block;width:18px;height:2px;background:${todayLine};vertical-align:middle"></span>Today temp
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/></svg>Today feels like
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4"/></svg>Today feels like
         </span>
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>Yesterday temp
@@ -136,6 +141,7 @@ export function setupChartTooltip(
   yesterday: HourlyData,
   unit: 'C' | 'F',
   dark: boolean,
+  hc = false,
 ): void {
   const svg        = container.querySelector('svg')!;
   const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
@@ -150,9 +156,10 @@ export function setupChartTooltip(
   const aT = today.apparentTemp.map(cvt);
   const aY = yesterday.apparentTemp.map(cvt);
 
-  const yColor  = dark ? '#475569' : '#cbd5e1';
-  const textMain = dark ? '#f1f5f9' : '#1e293b';
-  const textSub  = dark ? '#64748b' : '#94a3b8';
+  const yColor   = dark ? '#475569' : '#cbd5e1';
+  const todayCol = '#38bdf8';
+  const textMain = hc ? (dark ? '#ffffff'  : '#000000') : (dark ? '#f1f5f9' : '#1e293b');
+  const textSub  = hc ? (dark ? '#e5e7eb'  : '#1f2937') : (dark ? '#64748b' : '#94a3b8');
 
   overlay.addEventListener('mousemove', (e: MouseEvent) => {
     const svgRect = svg.getBoundingClientRect();
@@ -164,10 +171,10 @@ export function setupChartTooltip(
     hoverLine.setAttribute('x2', x.toFixed(1));
 
     [
-      { val: tT[hour], fill: '#38bdf8' },
-      { val: aT[hour], fill: '#38bdf8' },
-      { val: tY[hour], fill: yColor    },
-      { val: aY[hour], fill: yColor    },
+      { val: tT[hour], fill: todayCol },
+      { val: aT[hour], fill: todayCol },
+      { val: tY[hour], fill: yColor   },
+      { val: aY[hour], fill: yColor   },
     ].forEach(({ val, fill }, i) => {
       dots[i].setAttribute('cx', x.toFixed(1));
       dots[i].setAttribute('cy', yPos(val, minT, maxT).toFixed(1));

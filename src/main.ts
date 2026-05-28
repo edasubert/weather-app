@@ -21,6 +21,7 @@ type ViewState =
   | null;
 
 let theme: Theme = 'auto';
+let highContrast = false;
 let currentView: ViewState = null;
 const THEME_ICONS: Record<Theme, string> = { auto: '🌗', dark: '🌙', light: '☀️' };
 const THEME_CYCLE: Record<Theme, Theme> = { auto: 'dark', dark: 'light', light: 'auto' };
@@ -40,8 +41,16 @@ function attachThemeHandler(): void {
   });
 }
 
+function attachHCHandler(): void {
+  document.getElementById('hc-btn')?.addEventListener('click', () => {
+    highContrast = !highContrast;
+    applyTheme();
+  });
+}
+
 function applyTheme(): void {
   document.documentElement.classList.toggle('dark', isDark());
+  document.documentElement.classList.toggle('hc', highContrast);
   if (currentView?.type === 'search') {
     renderSearch();
   } else if (currentView?.type === 'weather') {
@@ -155,12 +164,17 @@ const METRIC_INFO: Record<string, { title: string; body: string }> = {
 
 // ─── Comparison row ───────────────────────────────────────────────────────────
 
-function comparisonRowHTML(icon: string, id: string, summary: string, dark: boolean): string {
-  const btnClass = dark
-    ? 'border-slate-600 text-slate-500 hover:border-sky-500 hover:text-sky-400'
-    : 'border-slate-300 text-slate-400 hover:border-sky-400 hover:text-sky-500';
+function comparisonRowHTML(icon: string, id: string, summary: string, dark: boolean, hc: boolean): string {
+  const rowText = hc
+    ? (dark ? 'text-white'      : 'text-black')
+    : (dark ? 'text-slate-300'  : 'text-slate-600');
+  const btnClass = hc
+    ? (dark ? 'border-white  text-white  hover:border-sky-300 hover:text-sky-300'
+            : 'border-black  text-black  hover:border-sky-700 hover:text-sky-700')
+    : (dark ? 'border-slate-500 text-slate-400 hover:border-sky-500 hover:text-sky-400'
+            : 'border-slate-400 text-slate-500 hover:border-sky-400 hover:text-sky-500');
   return `
-    <div class="flex items-center gap-2 text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">
+    <div class="flex items-center gap-2 text-sm ${rowText}">
       <span class="w-5 shrink-0">${icon}</span>
       <span class="flex-1">${summary}</span>
       <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors ${btnClass}" data-metric="${id}">i</button>
@@ -170,37 +184,46 @@ function comparisonRowHTML(icon: string, id: string, summary: string, dark: bool
 
 // ─── Card HTML ────────────────────────────────────────────────────────────────
 
-function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean): string {
+function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc: boolean): string {
   const { emoji, label } = describeCode(data.weatherCode);
   const date = new Date(data.date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
   });
+
+  const cardBg  = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const border  = hc ? `border:2px solid ${dark ? '#ffffff' : '#000000'};` : '';
+  const tA = hc ? (dark ? 'text-white'     : 'text-black')     : (dark ? 'text-slate-100' : 'text-slate-800');
+  const tB = hc ? (dark ? 'text-white'     : 'text-black')     : (dark ? 'text-slate-200' : 'text-slate-700');
+  const tC = hc ? (dark ? 'text-gray-100'  : 'text-gray-900')  : (dark ? 'text-slate-300' : 'text-slate-600');
+  const tD = hc ? (dark ? 'text-gray-100'  : 'text-gray-900')  : (dark ? 'text-slate-400' : 'text-slate-500');
+  const tE = hc ? (dark ? 'text-gray-200'  : 'text-gray-800')  : (dark ? 'text-slate-400' : 'text-slate-500');
+
   return `
-    <div class="rounded-2xl shadow-sm p-5 flex flex-col gap-2" style="background-color:${dark ? '#1e293b' : '#fff'}">
-      <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-slate-500' : 'text-slate-400'}">${heading}</div>
-      <div class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">${date}</div>
+    <div class="rounded-2xl p-5 flex flex-col gap-2" style="background-color:${cardBg};${border}">
+      <div class="text-xs font-semibold uppercase tracking-wider ${tD}">${heading}</div>
+      <div class="text-sm ${tD}">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
-      <div class="font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${label}</div>
+      <div class="font-medium ${tB}">${label}</div>
       <div class="flex items-baseline gap-2">
-        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMax)}</span>
-        <span class="text-2xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">${tempStr(data.tempMean)}</span>
-        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMin)}</span>
+        <span class="text-sm ${tC}">${tempStr(data.tempMax)}</span>
+        <span class="text-2xl font-semibold ${tA}">${tempStr(data.tempMean)}</span>
+        <span class="text-sm ${tC}">${tempStr(data.tempMin)}</span>
       </div>
       <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">high</span>
-        <span class="text-sm font-medium ${dark ? 'text-slate-600' : 'text-slate-300'}">avg</span>
-        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">low</span>
+        <span class="text-xs ${tE}">high</span>
+        <span class="text-xs font-medium ${tE}">avg</span>
+        <span class="text-xs ${tE}">low</span>
       </div>
       <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">Feels</span>
-        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMax)}</span>
-        <span class="text-sm font-medium ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.apparentTempMean)}</span>
-        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMin)}</span>
+        <span class="text-sm ${tD}">Feels</span>
+        <span class="text-sm ${tC}">${tempStr(data.apparentTempMax)}</span>
+        <span class="text-base font-medium ${tB}">${tempStr(data.apparentTempMean)}</span>
+        <span class="text-sm ${tC}">${tempStr(data.apparentTempMin)}</span>
       </div>
-      <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">
+      <div class="text-sm ${tD}">
         ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm rain` : 'No rain'}
       </div>
-      <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">
+      <div class="text-sm ${tD}">
         💨 ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
     </div>
@@ -230,25 +253,29 @@ function readUrlSettings(): void {
   if (u === 'F') unit = 'F';
   const t = p.get('theme');
   if (t === 'dark' || t === 'light' || t === 'auto') theme = t;
+  if (p.get('hc') === '1') highContrast = true;
+}
+
+function settingsParams(): URLSearchParams {
+  const p = new URLSearchParams();
+  p.set('unit', unit);
+  if (theme !== 'auto') p.set('theme', theme);
+  if (highContrast) p.set('hc', '1');
+  return p;
 }
 
 function setUrlParams(location: GeoResult): void {
-  const p = new URLSearchParams();
+  const p = settingsParams();
   p.set('lat', location.latitude.toFixed(4));
   p.set('lon', location.longitude.toFixed(4));
   p.set('name', location.name);
   p.set('country', location.country);
   if (location.admin1) p.set('admin1', location.admin1);
-  p.set('unit', unit);
-  if (theme !== 'auto') p.set('theme', theme);
   history.replaceState(null, '', '?' + p.toString());
 }
 
 function clearUrlParams(): void {
-  const p = new URLSearchParams();
-  p.set('unit', unit);
-  if (theme !== 'auto') p.set('theme', theme);
-  const str = p.toString();
+  const str = settingsParams().toString();
   history.replaceState(null, '', str ? '?' + str : window.location.pathname);
 }
 
@@ -258,13 +285,31 @@ function renderSearch(): void {
   currentView = { type: 'search' };
   clearUrlParams();
   const dark = isDark();
+  const hc   = highContrast;
+
+  const inputCls  = hc
+    ? (dark ? 'border-white bg-black text-white placeholder-gray-400'
+            : 'border-black bg-white text-black placeholder-gray-600')
+    : (dark ? 'border-slate-700 bg-slate-800 text-slate-200 placeholder-slate-500'
+            : 'border-slate-200 bg-white text-slate-700 placeholder-slate-400');
+  const suggestCls = hc
+    ? (dark ? 'bg-black border-white' : 'bg-white border-black')
+    : (dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100');
+  const dividerBg  = hc ? (dark ? 'bg-white' : 'bg-black') : (dark ? 'bg-slate-700' : 'bg-slate-200');
+  const geoBtnCls  = hc
+    ? (dark ? 'border-white text-white bg-black' : 'border-black text-black bg-white')
+    : (dark ? 'border-slate-700 text-slate-300 bg-slate-800' : 'border-slate-200 text-slate-600 bg-white');
+  const hcBtnCls   = hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text';
+  const heading    = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
+  const subtext    = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
+
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="w-full max-w-sm">
         <div class="text-center mb-8">
           <div class="text-5xl mb-3">🌤️</div>
-          <h1 class="text-2xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">Weather</h1>
-          <p class="${dark ? 'text-slate-400' : 'text-slate-500'} mt-1 text-sm">Today's forecast vs yesterday's weather</p>
+          <h1 class="text-2xl font-semibold ${heading}">Weather</h1>
+          <p class="${subtext} mt-1 text-sm">Today's forecast vs yesterday's weather</p>
         </div>
 
         <div class="relative mb-3">
@@ -273,32 +318,36 @@ function renderSearch(): void {
             type="text"
             placeholder="Search for a city…"
             autocomplete="off"
-            class="w-full px-4 py-3 rounded-xl border ${dark ? 'border-slate-700 bg-slate-800 text-slate-200 placeholder-slate-500' : 'border-slate-200 bg-white text-slate-700 placeholder-slate-400'} shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            class="w-full px-4 py-3 rounded-xl border ${inputCls} shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           />
           <div
             id="suggestions-box"
-            class="absolute top-full mt-1 w-full ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} rounded-xl shadow-lg border z-10 hidden overflow-hidden"
+            class="absolute top-full mt-1 w-full ${suggestCls} rounded-xl shadow-lg border z-10 hidden overflow-hidden"
           ></div>
         </div>
 
         ${'geolocation' in navigator ? `
           <div class="flex items-center gap-3 my-4">
-            <div class="flex-1 h-px ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
-            <span class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wide">or</span>
-            <div class="flex-1 h-px ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
+            <div class="flex-1 h-px ${dividerBg}"></div>
+            <span class="text-xs ${subtext} uppercase tracking-wide">or</span>
+            <div class="flex-1 h-px ${dividerBg}"></div>
           </div>
           <button
             id="geolocate-btn"
-            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border ${dark ? 'border-slate-700 text-slate-300 bg-slate-800' : 'border-slate-200 text-slate-600 bg-white'} shadow-sm hover-btn"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border ${geoBtnCls} shadow-sm hover-btn"
           >
             📍 Use my location
           </button>
         ` : ''}
 
-        <div class="flex justify-center mt-8">
+        <div class="flex justify-center gap-6 mt-8">
           <button id="theme-btn" class="flex items-center gap-2 text-xs subtle-text">
             <span>${THEME_ICONS[theme]}</span>
             <span>${themeLabel()}</span>
+          </button>
+          <button id="hc-btn" class="flex items-center gap-2 text-xs ${hcBtnCls}" aria-pressed="${hc}" title="Toggle easy to read mode">
+            <span>◑</span>
+            <span>Easy to read${hc ? ' on' : ''}</span>
           </button>
         </div>
       </div>
@@ -318,13 +367,16 @@ function renderSearch(): void {
         suggestions = await searchCity(q);
         if (!suggestions.length) { box.classList.add('hidden'); return; }
 
+        const itemBorder = hc ? (dark ? 'border-white' : 'border-black')   : (dark ? 'border-slate-700' : 'border-slate-50');
+        const itemMain   = hc ? (dark ? 'text-white'  : 'text-black')      : (dark ? 'text-slate-200'   : 'text-slate-700');
+        const itemSub    = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400'   : 'text-slate-500');
         box.innerHTML = suggestions.map((r, i) => `
           <button
-            class="w-full text-left px-4 py-3 hover-item border-b ${dark ? 'border-slate-700' : 'border-slate-50'} last:border-0"
+            class="w-full text-left px-4 py-3 hover-item border-b ${itemBorder} last:border-0"
             data-i="${i}"
           >
-            <span class="font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${r.name}</span>
-            <span class="${dark ? 'text-slate-500' : 'text-slate-400'} text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+            <span class="font-medium ${itemMain}">${r.name}</span>
+            <span class="${itemSub} text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
           </button>
         `).join('');
 
@@ -346,6 +398,7 @@ function renderSearch(): void {
 
   document.getElementById('geolocate-btn')?.addEventListener('click', () => void handleGeolocate());
   attachThemeHandler();
+  attachHCHandler();
 }
 
 function renderLoading(msg = 'Loading weather…'): void {
@@ -382,47 +435,70 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   setUrlParams(location);
   const { today, yesterday, todayHourly, yesterdayHourly } = weather;
   const dark = isDark();
+  const hc   = highContrast;
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
+
+  const btnCls = hc
+    ? (dark ? 'border-white text-white' : 'border-black text-black')
+    : (dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500');
+  const locText    = hc ? (dark ? 'text-white'    : 'text-black')    : (dark ? 'text-slate-400'  : 'text-slate-500');
+  const cmpBg      = hc
+    ? `${dark ? '#000000' : '#ffffff'};border:2px solid ${dark ? '#ffffff' : '#000000'}`
+    : (dark ? 'rgba(12,74,110,0.3)' : '#f0f9ff');
+  const cmpHeading = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
+  const modalBg       = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#fff');
+  const modalCloseCls = hc
+    ? (dark ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-700')
+    : (dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700');
+  const modalTitleCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
+  const modalBodyCls  = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-300' : 'text-slate-600');
+  const footerText = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
         <div class="flex items-center justify-between gap-4 mb-4">
-          <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} min-w-0 truncate">📍 ${locationLabel}</div>
+          <div class="text-sm ${locText} min-w-0 truncate">📍 ${locationLabel}</div>
           <div class="flex gap-2 shrink-0">
-            <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
+            <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
               °${unit === 'C' ? 'F' : 'C'}
             </button>
-            <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
+            <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
               Change location
             </button>
           </div>
         </div>
 
-        <div class="rounded-2xl p-4 mb-4" style="background-color:${dark ? 'rgba(12,74,110,0.3)' : '#f0f9ff'}">
-          <h1 class="text-xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'} mb-3">Today vs Yesterday</h1>
+        <div class="rounded-2xl p-4 mb-4" style="background-color:${cmpBg}">
+          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">Today vs Yesterday</h1>
           <div class="flex flex-col gap-2">
-            ${comparisonRowHTML('🌡️', 'temp', tempComparison(today, yesterday), dark)}
-            ${comparisonRowHTML('🌡️', 'apparentTemp', apparentTempComparison(today, yesterday), dark)}
-            ${comparisonRowHTML('💧', 'precip', precipComparison(today, yesterday), dark)}
-            ${comparisonRowHTML('💨', 'wind', windComparison(today, yesterday), dark)}
+            ${comparisonRowHTML('🌡️', 'temp', tempComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('🌡️', 'apparentTemp', apparentTempComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('💧', 'precip', precipComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('💨', 'wind', windComparison(today, yesterday), dark, hc)}
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          ${weatherCardHTML(yesterday, 'Yesterday', dark)}
-          ${weatherCardHTML(today, "Today", dark)}
+        <div class="${hc ? 'grid grid-cols-1' : 'grid grid-cols-2'} gap-3 mb-3">
+          ${weatherCardHTML(yesterday, 'Yesterday', dark, hc)}
+          ${weatherCardHTML(today, 'Today', dark, hc)}
         </div>
 
-        ${buildChart(todayHourly, yesterdayHourly, unit, dark)}
+        ${buildChart(todayHourly, yesterdayHourly, unit, dark, hc)}
 
-        <div class="flex items-center justify-between mt-2">
-          <button id="theme-btn" class="flex items-center gap-1.5 text-xs subtle-text">
-            <span>${THEME_ICONS[theme]}</span>
-            <span>${themeLabel()}</span>
-          </button>
-          <div class="text-xs ${dark ? 'text-slate-600' : 'text-slate-400'}">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
+          <div class="text-sm ${footerText}">
             Data source: <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
+          </div>
+          <div class="flex items-center gap-4">
+            <button id="theme-btn" class="flex items-center gap-1.5 text-xs subtle-text">
+              <span>${THEME_ICONS[theme]}</span>
+              <span>${themeLabel()}</span>
+            </button>
+            <button id="hc-btn" class="flex items-center gap-1.5 text-xs ${hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text'}" aria-pressed="${hc}">
+              <span>◑</span>
+              <span>Easy to read${hc ? ' on' : ''}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -430,16 +506,16 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
       <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
-      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:${dark ? '#1e293b' : '#fff'}">
-        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-600'} transition-colors">&times;</button>
-        <h2 id="modal-title" class="text-base font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'} mb-3 pr-6"></h2>
-        <div id="modal-body" class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'} flex flex-col gap-2"></div>
+      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:${modalBg}${hc ? `;border:2px solid ${dark ? '#fff' : '#000'}` : ''}">
+        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${modalCloseCls} transition-colors">&times;</button>
+        <h2 id="modal-title" class="text-base font-semibold ${modalTitleCls} mb-3 pr-6"></h2>
+        <div id="modal-body" class="text-sm ${modalBodyCls} flex flex-col gap-2"></div>
       </div>
     </div>
   `;
 
   const chartContainer = root.querySelector<HTMLElement>('#chart-container');
-  if (chartContainer) setupChartTooltip(chartContainer, todayHourly, yesterdayHourly, unit, dark);
+  if (chartContainer) setupChartTooltip(chartContainer, todayHourly, yesterdayHourly, unit, dark, hc);
 
   document.getElementById('unit-btn')!.addEventListener('click', () => {
     unit = unit === 'C' ? 'F' : 'C';
@@ -447,6 +523,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   });
   document.getElementById('search-btn')!.addEventListener('click', renderSearch);
   attachThemeHandler();
+  attachHCHandler();
 
   const modal = document.getElementById('info-modal')!;
   const modalTitle = document.getElementById('modal-title')!;
