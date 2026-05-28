@@ -51,7 +51,7 @@ function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F')
   };
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean, hc = false): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean, hc = false, label1 = 'Today', label2 = 'Yesterday'): string {
   const { cvt, minT, maxT, maxP } = computeRange(today, yesterday, unit);
   const tT  = today.temp.map(cvt);
   const tY  = yesterday.temp.map(cvt);
@@ -113,16 +113,16 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:${tooltipBg};border:1px solid ${tooltipBorder}"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${legendText} mt-3">
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${todayLine};vertical-align:middle"></span>🌡️ Today
+          <span style="display:inline-block;width:18px;height:2px;background:${todayLine};vertical-align:middle"></span>🌡️ ${label1}
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> Today
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> ${label1}
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>🌡️ Yesterday
+          <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>🌡️ ${label2}
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> Yesterday
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> ${label2}
         </span>
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span><span title="Precipitation">💧</span> Today
@@ -142,6 +142,8 @@ export function setupChartTooltip(
   unit: 'C' | 'F',
   dark: boolean,
   hc = false,
+  label1 = 'Today',
+  label2 = 'Yest.',
 ): void {
   const svg        = container.querySelector('svg')!;
   const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
@@ -191,8 +193,8 @@ export function setupChartTooltip(
       <div style="font-weight:600;color:${textMain};margin-bottom:6px;font-size:12px">${hh}</div>
       <div style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;font-size:11px">
         <span style="color:${textSub}"></span>
-        <span style="color:${textSub}">Today</span>
-        <span style="color:${textSub}">Yest.</span>
+        <span style="color:${textSub}">${label1}</span>
+        <span style="color:${textSub}">${label2}</span>
         <span style="color:${textSub}" title="Temperature">🌡️</span>
         <span style="color:${textMain}">${fmt(tT[hour])}</span>
         <span style="color:${textMain}">${fmt(tY[hour])}</span>
