@@ -2,7 +2,7 @@ import './style.css';
 import { fetchWeather } from './weather';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildChart } from './chart';
+import { buildChart, setupChartTooltip } from './chart';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
@@ -423,6 +423,9 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
       </div>
     </div>
   `;
+
+  const chartContainer = root.querySelector<HTMLElement>('#chart-container');
+  if (chartContainer) setupChartTooltip(chartContainer, todayHourly, yesterdayHourly, unit, dark);
 
   document.getElementById('unit-btn')!.addEventListener('click', () => {
     unit = unit === 'C' ? 'F' : 'C';

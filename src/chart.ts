@@ -34,21 +34,30 @@ function precipBars(precips: number[], maxP: number, maxBarH: number, fill: stri
   }).join('');
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean): string {
+function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F') {
   const cvt = (c: number) => unit === 'F' ? c * 9 / 5 + 32 : c;
+  const allT = [
+    ...today.temp, ...yesterday.temp,
+    ...today.apparentTemp, ...yesterday.apparentTemp,
+  ].map(cvt);
+  const rawMin = Math.min(...allT);
+  const rawMax = Math.max(...allT);
+  const pad = Math.max((rawMax - rawMin) * 0.15, 2);
+  return {
+    cvt,
+    minT: rawMin - pad,
+    maxT: rawMax + pad,
+    maxP: Math.max(...today.precip, ...yesterday.precip, 0.1),
+  };
+}
+
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean): string {
+  const { cvt, minT, maxT, maxP } = computeRange(today, yesterday, unit);
   const tT  = today.temp.map(cvt);
   const tY  = yesterday.temp.map(cvt);
   const aT  = today.apparentTemp.map(cvt);
   const aY  = yesterday.apparentTemp.map(cvt);
 
-  const allT = [...tT, ...tY, ...aT, ...aY];
-  const rawMin = Math.min(...allT);
-  const rawMax = Math.max(...allT);
-  const pad = Math.max((rawMax - rawMin) * 0.15, 2);
-  const minT = rawMin - pad;
-  const maxT = rawMax + pad;
-
-  const maxP = Math.max(...today.precip, ...yesterday.precip, 0.1);
   const maxBarH = CH * 0.25;
   const barOffset = (CW / 24) * 0.18;
 
@@ -67,22 +76,36 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
     `<text x="${xPos(h).toFixed(1)}" y="${H - 4}" text-anchor="middle" class="lbl">${String(h).padStart(2, '0')}:00</text>`
   ).join('');
 
-  const precipToday = dark ? '#38bdf8' : '#bae6fd';
+  const precipToday     = dark ? '#38bdf8' : '#bae6fd';
   const precipYesterday = dark ? '#475569' : '#e2e8f0';
+  const yLine           = dark ? '#475569' : '#cbd5e1';
+  const dotBg           = dark ? '#1e293b' : '#ffffff';
+  const hoverStroke     = dark ? '#64748b' : '#94a3b8';
+  const tooltipBg       = dark ? '#0f172a' : '#ffffff';
+  const tooltipBorder   = dark ? '#334155' : '#e2e8f0';
 
   return `
-    <div class="rounded-2xl shadow-sm p-5" style="background-color:${dark ? '#1e293b' : '#fff'}">
+    <div id="chart-container" class="rounded-2xl shadow-sm p-5 relative" style="background-color:${dark ? '#1e293b' : '#fff'}">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
         <style>.lbl{font-size:10px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         ${precipBars(yesterday.precip, maxP, maxBarH, precipYesterday, -barOffset)}
         ${precipBars(today.precip, maxP, maxBarH, precipToday, barOffset)}
-        <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-        <path d="${linePath(aY, minT, maxT)}" fill="none" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="${yLine}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(aY, minT, maxT)}" fill="none" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(tT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(aT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
         ${xLabels}
+        <g id="chart-hover" style="display:none">
+          <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + CH}" stroke="${hoverStroke}" stroke-width="1" stroke-dasharray="3 3"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="#38bdf8" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="#38bdf8" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${yLine}" stroke="${dotBg}" stroke-width="1.5"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${yLine}" stroke="${dotBg}" stroke-width="1.5"/>
+        </g>
+        <rect id="chart-overlay" x="${PL}" y="${PT}" width="${CW}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
       </svg>
+      <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:${tooltipBg};border:1px solid ${tooltipBorder}"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} mt-3">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:#38bdf8;vertical-align:middle"></span>Today temp
@@ -91,10 +114,10 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
           <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/></svg>Today feels like
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${dark ? '#475569' : '#cbd5e1'};vertical-align:middle"></span>Yesterday temp
+          <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>Yesterday temp
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-dasharray="4 4"/></svg>Yesterday feels like
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4"/></svg>Yesterday feels like
         </span>
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span>Today rain
@@ -105,4 +128,92 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
       </div>
     </div>
   `;
+}
+
+export function setupChartTooltip(
+  container: HTMLElement,
+  today: HourlyData,
+  yesterday: HourlyData,
+  unit: 'C' | 'F',
+  dark: boolean,
+): void {
+  const svg        = container.querySelector('svg')!;
+  const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
+  const hoverGroup = container.querySelector<SVGGElement>('#chart-hover')!;
+  const hoverLine  = container.querySelector<SVGLineElement>('#hover-line')!;
+  const dots       = Array.from(container.querySelectorAll<SVGCircleElement>('.hover-dot'));
+  const tooltip    = container.querySelector<HTMLElement>('#chart-tooltip')!;
+
+  const { cvt, minT, maxT } = computeRange(today, yesterday, unit);
+  const tT = today.temp.map(cvt);
+  const tY = yesterday.temp.map(cvt);
+  const aT = today.apparentTemp.map(cvt);
+  const aY = yesterday.apparentTemp.map(cvt);
+
+  const yColor  = dark ? '#475569' : '#cbd5e1';
+  const textMain = dark ? '#f1f5f9' : '#1e293b';
+  const textSub  = dark ? '#64748b' : '#94a3b8';
+
+  overlay.addEventListener('mousemove', (e: MouseEvent) => {
+    const svgRect = svg.getBoundingClientRect();
+    const svgX = (e.clientX - svgRect.left) / svgRect.width * W;
+    const hour = Math.max(0, Math.min(23, Math.round((svgX - PL) / CW * 23)));
+    const x = xPos(hour);
+
+    hoverLine.setAttribute('x1', x.toFixed(1));
+    hoverLine.setAttribute('x2', x.toFixed(1));
+
+    [
+      { val: tT[hour], fill: '#38bdf8' },
+      { val: aT[hour], fill: '#38bdf8' },
+      { val: tY[hour], fill: yColor    },
+      { val: aY[hour], fill: yColor    },
+    ].forEach(({ val, fill }, i) => {
+      dots[i].setAttribute('cx', x.toFixed(1));
+      dots[i].setAttribute('cy', yPos(val, minT, maxT).toFixed(1));
+      dots[i].setAttribute('fill', fill);
+    });
+
+    hoverGroup.style.display = '';
+
+    const hh = `${String(hour).padStart(2, '0')}:00`;
+    const fmt = (v: number) => `${Math.round(v)}°${unit}`;
+    const precipFmt = (p: number) => p < 0.05 ? '–' : `${p.toFixed(1)} mm`;
+
+    tooltip.innerHTML = `
+      <div style="font-weight:600;color:${textMain};margin-bottom:6px;font-size:12px">${hh}</div>
+      <div style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;font-size:11px">
+        <span style="color:${textSub}"></span>
+        <span style="color:${textSub}">Today</span>
+        <span style="color:${textSub}">Yest.</span>
+        <span style="color:${textSub}">Temp</span>
+        <span style="color:${textMain}">${fmt(tT[hour])}</span>
+        <span style="color:${textMain}">${fmt(tY[hour])}</span>
+        <span style="color:${textSub}">Feels</span>
+        <span style="color:${textMain}">${fmt(aT[hour])}</span>
+        <span style="color:${textMain}">${fmt(aY[hour])}</span>
+        <span style="color:${textSub}">Rain</span>
+        <span style="color:${textMain}">${precipFmt(today.precip[hour])}</span>
+        <span style="color:${textMain}">${precipFmt(yesterday.precip[hour])}</span>
+      </div>
+    `;
+
+    tooltip.style.display = 'block';
+
+    const containerRect = container.getBoundingClientRect();
+    const scale = svgRect.width / W;
+    const tipX = (svgRect.left - containerRect.left) + x * scale;
+    const tipY = (svgRect.top - containerRect.top) + 8;
+    const tipW = tooltip.offsetWidth;
+
+    tooltip.style.top  = `${tipY}px`;
+    tooltip.style.left = tipX + tipW + 14 > containerRect.width
+      ? `${tipX - tipW - 8}px`
+      : `${tipX + 12}px`;
+  });
+
+  overlay.addEventListener('mouseleave', () => {
+    hoverGroup.style.display = 'none';
+    tooltip.style.display = 'none';
+  });
 }
