@@ -233,19 +233,19 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
-        <div class="flex items-start justify-between mb-7 gap-4">
-          <div>
-            <div class="text-sm text-slate-400 mb-0.5">📍 ${locationLabel}</div>
-            <h1 class="text-xl font-semibold text-slate-800">Today vs Yesterday</h1>
+        <div class="mb-7">
+          <div class="flex items-center justify-between gap-4 mb-2">
+            <div class="text-sm text-slate-400 min-w-0 truncate">📍 ${locationLabel}</div>
+            <div class="flex gap-2 shrink-0">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                °${unit === 'C' ? 'F' : 'C'}
+              </button>
+              <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                Change location
+              </button>
+            </div>
           </div>
-          <div class="flex gap-2 shrink-0">
-            <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
-              °${unit === 'C' ? 'F' : 'C'}
-            </button>
-            <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
-              Change location
-            </button>
-          </div>
+          <h1 class="text-xl font-semibold text-slate-800">Today vs Yesterday</h1>
         </div>
 
         <div class="bg-sky-50 rounded-2xl p-4 mb-4">
