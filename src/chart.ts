@@ -113,22 +113,22 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:${tooltipBg};border:1px solid ${tooltipBorder}"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${legendText} mt-3">
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${todayLine};vertical-align:middle"></span>Today temp
+          <span style="display:inline-block;width:18px;height:2px;background:${todayLine};vertical-align:middle"></span>🌡️ Today
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4"/></svg>Today feels like
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${todayLine}" stroke-width="2" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> Today
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>Yesterday temp
+          <span style="display:inline-block;width:18px;height:2px;background:${yLine};vertical-align:middle"></span>🌡️ Yesterday
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4"/></svg>Yesterday feels like
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${yLine}" stroke-width="1.5" stroke-dasharray="4 4"/></svg><span title="Apparent temperature">🧑</span> Yesterday
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span>Today rain
+          <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span><span title="Precipitation">💧</span> Today
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:${precipYesterday};border-radius:2px;vertical-align:middle"></span>Yesterday rain
+          <span style="display:inline-block;width:10px;height:10px;background:${precipYesterday};border-radius:2px;vertical-align:middle"></span><span title="Precipitation">💧</span> Yesterday
         </span>
       </div>
     </div>
@@ -193,13 +193,13 @@ export function setupChartTooltip(
         <span style="color:${textSub}"></span>
         <span style="color:${textSub}">Today</span>
         <span style="color:${textSub}">Yest.</span>
-        <span style="color:${textSub}">Temp</span>
+        <span style="color:${textSub}" title="Temperature">🌡️</span>
         <span style="color:${textMain}">${fmt(tT[hour])}</span>
         <span style="color:${textMain}">${fmt(tY[hour])}</span>
-        <span style="color:${textSub}">Feels</span>
+        <span style="color:${textSub}" title="Apparent temperature">🧑</span>
         <span style="color:${textMain}">${fmt(aT[hour])}</span>
         <span style="color:${textMain}">${fmt(aY[hour])}</span>
-        <span style="color:${textSub}">Rain</span>
+        <span style="color:${textSub}" title="Precipitation">💧</span>
         <span style="color:${textMain}">${precipFmt(today.precip[hour])}</span>
         <span style="color:${textMain}">${precipFmt(yesterday.precip[hour])}</span>
       </div>

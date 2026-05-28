@@ -204,27 +204,37 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc:
       <div class="text-sm ${tD}">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
       <div class="font-medium ${tB}">${label}</div>
-      <div class="flex items-baseline gap-2">
-        <span class="text-sm ${tC}">${tempStr(data.tempMax)}</span>
-        <span class="text-2xl font-semibold ${tA}">${tempStr(data.tempMean)}</span>
-        <span class="text-sm ${tC}">${tempStr(data.tempMin)}</span>
-      </div>
-      <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-xs ${tE}">high</span>
-        <span class="text-xs font-medium ${tE}">avg</span>
-        <span class="text-xs ${tE}">low</span>
-      </div>
-      <div class="flex items-baseline gap-2 mt-0.5">
-        <span class="text-sm ${tD}">Feels</span>
-        <span class="text-sm ${tC}">${tempStr(data.apparentTempMax)}</span>
-        <span class="text-base font-medium ${tB}">${tempStr(data.apparentTempMean)}</span>
-        <span class="text-sm ${tC}">${tempStr(data.apparentTempMin)}</span>
+      <table class="mt-2 w-full text-sm [&_td]:align-bottom [&_th]:align-bottom [&_td:not(:first-child)]:pl-3 [&_th:not(:first-child)]:pl-3">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="text-right font-normal pb-0.5" title="Temperature">🌡️</th>
+            <th class="text-right font-normal pb-0.5" title="Apparent temperature">🧑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-xs ${tE}">high</td>
+            <td class="${tC} text-right">${tempStr(data.tempMax)}</td>
+            <td class="${tC} text-right">${tempStr(data.apparentTempMax)}</td>
+          </tr>
+          <tr>
+            <td class="text-base font-semibold ${tE}">avg</td>
+            <td class="text-base font-semibold ${tA} text-right">${tempStr(data.tempMean)}</td>
+            <td class="text-base font-semibold ${tB} text-right">${tempStr(data.apparentTempMean)}</td>
+          </tr>
+          <tr>
+            <td class="text-xs ${tE}">low</td>
+            <td class="${tC} text-right">${tempStr(data.tempMin)}</td>
+            <td class="${tC} text-right">${tempStr(data.apparentTempMin)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="text-sm ${tD}">
+        <span title="Precipitation">💧</span> ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm` : 'No rain'}
       </div>
       <div class="text-sm ${tD}">
-        ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm rain` : 'No rain'}
-      </div>
-      <div class="text-sm ${tD}">
-        💨 ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
+        <span title="Wind">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
     </div>
   `;
@@ -473,9 +483,9 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           <h1 class="text-xl font-semibold ${cmpHeading} mb-3">Today vs Yesterday</h1>
           <div class="flex flex-col gap-2">
             ${comparisonRowHTML('🌡️', 'temp', tempComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('🌡️', 'apparentTemp', apparentTempComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('💧', 'precip', precipComparison(today, yesterday), dark, hc)}
-            ${comparisonRowHTML('💨', 'wind', windComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('<span title="Apparent temperature">🧑</span>', 'apparentTemp', apparentTempComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('<span title="Precipitation">💧</span>', 'precip', precipComparison(today, yesterday), dark, hc)}
+            ${comparisonRowHTML('<span title="Wind">💨</span>', 'wind', windComparison(today, yesterday), dark, hc)}
           </div>
         </div>
 
