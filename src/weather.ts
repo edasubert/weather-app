@@ -1,4 +1,4 @@
-import type { DailyWeather } from './types';
+import type { DailyWeather, HourlyData } from './types';
 
 const DAILY_VARS = [
   'weather_code',
@@ -9,14 +9,17 @@ const DAILY_VARS = [
   'wind_direction_10m_dominant',
 ].join(',');
 
+const HOURLY_VARS = 'temperature_2m,precipitation';
+
 export async function fetchWeather(
   lat: number,
   lon: number,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData }> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
   url.searchParams.set('daily', DAILY_VARS);
+  url.searchParams.set('hourly', HOURLY_VARS);
   url.searchParams.set('timezone', 'auto');
   url.searchParams.set('past_days', '1');
   url.searchParams.set('forecast_days', '1');
@@ -25,7 +28,12 @@ export async function fetchWeather(
   if (!res.ok) throw new Error(`Weather API error ${res.status}`);
   const data: Record<string, unknown> = await res.json();
 
-  return { yesterday: parseDay(data, 0), today: parseDay(data, 1) };
+  return {
+    yesterday: parseDay(data, 0),
+    today: parseDay(data, 1),
+    yesterdayHourly: parseHourly(data, 0),
+    todayHourly: parseHourly(data, 24),
+  };
 }
 
 function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
@@ -38,5 +46,13 @@ function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
     precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
     windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
     windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
+  };
+}
+
+function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
+  const h = data.hourly as Record<string, (number | null)[]>;
+  return {
+    temp: h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
+    precip: h.precipitation.slice(start, start + 24).map(v => v ?? 0),
   };
 }

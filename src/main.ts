@@ -2,7 +2,8 @@ import './style.css';
 import { fetchWeather } from './weather';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import type { DailyWeather, GeoResult } from './types';
+import { buildChart } from './chart';
+import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
@@ -225,9 +226,12 @@ function renderError(msg: string): void {
   document.getElementById('back-btn')!.addEventListener('click', renderSearch);
 }
 
-function renderWeather(location: GeoResult, weather: { today: DailyWeather; yesterday: DailyWeather }): void {
+function renderWeather(
+  location: GeoResult,
+  weather: { today: DailyWeather; yesterday: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData },
+): void {
   setUrlParams(location);
-  const { today, yesterday } = weather;
+  const { today, yesterday, todayHourly, yesterdayHourly } = weather;
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
 
   root.innerHTML = `
@@ -262,7 +266,9 @@ function renderWeather(location: GeoResult, weather: { today: DailyWeather; yest
           ${weatherCardHTML(yesterday, 'Yesterday')}
         </div>
 
-        <div class="text-xs text-slate-400 text-right">
+        ${buildChart(todayHourly, yesterdayHourly, unit)}
+
+        <div class="text-xs text-slate-400 text-right mt-1">
           Open-Meteo · best match
         </div>
       </div>

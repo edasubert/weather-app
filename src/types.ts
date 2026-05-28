@@ -8,6 +8,11 @@ export interface DailyWeather {
   windDirection: number;
 }
 
+export interface HourlyData {
+  temp: number[];    // 24 values, one per hour
+  precip: number[];  // 24 values, one per hour
+}
+
 export interface GeoResult {
   name: string;
   latitude: number;
