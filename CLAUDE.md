@@ -31,3 +31,18 @@ All logic is client-side. Source is under `src/`:
 - `wmo.ts` — WMO weather code → `{ label, emoji }` lookup table
 - `types.ts` — `DailyWeather` and `GeoResult` interfaces
 - `main.ts` — app state, DOM rendering, event handling; module-level `unit` ('C'|'F') and `suggestions` variables drive re-renders
+
+
+## Weather comparison
+There will be a comparison of today's weather forecast to yesterday's weather history. 
+* temperature
+    * will state the difference in degrees
+    * will comment on the significance of change
+* perscipitation
+    * if there is no rain on both days, just state still no rain or something like that
+    * if there was rain yesterday but is none forecasted for today, just state no rain today or something like that
+    * if there was no rain yesterday but it is forecasted for today, just state it will rain today or something like that
+    * if there is rain on both days, just state it will rain more/less/about the same or something like that
+* wind
+    * will state the difference in speed
+    * will comment on the difference in wind today and yesterday

@@ -72,23 +72,95 @@ function windDirLabel(degrees: number): string {
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
 function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const diff = (today.tempMax + today.tempMin) / 2 - (yesterday.tempMax + yesterday.tempMin) / 2;
-  if (Math.abs(diff) < 0.5) return 'Similar temperature';
-  return diff > 0 ? `${diffStr(diff)} warmer` : `${diffStr(-diff)} cooler`;
+  const diff = today.tempMean - yesterday.tempMean;
+  const abs = Math.abs(diff);
+  const sig = abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
+  if (abs < 0.5) return 'About the same temperature';
+  return `${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${sig}`;
 }
 
 function precipComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const diff = today.precipitationSum - yesterday.precipitationSum;
-  if (Math.abs(diff) < 0.1) return 'Similar precipitation';
-  return diff > 0
-    ? `${Math.abs(diff).toFixed(1)} mm more rain`
-    : `${Math.abs(diff).toFixed(1)} mm less rain`;
+  const t = today.precipitationSum;
+  const y = yesterday.precipitationSum;
+  if (t < 0.1 && y < 0.1) return 'Still no rain';
+  if (y >= 0.1 && t < 0.1) return 'No rain today';
+  if (y < 0.1 && t >= 0.1) return 'Rain expected today';
+  const diff = t - y;
+  if (Math.abs(diff) < 0.5) return 'About the same amount of rain';
+  return diff > 0 ? 'More rain expected' : 'Less rain expected';
+}
+
+function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
+  const diff = today.apparentTempMean - yesterday.apparentTempMean;
+  const abs = Math.abs(diff);
+  const sig = abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
+  if (abs < 0.5) return 'Feels about the same';
+  return `Feels ${diffStr(abs)} ${diff > 0 ? 'warmer' : 'cooler'}${sig}`;
 }
 
 function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
   const diff = today.windSpeedMax - yesterday.windSpeedMax;
-  if (Math.abs(diff) < 1) return 'Similar wind';
-  return diff > 0 ? `${Math.round(diff)} km/h windier` : `${Math.round(-diff)} km/h calmer`;
+  const abs = Math.abs(diff);
+  const sig = abs < 5 ? '' : abs < 10 ? ' 👀' : abs < 20 ? ' ⚠️' : ' 🤯';
+  if (abs < 1) return 'About the same wind speed';
+  return `${Math.round(abs)} km/h ${diff > 0 ? 'windier' : 'calmer'}${sig}`;
+}
+
+// ─── Metric info (modal content) ─────────────────────────────────────────────
+
+const LINK = 'class="text-sky-500 underline" target="_blank" rel="noopener noreferrer"';
+const DOCS = `<a ${LINK} href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
+
+const METRIC_INFO: Record<string, { title: string; body: string }> = {
+  temp: {
+    title: 'Actual temperature',
+    body: `
+      <p><strong>Air temperature at 2 m above ground</strong> — the raw measured value, unaffected by wind or humidity.</p>
+      <p>The comparison uses the daily mean temperature as reported by the model, not the simple (high + low) ÷ 2 average.</p>
+      <p class="opacity-60 text-xs">Source: <code>temperature_2m_max/mean/min</code> — ${DOCS}</p>
+    `,
+  },
+  apparentTemp: {
+    title: 'Feels-like temperature',
+    body: `
+      <p><strong>Apparent temperature</strong> combines air temperature with wind chill and humidity to estimate how hot or cold conditions actually feel to the human body.</p>
+      <p>It uses the <a ${LINK} href="https://en.wikipedia.org/wiki/Universal_thermal_climate_index">Universal Thermal Climate Index (UTCI)</a> model — on cold windy days it will be lower than the actual temperature; on hot humid days it will be higher.</p>
+      <p class="opacity-60 text-xs">Source: <code>apparent_temperature_max/mean/min</code> — ${DOCS}</p>
+    `,
+  },
+  precip: {
+    title: 'Precipitation',
+    body: `
+      <p>Total precipitation accumulated over the day: <strong>rain, showers, and snowfall combined</strong>, expressed in millimetres of liquid water equivalent.</p>
+      <p>Snowfall is converted to mm using a density factor. Trace amounts below 0.1 mm are shown as "no rain."</p>
+      <p><a ${LINK} href="https://en.wikipedia.org/wiki/Precipitation">About precipitation ↗</a></p>
+      <p class="opacity-60 text-xs">Source: <code>precipitation_sum</code> — ${DOCS}</p>
+    `,
+  },
+  wind: {
+    title: 'Wind speed',
+    body: `
+      <p><strong>Maximum sustained wind speed</strong> at 10 m above ground recorded during the day, paired with the day's dominant wind direction (the direction the wind blows <em>from</em>).</p>
+      <p>Gusts — brief spikes above the sustained speed — are a separate variable and can be considerably higher.</p>
+      <p><a ${LINK} href="https://en.wikipedia.org/wiki/Wind_speed">About wind speed ↗</a></p>
+      <p class="opacity-60 text-xs">Source: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — ${DOCS}</p>
+    `,
+  },
+};
+
+// ─── Comparison row ───────────────────────────────────────────────────────────
+
+function comparisonRowHTML(icon: string, id: string, summary: string, dark: boolean): string {
+  const btnClass = dark
+    ? 'border-slate-600 text-slate-500 hover:border-sky-500 hover:text-sky-400'
+    : 'border-slate-300 text-slate-400 hover:border-sky-400 hover:text-sky-500';
+  return `
+    <div class="flex items-center gap-2 text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">
+      <span class="w-5 shrink-0">${icon}</span>
+      <span class="flex-1">${summary}</span>
+      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors ${btnClass}" data-metric="${id}">i</button>
+    </div>
+  `;
 }
 
 // ─── Card HTML ────────────────────────────────────────────────────────────────
@@ -104,9 +176,21 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean): st
       <div class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
       <div class="font-medium ${dark ? 'text-slate-200' : 'text-slate-700'}">${label}</div>
-      <div class="text-2xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">
-        ${tempStr(data.tempMax)}
-        <span class="text-base font-normal ${dark ? 'text-slate-500' : 'text-slate-400'}">/ ${tempStr(data.tempMin)}</span>
+      <div class="flex items-baseline gap-2">
+        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMax)}</span>
+        <span class="text-2xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">${tempStr(data.tempMean)}</span>
+        <span class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.tempMin)}</span>
+      </div>
+      <div class="flex items-baseline gap-2 mt-0.5">
+        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">high</span>
+        <span class="text-sm font-medium ${dark ? 'text-slate-600' : 'text-slate-300'}">avg</span>
+        <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-300'}">low</span>
+      </div>
+      <div class="flex items-baseline gap-2 mt-0.5">
+        <span class="text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}">Feels</span>
+        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMax)}</span>
+        <span class="text-sm font-medium ${dark ? 'text-slate-300' : 'text-slate-600'}">${tempStr(data.apparentTempMean)}</span>
+        <span class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${tempStr(data.apparentTempMin)}</span>
       </div>
       <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">
         ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm rain` : 'No rain'}
@@ -284,8 +368,8 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
-        <div class="mb-7">
-          <div class="flex items-center justify-between gap-4 mb-2">
+        <div class="mb-4">
+          <div class="flex items-center justify-between gap-4 mb-4">
             <div class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} min-w-0 truncate">📍 ${locationLabel}</div>
             <div class="flex gap-2 shrink-0">
               <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'} hover-btn">
@@ -296,21 +380,21 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
               </button>
             </div>
           </div>
-          <h1 class="text-xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}">Today vs Yesterday</h1>
         </div>
 
         <div class="rounded-2xl p-4 mb-4" style="background-color:${dark ? 'rgba(12,74,110,0.3)' : '#f0f9ff'}">
-          <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-sky-400' : 'text-sky-500'} mb-2">Vs yesterday</div>
-          <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">
-            <span>🌡️ ${tempComparison(today, yesterday)}</span>
-            <span>💧 ${precipComparison(today, yesterday)}</span>
-            <span>💨 ${windComparison(today, yesterday)}</span>
+          <h1 class="text-xl font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'} mb-3">Today vs Yesterday</h1>
+          <div class="flex flex-col gap-2">
+            ${comparisonRowHTML('🌡️', 'temp', tempComparison(today, yesterday), dark)}
+            ${comparisonRowHTML('🌡️', 'apparentTemp', apparentTempComparison(today, yesterday), dark)}
+            ${comparisonRowHTML('💧', 'precip', precipComparison(today, yesterday), dark)}
+            ${comparisonRowHTML('💨', 'wind', windComparison(today, yesterday), dark)}
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-3">
-          ${weatherCardHTML(today, "Today's forecast", dark)}
           ${weatherCardHTML(yesterday, 'Yesterday', dark)}
+          ${weatherCardHTML(today, "Today", dark)}
         </div>
 
         ${buildChart(todayHourly, yesterdayHourly, unit, dark)}
@@ -326,6 +410,15 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
         </div>
       </div>
     </div>
+
+    <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
+      <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
+      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:${dark ? '#1e293b' : '#fff'}">
+        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-600'} transition-colors">&times;</button>
+        <h2 id="modal-title" class="text-base font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'} mb-3 pr-6"></h2>
+        <div id="modal-body" class="text-sm ${dark ? 'text-slate-300' : 'text-slate-600'} flex flex-col gap-2"></div>
+      </div>
+    </div>
   `;
 
   document.getElementById('unit-btn')!.addEventListener('click', () => {
@@ -334,6 +427,25 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   });
   document.getElementById('search-btn')!.addEventListener('click', renderSearch);
   attachThemeHandler();
+
+  const modal = document.getElementById('info-modal')!;
+  const modalTitle = document.getElementById('modal-title')!;
+  const modalBody = document.getElementById('modal-body')!;
+  const closeModal = () => modal.classList.add('hidden');
+
+  document.getElementById('modal-close')!.addEventListener('click', closeModal);
+  document.getElementById('modal-backdrop')!.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); }, { once: true });
+
+  document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const info = METRIC_INFO[btn.dataset.metric!];
+      if (!info) return;
+      modalTitle.textContent = info.title;
+      modalBody.innerHTML = info.body;
+      modal.classList.remove('hidden');
+    });
+  });
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────

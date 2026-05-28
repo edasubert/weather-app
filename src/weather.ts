@@ -3,13 +3,17 @@ import type { DailyWeather, HourlyData } from './types';
 const DAILY_VARS = [
   'weather_code',
   'temperature_2m_max',
+  'temperature_2m_mean',
   'temperature_2m_min',
+  'apparent_temperature_max',
+  'apparent_temperature_mean',
+  'apparent_temperature_min',
   'precipitation_sum',
   'wind_speed_10m_max',
   'wind_direction_10m_dominant',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,precipitation';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation';
 
 export async function fetchWeather(
   lat: number,
@@ -42,7 +46,11 @@ function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
     date: d.time[i] as string,
     weatherCode: d.weather_code[i] as number,
     tempMax: d.temperature_2m_max[i] as number,
+    tempMean: d.temperature_2m_mean[i] as number,
     tempMin: d.temperature_2m_min[i] as number,
+    apparentTempMax: d.apparent_temperature_max[i] as number,
+    apparentTempMean: d.apparent_temperature_mean[i] as number,
+    apparentTempMin: d.apparent_temperature_min[i] as number,
     precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
     windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
     windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
@@ -53,6 +61,7 @@ function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
   const h = data.hourly as Record<string, (number | null)[]>;
   return {
     temp: h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
+    apparentTemp: h.apparent_temperature.slice(start, start + 24).map(v => v ?? 0),
     precip: h.precipitation.slice(start, start + 24).map(v => v ?? 0),
   };
 }

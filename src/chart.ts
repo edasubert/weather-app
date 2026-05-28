@@ -36,10 +36,12 @@ function precipBars(precips: number[], maxP: number, maxBarH: number, fill: stri
 
 export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean): string {
   const cvt = (c: number) => unit === 'F' ? c * 9 / 5 + 32 : c;
-  const tT = today.temp.map(cvt);
-  const tY = yesterday.temp.map(cvt);
+  const tT  = today.temp.map(cvt);
+  const tY  = yesterday.temp.map(cvt);
+  const aT  = today.apparentTemp.map(cvt);
+  const aY  = yesterday.apparentTemp.map(cvt);
 
-  const allT = [...tT, ...tY];
+  const allT = [...tT, ...tY, ...aT, ...aY];
   const rawMin = Math.min(...allT);
   const rawMax = Math.max(...allT);
   const pad = Math.max((rawMax - rawMin) * 0.15, 2);
@@ -70,22 +72,29 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
 
   return `
     <div class="rounded-2xl shadow-sm p-5" style="background-color:${dark ? '#1e293b' : '#fff'}">
-      <div class="text-xs font-semibold uppercase tracking-wider ${dark ? 'text-slate-500' : 'text-slate-400'} mb-3">Hourly breakdown</div>
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
         <style>.lbl{font-size:10px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         ${precipBars(yesterday.precip, maxP, maxBarH, precipYesterday, -barOffset)}
         ${precipBars(today.precip, maxP, maxBarH, precipToday, barOffset)}
         <path d="${linePath(tY, minT, maxT)}" fill="none" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(aY, minT, maxT)}" fill="none" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(tT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="${linePath(aT, minT, maxT)}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
         ${xLabels}
       </svg>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? 'text-slate-500' : 'text-slate-400'} mt-3">
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:#38bdf8;border-radius:1px;vertical-align:middle"></span>Today temp
+          <span style="display:inline-block;width:18px;height:2px;background:#38bdf8;vertical-align:middle"></span>Today temp
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${dark ? '#475569' : '#cbd5e1'};border-radius:1px;vertical-align:middle"></span>Yesterday temp
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/></svg>Today feels like
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span style="display:inline-block;width:18px;height:2px;background:${dark ? '#475569' : '#cbd5e1'};vertical-align:middle"></span>Yesterday temp
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${dark ? '#475569' : '#cbd5e1'}" stroke-width="1.5" stroke-dasharray="4 4"/></svg>Yesterday feels like
         </span>
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:10px;height:10px;background:${precipToday};border-radius:2px;vertical-align:middle"></span>Today rain

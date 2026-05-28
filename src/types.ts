@@ -2,15 +2,20 @@ export interface DailyWeather {
   date: string;
   weatherCode: number;
   tempMax: number;
+  tempMean: number;
   tempMin: number;
+  apparentTempMax: number;
+  apparentTempMean: number;
+  apparentTempMin: number;
   precipitationSum: number;
   windSpeedMax: number;
   windDirection: number;
 }
 
 export interface HourlyData {
-  temp: number[];    // 24 values, one per hour
-  precip: number[];  // 24 values, one per hour
+  temp: number[];
+  apparentTemp: number[];
+  precip: number[];
 }
 
 export interface GeoResult {
