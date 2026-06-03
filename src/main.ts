@@ -606,8 +606,13 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
-        <div class="flex items-center justify-between gap-4 mb-4">
-          <div class="text-sm ${locText} min-w-0 truncate">📍 ${locationLabel}</div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+          <div class="flex items-center gap-2 min-w-0 sm:flex-1">
+            <div class="text-sm ${locText} min-w-0 truncate flex-1">📍 ${locationLabel}</div>
+            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn shrink-0">
+              ${t('weather.changeLocation')}
+            </button>
+          </div>
           <div class="flex gap-2 shrink-0">
             <div class="relative">
               <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
@@ -630,7 +635,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
                 <button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid ${menuBorderColor}">°F</button>
               </div>
             </div>
-            <button id="search-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
+            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
               ${t('weather.changeLocation')}
             </button>
           </div>
@@ -702,7 +707,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
       renderWeather(location, weather);
     });
   });
-  document.getElementById('search-btn')!.addEventListener('click', renderSearch);
+  document.querySelectorAll<HTMLButtonElement>('.search-btn').forEach(btn => btn.addEventListener('click', renderSearch));
   attachThemeHandler();
   attachHCHandler();
   attachDropdownHandlers();
