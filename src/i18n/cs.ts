@@ -76,6 +76,16 @@ export default {
     failed: 'Nepodařilo se načíst data o počasí. Zkuste to znovu.',
     locationDenied: 'Přístup k poloze odepřen. Prosím vyhledejte město ručně.',
     tryAgain: 'Zkusit znovu',
+    noDataTitle: 'Žádná data o počasí pro toto místo',
+    noDataBody: '<strong>{{model}}</strong> nepokrývá {{location}}. Vyberte prosím jiný model.',
+    changeLocation: 'Změnit místo',
+  },
+  model: {
+    label: 'Model',
+    groupAuto: 'Automaticky',
+    groupSeamless: 'Kombinovaný (globální + regionální)',
+    groupGlobal: 'Globální',
+    groupRegional: 'Regionální (omezené pokrytí)',
   },
   metric: {
     temp: {

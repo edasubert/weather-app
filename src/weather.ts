@@ -15,9 +15,17 @@ const DAILY_VARS = [
 
 const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation';
 
+export class WeatherNoDataError extends Error {
+  constructor() {
+    super('No data is available for this location');
+    this.name = 'WeatherNoDataError';
+  }
+}
+
 export async function fetchWeather(
   lat: number,
   lon: number,
+  model?: string,
 ): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData }> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
@@ -27,10 +35,19 @@ export async function fetchWeather(
   url.searchParams.set('timezone', 'auto');
   url.searchParams.set('past_days', '1');
   url.searchParams.set('forecast_days', '2');
+  if (model && model !== 'best_match') {
+    url.searchParams.set('models', model);
+  }
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Weather API error ${res.status}`);
-  const data: Record<string, unknown> = await res.json();
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: boolean; reason?: string } | null;
+    if (body?.error === true) {
+      throw new WeatherNoDataError();
+    }
+    throw new Error(`Weather API error ${res.status}`);
+  }
+  const data: Record<string, unknown> = await res.json().catch(() => { throw new WeatherNoDataError(); });
 
   return {
     yesterday: parseDay(data, 0),

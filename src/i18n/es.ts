@@ -76,6 +76,16 @@ export default {
     failed: 'No se pudieron cargar los datos del clima. Inténtalo de nuevo.',
     locationDenied: 'Acceso a ubicación denegado. Por favor busca una ciudad.',
     tryAgain: 'Intentar de nuevo',
+    noDataTitle: 'No hay datos meteorológicos para esta ubicación',
+    noDataBody: '<strong>{{model}}</strong> no cubre {{location}}. Por favor, selecciona otro modelo.',
+    changeLocation: 'Cambiar ubicación',
+  },
+  model: {
+    label: 'Modelo',
+    groupAuto: 'Automático',
+    groupSeamless: 'Combinado (global + regional)',
+    groupGlobal: 'Global',
+    groupRegional: 'Regional (cobertura limitada)',
   },
   metric: {
     temp: {

@@ -76,6 +76,16 @@ export default {
     failed: 'Impossible de charger les données météo. Veuillez réessayer.',
     locationDenied: 'Accès à la position refusé. Veuillez rechercher une ville.',
     tryAgain: 'Réessayer',
+    noDataTitle: 'Aucune donnée météo pour cet endroit',
+    noDataBody: '<strong>{{model}}</strong> ne couvre pas {{location}}. Veuillez sélectionner un autre modèle.',
+    changeLocation: 'Changer de lieu',
+  },
+  model: {
+    label: 'Modèle',
+    groupAuto: 'Automatique',
+    groupSeamless: 'Combiné (global + régional)',
+    groupGlobal: 'Global',
+    groupRegional: 'Régional (couverture limitée)',
   },
   metric: {
     temp: {

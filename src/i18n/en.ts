@@ -76,6 +76,16 @@ export default {
     failed: 'Could not load weather data. Please try again.',
     locationDenied: 'Location access denied. Please search for a city instead.',
     tryAgain: 'Try again',
+    noDataTitle: 'No weather data for this location',
+    noDataBody: '<strong>{{model}}</strong> doesn\'t cover {{location}}. Please select a different model.',
+    changeLocation: 'Change location',
+  },
+  model: {
+    label: 'Model',
+    groupAuto: 'Automatic',
+    groupSeamless: 'Seamless (auto-blend global + regional)',
+    groupGlobal: 'Global',
+    groupRegional: 'Regional (limited coverage)',
   },
   metric: {
     temp: {

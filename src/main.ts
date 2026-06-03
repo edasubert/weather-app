@@ -1,5 +1,6 @@
 import './style.css';
-import { fetchWeather } from './weather';
+import { fetchWeather, WeatherNoDataError } from './weather';
+import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildChart, setupChartTooltip } from './chart';
@@ -8,6 +9,7 @@ import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
+let model = DEFAULT_MODEL;
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -30,6 +32,31 @@ function langMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls: 
   }).join('');
   return `<div id="lang-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:130px">${items}</div>`;
 }
+function modelMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls: string, openUp = false): string {
+  const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
+  const groups = ['auto', 'seamless', 'global', 'regional'] as const;
+  const groupLabels: Record<string, string> = {
+    auto:     t('model.groupAuto'),
+    seamless: t('model.groupSeamless'),
+    global:   t('model.groupGlobal'),
+    regional: t('model.groupRegional'),
+  };
+  let html = '';
+  let first = true;
+  for (const group of groups) {
+    const groupModels = WEATHER_MODELS.filter(m => m.group === group);
+    if (!groupModels.length) continue;
+    const groupBorder = first ? '' : `border-top:1px solid ${menuBorderColor};`;
+    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider ${menuItemTextCls}" style="${groupBorder}opacity:0.5">${groupLabels[group]}</div>`;
+    for (const m of groupModels) {
+      const active = model === m.id ? ' font-semibold' : '';
+      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${active}" data-model="${m.id}" style="border-top:1px solid ${menuBorderColor}"><div>${m.name}</div><div class="text-xs" style="opacity:0.5">${m.provider} · ${m.coverage}</div></button>`;
+    }
+    first = false;
+  }
+  return `<div id="model-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:300px;max-height:360px">${html}</div>`;
+}
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let suggestions: GeoResult[] = [];
 
@@ -91,6 +118,27 @@ function attachDropdownHandlers(): void {
         setLang(btn.dataset.lang as Lang);
         if (currentView?.type === 'search') renderSearch();
         else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+      });
+    });
+  }
+
+  const modelBtn  = document.getElementById('model-btn');
+  const modelMenu = document.getElementById('model-menu');
+  if (modelBtn && modelMenu) {
+    modelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasHidden = modelMenu.classList.contains('hidden');
+      modelMenu.classList.toggle('hidden');
+      if (wasHidden) {
+        setTimeout(() => document.addEventListener('click', () => modelMenu.classList.add('hidden'), { once: true }), 0);
+      }
+    });
+    modelMenu.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        model = btn.dataset.model as string;
+        if (currentView?.type === 'search') renderSearch();
+        else if (currentView?.type === 'weather') void loadWeather(currentView.location);
       });
     });
   }
@@ -307,6 +355,8 @@ function readUrlSettings(): void {
   if (p.get('comp') === 'tomorrow') comparison = 'today-tomorrow';
   const lg = p.get('lang');
   if (lg && (LANGS as string[]).includes(lg)) setLang(lg as Lang);
+  const m = p.get('model');
+  if (m && MODEL_MAP.has(m)) model = m;
 }
 
 function settingsParams(): URLSearchParams {
@@ -316,6 +366,7 @@ function settingsParams(): URLSearchParams {
   if (highContrast) p.set('hc', '1');
   if (comparison === 'today-tomorrow') p.set('comp', 'tomorrow');
   if (getLang() !== 'en') p.set('lang', getLang());
+  if (model !== DEFAULT_MODEL) p.set('model', model);
   return p;
 }
 
@@ -413,6 +464,13 @@ function renderSearch(): void {
               <span class="opacity-50">▾</span>
             </button>
             ${langMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+          </div>
+          <div class="relative">
+            <button id="model-btn" class="flex items-center gap-1 text-xs subtle-text">
+              <span>${findModel(model).shortLabel}</span>
+              <span class="opacity-50">▾</span>
+            </button>
+            ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
           </div>
         </div>
       </div>
@@ -542,6 +600,12 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           <div class="text-sm ${locText} min-w-0 truncate">📍 ${locationLabel}</div>
           <div class="flex gap-2 shrink-0">
             <div class="relative">
+              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+                ${findModel(model).shortLabel} <span class="text-xs opacity-50">▾</span>
+              </button>
+              ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls)}
+            </div>
+            <div class="relative">
               <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
                 ${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span>
               </button>
@@ -654,13 +718,71 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
+function renderNoDataError(location: GeoResult): void {
+  const dark = isDark();
+  const hc   = highContrast;
+  const currentModel = findModel(model);
+  const menuBg          = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
+  const menuBorderColor = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
+  const menuItemTextCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
+  const btnCls = hc
+    ? (dark ? 'border-white text-white' : 'border-black text-black')
+    : (dark ? 'border-slate-700 text-slate-300' : 'border-slate-200 text-slate-600');
+  const headingCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-800');
+  const textCls = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
+
+  root.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="text-center max-w-sm w-full">
+        <div class="text-4xl mb-4">📡</div>
+        <h2 class="text-xl font-semibold ${headingCls} mb-2">${t('error.noDataTitle')}</h2>
+        <p class="${textCls} text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
+        <div class="relative inline-block mb-3">
+          <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border ${btnCls} hover-btn flex items-center gap-1.5">
+            ${currentModel.shortLabel} <span class="text-xs opacity-50">▾</span>
+          </button>
+          ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+        </div>
+        <div>
+          <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors text-sm">
+            ${t('error.changeLocation')}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const modelBtn  = document.getElementById('model-btn')!;
+  const modelMenu = document.getElementById('model-menu')!;
+  modelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasHidden = modelMenu.classList.contains('hidden');
+    modelMenu.classList.toggle('hidden');
+    if (wasHidden) {
+      setTimeout(() => document.addEventListener('click', () => modelMenu.classList.add('hidden'), { once: true }), 0);
+    }
+  });
+  modelMenu.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      model = btn.dataset.model as string;
+      void loadWeather(location);
+    });
+  });
+  document.getElementById('back-btn')!.addEventListener('click', renderSearch);
+}
+
 async function loadWeather(location: GeoResult): Promise<void> {
   renderLoading(t('error.loadingFor', { name: location.name }));
   try {
-    const weather = await fetchWeather(location.latitude, location.longitude);
+    const weather = await fetchWeather(location.latitude, location.longitude, model);
     renderWeather(location, weather);
-  } catch {
-    renderError(t('error.failed'));
+  } catch (err) {
+    if (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError')) {
+      renderNoDataError(location);
+    } else {
+      renderError(t('error.failed'));
+    }
   }
 }
 

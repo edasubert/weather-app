@@ -76,6 +76,16 @@ export default {
     failed: '天気データを読み込めませんでした。もう一度お試しください。',
     locationDenied: '位置情報へのアクセスが拒否されました。都市を検索してください。',
     tryAgain: 'もう一度試す',
+    noDataTitle: 'この地点の気象データがありません',
+    noDataBody: '<strong>{{model}}</strong> は{{location}}をカバーしていません。別のモデルを選択してください。',
+    changeLocation: '場所を変更',
+  },
+  model: {
+    label: 'モデル',
+    groupAuto: '自動',
+    groupSeamless: 'シームレス（グローバル＋地域統合）',
+    groupGlobal: 'グローバル',
+    groupRegional: '地域（カバレッジ限定）',
   },
   metric: {
     temp: {

@@ -76,6 +76,16 @@ export default {
     failed: 'Wetterdaten konnten nicht geladen werden. Bitte versuche es erneut.',
     locationDenied: 'Standortzugriff verweigert. Bitte suche eine Stadt.',
     tryAgain: 'Erneut versuchen',
+    noDataTitle: 'Keine Wetterdaten für diesen Ort',
+    noDataBody: '<strong>{{model}}</strong> deckt {{location}} nicht ab. Bitte wähle ein anderes Modell.',
+    changeLocation: 'Ort ändern',
+  },
+  model: {
+    label: 'Modell',
+    groupAuto: 'Automatisch',
+    groupSeamless: 'Nahtlos (global + regional kombiniert)',
+    groupGlobal: 'Global',
+    groupRegional: 'Regional (eingeschränkte Abdeckung)',
   },
   metric: {
     temp: {
