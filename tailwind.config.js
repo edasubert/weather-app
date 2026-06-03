@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -5,5 +7,10 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addVariant }) => {
+      addVariant('hc', ':is(.hc) &');
+      addVariant('dark-hc', ':is(.dark.hc) &');
+    }),
+  ],
 };

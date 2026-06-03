@@ -23,16 +23,22 @@ const LOCALE_MAP: Record<Lang, string> = {
   pt: 'pt-BR', uk: 'uk-UA',
 };
 
-function langMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls: string, openUp = false): string {
+// ─── Shared menu class strings ────────────────────────────────────────────────
+
+const MENU_ITEM_CLS = 'text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white';
+const BTN_CLS       = 'border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400 hc:border-black hc:text-black dark-hc:border-white dark-hc:text-white';
+
+function langMenuHTML(openUp = false): string {
   const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
   const items = LANGS.map((lang, i) => {
-    const border = i > 0 ? ` style="border-top:1px solid ${menuBorderColor}"` : '';
+    const sep = i > 0 ? ` style="border-top:1px solid var(--menu-border)"` : '';
     const active = getLang() === lang ? ' font-semibold' : '';
-    return `<button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${active}" data-lang="${lang}"${border}>${LANG_NAMES[lang]}</button>`;
+    return `<button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${active}" data-lang="${lang}"${sep}>${LANG_NAMES[lang]}</button>`;
   }).join('');
-  return `<div id="lang-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:130px">${items}</div>`;
+  return `<div id="lang-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:130px">${items}</div>`;
 }
-function modelMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls: string, openUp = false): string {
+
+function modelMenuHTML(openUp = false): string {
   const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
   const groups = ['auto', 'seamless', 'global', 'regional'] as const;
   const groupLabels: Record<string, string> = {
@@ -46,15 +52,15 @@ function modelMenuHTML(menuBg: string, menuBorderColor: string, menuItemTextCls:
   for (const group of groups) {
     const groupModels = WEATHER_MODELS.filter(m => m.group === group);
     if (!groupModels.length) continue;
-    const groupBorder = first ? '' : `border-top:1px solid ${menuBorderColor};`;
-    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider ${menuItemTextCls}" style="${groupBorder}opacity:0.5">${groupLabels[group]}</div>`;
+    const groupBorder = first ? '' : `border-top:1px solid var(--menu-border);`;
+    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider ${MENU_ITEM_CLS}" style="${groupBorder}opacity:0.5">${groupLabels[group]}</div>`;
     for (const m of groupModels) {
       const active = model === m.id ? ' font-semibold' : '';
-      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${active}" data-model="${m.id}" style="border-top:1px solid ${menuBorderColor}"><div>${m.name}</div><div class="text-xs" style="opacity:0.5">${m.provider} · ${m.coverage}</div></button>`;
+      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${active}" data-model="${m.id}" style="border-top:1px solid var(--menu-border)"><div>${m.name}</div><div class="text-xs" style="opacity:0.5">${m.provider} · ${m.coverage}</div></button>`;
     }
     first = false;
   }
-  return `<div id="model-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:300px;max-height:360px">${html}</div>`;
+  return `<div id="model-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:300px;max-height:360px">${html}</div>`;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -167,11 +173,17 @@ function attachDropdownHandlers(): void {
 function applyTheme(): void {
   document.documentElement.classList.toggle('dark', isDark());
   document.documentElement.classList.toggle('hc', highContrast);
-  if (currentView?.type === 'search') {
-    renderSearch();
-  } else if (currentView?.type === 'weather') {
-    renderWeather(currentView.location, currentView.weather);
-  }
+  // Update theme/hc button labels without re-rendering
+  document.querySelectorAll('#theme-btn').forEach(btn => {
+    const spans = btn.querySelectorAll('span');
+    if (spans[0]) spans[0].textContent = THEME_ICONS[theme];
+    if (spans[1]) spans[1].textContent = themeLabel();
+  });
+  document.querySelectorAll('#hc-btn').forEach(btn => {
+    btn.setAttribute('aria-pressed', String(highContrast));
+    const spans = btn.querySelectorAll('span');
+    if (spans[1]) spans[1].textContent = highContrast ? t('theme.easyReadOn') : t('theme.easyRead');
+  });
 }
 
 // ─── Temperature helpers ──────────────────────────────────────────────────────
@@ -258,47 +270,31 @@ function getMetricInfo(id: string): { title: string; body: string } {
 
 // ─── Comparison row ───────────────────────────────────────────────────────────
 
-function comparisonRowHTML(icon: string, id: string, summary: string, dark: boolean, hc: boolean): string {
-  const rowText = hc
-    ? (dark ? 'text-white'      : 'text-black')
-    : (dark ? 'text-slate-300'  : 'text-slate-600');
-  const btnClass = hc
-    ? (dark ? 'border-white  text-white  hover:border-sky-300 hover:text-sky-300'
-            : 'border-black  text-black  hover:border-sky-700 hover:text-sky-700')
-    : (dark ? 'border-slate-500 text-slate-400 hover:border-sky-500 hover:text-sky-400'
-            : 'border-slate-400 text-slate-500 hover:border-sky-400 hover:text-sky-500');
+function comparisonRowHTML(icon: string, id: string, summary: string): string {
   return `
-    <div class="flex items-center gap-2 text-sm ${rowText}">
+    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hc:text-black dark-hc:text-white">
       <span class="w-5 shrink-0">${icon}</span>
       <span class="flex-1">${summary}</span>
-      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors ${btnClass}" data-metric="${id}">i</button>
+      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-slate-400 text-slate-500 hover:border-sky-400 hover:text-sky-500 dark:border-slate-500 dark:text-slate-400 dark:hover:border-sky-500 dark:hover:text-sky-400 hc:border-black hc:text-black hc:hover:border-sky-700 hc:hover:text-sky-700 dark-hc:border-white dark-hc:text-white dark-hc:hover:border-sky-300 dark-hc:hover:text-sky-300" data-metric="${id}">i</button>
     </div>
   `;
 }
 
 // ─── Card HTML ────────────────────────────────────────────────────────────────
 
-function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc: boolean): string {
+function weatherCardHTML(data: DailyWeather, heading: string): string {
   const { emoji, label } = describeCode(data.weatherCode);
   const locale = LOCALE_MAP[getLang()] ?? 'en-US';
   const date = new Date(data.date + 'T12:00:00').toLocaleDateString(locale, {
     weekday: 'short', month: 'short', day: 'numeric',
   });
 
-  const cardBg  = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const border  = hc ? `border:2px solid ${dark ? '#ffffff' : '#000000'};` : '';
-  const tA = hc ? (dark ? 'text-white'     : 'text-black')     : (dark ? 'text-slate-100' : 'text-slate-800');
-  const tB = hc ? (dark ? 'text-white'     : 'text-black')     : (dark ? 'text-slate-200' : 'text-slate-700');
-  const tC = hc ? (dark ? 'text-gray-100'  : 'text-gray-900')  : (dark ? 'text-slate-300' : 'text-slate-600');
-  const tD = hc ? (dark ? 'text-gray-100'  : 'text-gray-900')  : (dark ? 'text-slate-400' : 'text-slate-500');
-  const tE = hc ? (dark ? 'text-gray-200'  : 'text-gray-800')  : (dark ? 'text-slate-400' : 'text-slate-500');
-
   return `
-    <div class="rounded-2xl p-5 flex flex-col gap-2" style="background-color:${cardBg};${border}">
-      <div class="text-xs font-semibold uppercase tracking-wider ${tD}">${heading}</div>
-      <div class="text-sm ${tD}">${date}</div>
+    <div class="rounded-2xl p-5 flex flex-col gap-2" style="background-color:var(--card-bg);border:var(--card-border)">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">${heading}</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
-      <div class="font-medium ${tB}">${label}</div>
+      <div class="font-medium text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white">${label}</div>
       <table class="mt-2 w-full text-sm [&_td]:align-bottom [&_th]:align-bottom [&_td:not(:first-child)]:pl-3 [&_th:not(:first-child)]:pl-3">
         <thead>
           <tr>
@@ -309,29 +305,29 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc:
         </thead>
         <tbody>
           <tr>
-            <td class="text-xs ${tE}">${t('card.high')}</td>
-            <td class="${tC} text-right">${tempStr(data.tempMax)}</td>
-            <td class="${tC} text-right">${tempStr(data.apparentTempMax)}</td>
+            <td class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.high')}</td>
+            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.tempMax)}</td>
+            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.apparentTempMax)}</td>
           </tr>
           <tr>
-            <td class="text-xs font-medium ${tE}">${t('card.avg')}</td>
-            <td class="text-base font-semibold ${tA} text-right">${tempStr(data.tempMean)}</td>
-            <td class="text-base font-semibold ${tB} text-right">${tempStr(data.apparentTempMean)}</td>
+            <td class="text-xs font-medium text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.avg')}</td>
+            <td class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white text-right">${tempStr(data.tempMean)}</td>
+            <td class="text-base font-semibold text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white text-right">${tempStr(data.apparentTempMean)}</td>
           </tr>
           <tr>
-            <td class="text-xs ${tE}">${t('card.low')}</td>
-            <td class="${tC} text-right">${tempStr(data.tempMin)}</td>
-            <td class="${tC} text-right">${tempStr(data.apparentTempMin)}</td>
+            <td class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.low')}</td>
+            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.tempMin)}</td>
+            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.apparentTempMin)}</td>
           </tr>
         </tbody>
       </table>
-      <div class="text-sm ${tD}">
+      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
         <span title="${t('tooltip.precipitation')}">💧</span> ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm` : t('card.noRain')}
       </div>
-      <div class="text-sm ${tD}">
+      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
         <span title="${t('tooltip.wind')}">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
-      <div class="text-sm ${tD}">
+      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
         <span title="${t('tooltip.pressure')}">🔵</span> ${Math.round(data.pressureMean)} hPa
       </div>
     </div>
@@ -400,35 +396,14 @@ function clearUrlParams(): void {
 function renderSearch(): void {
   currentView = { type: 'search' };
   clearUrlParams();
-  const dark = isDark();
-  const hc   = highContrast;
-
-  const inputCls  = hc
-    ? (dark ? 'border-white bg-black text-white placeholder-gray-400'
-            : 'border-black bg-white text-black placeholder-gray-600')
-    : (dark ? 'border-slate-700 bg-slate-800 text-slate-200 placeholder-slate-500'
-            : 'border-slate-200 bg-white text-slate-700 placeholder-slate-400');
-  const suggestCls = hc
-    ? (dark ? 'bg-black border-white' : 'bg-white border-black')
-    : (dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100');
-  const dividerBg  = hc ? (dark ? 'bg-white' : 'bg-black') : (dark ? 'bg-slate-700' : 'bg-slate-200');
-  const geoBtnCls  = hc
-    ? (dark ? 'border-white text-white bg-black' : 'border-black text-black bg-white')
-    : (dark ? 'border-slate-700 text-slate-300 bg-slate-800' : 'border-slate-200 text-slate-600 bg-white');
-  const hcBtnCls   = hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text';
-  const heading    = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
-  const menuBg            = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const menuBorderColor   = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
-  const menuItemTextCls   = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
-  const subtext    = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
 
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="w-full max-w-sm">
         <div class="text-center mb-8">
           <div class="text-5xl mb-3">🌤️</div>
-          <h1 class="text-2xl font-semibold ${heading}">${t('search.title')}</h1>
-          <p class="${subtext} mt-1 text-sm">${t('search.subtitle')}</p>
+          <h1 class="text-2xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white">${t('search.title')}</h1>
+          <p class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 mt-1 text-sm">${t('search.subtitle')}</p>
         </div>
 
         <div class="relative mb-3">
@@ -437,23 +412,23 @@ function renderSearch(): void {
             type="text"
             placeholder="${t('search.placeholder')}"
             autocomplete="off"
-            class="w-full px-4 py-3 rounded-xl border ${inputCls} shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 placeholder-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 hc:border-black hc:bg-white hc:text-black hc:placeholder-gray-600 dark-hc:border-white dark-hc:bg-black dark-hc:text-white dark-hc:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           />
           <div
             id="suggestions-box"
-            class="absolute top-full mt-1 w-full ${suggestCls} rounded-xl shadow-lg border z-10 hidden overflow-hidden"
+            class="absolute top-full mt-1 w-full bg-white border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hc:bg-white hc:border-black dark-hc:bg-black dark-hc:border-white rounded-xl shadow-lg z-10 hidden overflow-hidden"
           ></div>
         </div>
 
         ${'geolocation' in navigator ? `
           <div class="flex items-center gap-3 my-4">
-            <div class="flex-1 h-px ${dividerBg}"></div>
-            <span class="text-xs ${subtext} uppercase tracking-wide">${t('search.or')}</span>
-            <div class="flex-1 h-px ${dividerBg}"></div>
+            <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700 hc:bg-black dark-hc:bg-white"></div>
+            <span class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 uppercase tracking-wide">${t('search.or')}</span>
+            <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700 hc:bg-black dark-hc:bg-white"></div>
           </div>
           <button
             id="geolocate-btn"
-            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border ${geoBtnCls} shadow-sm hover-btn"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 bg-white dark:border-slate-700 dark:text-slate-300 dark:bg-slate-800 hc:border-black hc:text-black hc:bg-white dark-hc:border-white dark-hc:text-white dark-hc:bg-black shadow-sm hover-btn"
           >
             📍 ${t('search.useLocation')}
           </button>
@@ -464,23 +439,23 @@ function renderSearch(): void {
             <span>${THEME_ICONS[theme]}</span>
             <span>${themeLabel()}</span>
           </button>
-          <button id="hc-btn" class="flex items-center gap-2 text-xs ${hcBtnCls}" aria-pressed="${hc}" title="Toggle easy to read mode">
+          <button id="hc-btn" class="flex items-center gap-2 text-xs subtle-text hc:text-black dark-hc:text-white" aria-pressed="${highContrast}" title="Toggle easy to read mode">
             <span>◑</span>
-            <span>${hc ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
+            <span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
           </button>
           <div class="relative">
             <button id="lang-btn" class="flex items-center gap-1 text-xs subtle-text">
               <span>${getLang().toUpperCase()}</span>
               <span class="opacity-50">▾</span>
             </button>
-            ${langMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+            ${langMenuHTML(true)}
           </div>
           <div class="relative">
             <button id="model-btn" class="flex items-center gap-1 text-xs subtle-text">
               <span>${findModel(model).shortLabel}</span>
               <span class="opacity-50">▾</span>
             </button>
-            ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+            ${modelMenuHTML(true)}
           </div>
         </div>
       </div>
@@ -500,16 +475,13 @@ function renderSearch(): void {
         suggestions = await searchCity(q);
         if (!suggestions.length) { box.classList.add('hidden'); return; }
 
-        const itemBorder = hc ? (dark ? 'border-white' : 'border-black')   : (dark ? 'border-slate-700' : 'border-slate-50');
-        const itemMain   = hc ? (dark ? 'text-white'  : 'text-black')      : (dark ? 'text-slate-200'   : 'text-slate-700');
-        const itemSub    = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400'   : 'text-slate-500');
         box.innerHTML = suggestions.map((r, i) => `
           <button
-            class="w-full text-left px-4 py-3 hover-item border-b ${itemBorder} last:border-0"
+            class="w-full text-left px-4 py-3 hover-item border-b border-slate-50 dark:border-slate-700 hc:border-black dark-hc:border-white last:border-0"
             data-i="${i}"
           >
-            <span class="font-medium ${itemMain}">${r.name}</span>
-            <span class="${itemSub} text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+            <span class="font-medium text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white">${r.name}</span>
+            <span class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
           </button>
         `).join('');
 
@@ -537,11 +509,10 @@ function renderSearch(): void {
 
 function renderLoading(msg = t('error.loading')): void {
   currentView = { type: 'loading' };
-  const dark = isDark();
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center">
-      <div class="text-center ${dark ? 'text-slate-400' : 'text-slate-500'}">
-        <div class="w-10 h-10 border-4 ${dark ? 'border-sky-900' : 'border-sky-200'} border-t-sky-500 rounded-full animate-spin mx-auto mb-4"></div>
+      <div class="text-center text-slate-500 dark:text-slate-400">
+        <div class="w-10 h-10 border-4 border-sky-200 dark:border-sky-900 border-t-sky-500 rounded-full animate-spin mx-auto mb-4"></div>
         <p>${msg}</p>
       </div>
     </div>
@@ -549,12 +520,11 @@ function renderLoading(msg = t('error.loading')): void {
 }
 
 function renderError(msg: string): void {
-  const dark = isDark();
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="text-center">
         <div class="text-4xl mb-4">⚠️</div>
-        <p class="${dark ? 'text-slate-200' : 'text-slate-700'} mb-5">${msg}</p>
+        <p class="text-slate-700 dark:text-slate-200 mb-5">${msg}</p>
         <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
           ${t('error.tryAgain')}
         </button>
@@ -568,8 +538,6 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   currentView = { type: 'weather', location, weather };
   setUrlParams(location);
   const { today, yesterday, tomorrow, todayHourly, yesterdayHourly, tomorrowHourly } = weather;
-  const dark = isDark();
-  const hc   = highContrast;
   const isTomorrow = comparison === 'today-tomorrow';
   const primary         = isTomorrow ? tomorrow   : today;
   const secondary       = isTomorrow ? today      : yesterday;
@@ -580,98 +548,77 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   const primaryLabelShort   = isTomorrow ? t('chart.tomorrowShort') : t('chart.todayShort');
   const secondaryLabelShort = isTomorrow ? t('chart.todayShort')    : t('chart.yesterdayShort');
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
-
-  const btnCls = hc
-    ? (dark ? 'border-white text-white' : 'border-black text-black')
-    : (dark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500');
-  const locText    = hc ? (dark ? 'text-white'    : 'text-black')    : (dark ? 'text-slate-400'  : 'text-slate-500');
-  const cmpBg      = hc
-    ? `${dark ? '#000000' : '#ffffff'};border:2px solid ${dark ? '#ffffff' : '#000000'}`
-    : (dark ? 'rgba(12,74,110,0.3)' : '#f0f9ff');
-  const cmpHeading = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
-  const modalBg       = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#fff');
-  const modalCloseCls = hc
-    ? (dark ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-700')
-    : (dark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700');
-  const modalTitleCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-100' : 'text-slate-800');
-  const modalBodyCls  = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-300' : 'text-slate-600');
-  const footerText = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
-  const menuBg          = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const menuBorderColor = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
-  const menuItemTextCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
   const compHeader = isTomorrow ? t('comp.headerTodayTomorrow') : t('comp.headerYesterdayToday');
-  const groupBorder = hc ? (dark ? 'border-white' : 'border-black') : (dark ? 'border-slate-700' : 'border-slate-200');
-  const dividerCls  = `border-r ${groupBorder}`;
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg mx-auto">
         <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
           <div class="flex items-center gap-2 min-w-0 sm:flex-1">
-            <div class="text-sm ${locText} min-w-0 truncate flex-1">📍 ${locationLabel}</div>
-            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn shrink-0">
+            <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white min-w-0 truncate flex-1">📍 ${locationLabel}</div>
+            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn shrink-0">
               ${t('weather.changeLocation')}
             </button>
           </div>
           <div class="flex gap-2 shrink-0">
             <div class="relative">
-              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
                 ${findModel(model).shortLabel} <span class="text-xs opacity-50">▾</span>
               </button>
-              ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls)}
+              ${modelMenuHTML()}
             </div>
             <div class="relative">
-              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
                 ${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span>
               </button>
-              ${langMenuHTML(menuBg, menuBorderColor, menuItemTextCls)}
+              ${langMenuHTML()}
             </div>
             <div class="relative">
-              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn flex items-center gap-1">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
                 °${unit} <span class="text-xs opacity-50">▾</span>
               </button>
-              <div id="unit-menu" class="absolute right-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:${menuBg};border:1px solid ${menuBorderColor};min-width:72px">
-                <button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
-                <button class="w-full text-left px-3 py-2 text-sm hover-item ${menuItemTextCls}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid ${menuBorderColor}">°F</button>
+              <div id="unit-menu" class="absolute right-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:72px">
+                <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
+                <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid var(--menu-border)">°F</button>
               </div>
             </div>
-            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border ${btnCls} hover-btn">
+            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn">
               ${t('weather.changeLocation')}
             </button>
           </div>
         </div>
 
-        <div class="flex mb-3 rounded-lg overflow-hidden border ${groupBorder}">
+        <div class="flex mb-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hc:border-black dark-hc:border-white">
           ${(['yesterday-today', 'today-tomorrow'] as Comparison[]).map((mode, i) => {
             const active = comparison === mode;
             const label  = mode === 'yesterday-today' ? t('comp.headerYesterdayToday') : t('comp.headerTodayTomorrow');
-            const activeCls   = hc ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-sky-500 text-white';
-            const inactiveCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
-            const divider = i === 0 ? dividerCls : '';
-            return `<button class="flex-1 text-sm py-2 text-center transition-colors ${divider} ${active ? activeCls : inactiveCls + ' hover-btn'}" data-comp="${mode}">${label}</button>`;
+            const divider = i === 0 ? 'border-r border-slate-200 dark:border-slate-700 hc:border-black dark-hc:border-white' : '';
+            const activeCls   = 'bg-sky-500 text-white hc:bg-black dark-hc:bg-white dark-hc:text-black';
+            const inactiveCls = 'text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white hover-btn';
+            return `<button class="flex-1 text-sm py-2 text-center transition-colors ${divider} ${active ? activeCls : inactiveCls}" data-comp="${mode}">${label}</button>`;
           }).join('')}
         </div>
 
-        <div class="rounded-2xl p-4 mb-4" style="background-color:${cmpBg}">
-          <h1 class="text-xl font-semibold ${cmpHeading} mb-3">${compHeader}</h1>
+        <div class="rounded-2xl p-4 mb-4" style="background-color:var(--cmp-bg);border:var(--cmp-border)">
+          <h1 class="text-xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3">${compHeader}</h1>
           <div class="flex flex-col gap-2">
-            ${comparisonRowHTML('🌡️', 'temp', tempComparison(primary, secondary), dark, hc)}
-            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">🧑</span>`, 'apparentTemp', apparentTempComparison(primary, secondary), dark, hc)}
-            ${comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">💧</span>`, 'precip', precipComparison(primary, secondary, isTomorrow), dark, hc)}
-            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">💨</span>`, 'wind', windComparison(primary, secondary), dark, hc)}
-            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">🔵</span>`, 'pressure', pressureComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML('🌡️', 'temp', tempComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">🧑</span>`, 'apparentTemp', apparentTempComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">💧</span>`, 'precip', precipComparison(primary, secondary, isTomorrow))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">💨</span>`, 'wind', windComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">🔵</span>`, 'pressure', pressureComparison(primary, secondary))}
           </div>
         </div>
 
-        <div class="${hc ? 'grid grid-cols-1' : 'grid grid-cols-2'} gap-3 mb-3">
-          ${weatherCardHTML(secondary, secondaryLabel, dark, hc)}
-          ${weatherCardHTML(primary, primaryLabel, dark, hc)}
+        <div class="grid grid-cols-2 hc:grid-cols-1 gap-3 mb-3">
+          ${weatherCardHTML(secondary, secondaryLabel)}
+          ${weatherCardHTML(primary, primaryLabel)}
         </div>
 
-        ${buildChart(primaryHourly, secondaryHourly, unit, dark, hc, t('chart.' + (isTomorrow ? 'tomorrow' : 'today') as string), t('chart.' + (isTomorrow ? 'today' : 'yesterday') as string))}
+        ${buildChart(primaryHourly, secondaryHourly, unit, t('chart.' + (isTomorrow ? 'tomorrow' : 'today') as string), t('chart.' + (isTomorrow ? 'today' : 'yesterday') as string))}
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-          <div class="text-sm ${footerText}">
+          <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
             ${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
           </div>
           <div class="flex items-center gap-4">
@@ -679,9 +626,9 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
               <span>${THEME_ICONS[theme]}</span>
               <span>${themeLabel()}</span>
             </button>
-            <button id="hc-btn" class="flex items-center gap-1.5 text-xs ${hc ? (dark ? 'text-white' : 'text-black') : 'subtle-text'}" aria-pressed="${hc}">
+            <button id="hc-btn" class="flex items-center gap-1.5 text-xs subtle-text hc:text-black dark-hc:text-white" aria-pressed="${highContrast}">
               <span>◑</span>
-              <span>${hc ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
+              <span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
             </button>
           </div>
         </div>
@@ -690,16 +637,16 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
       <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
-      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:${modalBg}${hc ? `;border:2px solid ${dark ? '#fff' : '#000'}` : ''}">
-        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none ${modalCloseCls} transition-colors">&times;</button>
-        <h2 id="modal-title" class="text-base font-semibold ${modalTitleCls} mb-3 pr-6"></h2>
-        <div id="modal-body" class="text-sm ${modalBodyCls} flex flex-col gap-2"></div>
+      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:var(--modal-bg);border:var(--modal-border)">
+        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none transition-colors text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hc:text-black hc:hover:text-gray-700 dark-hc:text-white dark-hc:hover:text-gray-300">&times;</button>
+        <h2 id="modal-title" class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3 pr-6"></h2>
+        <div id="modal-body" class="text-sm text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 flex flex-col gap-2"></div>
       </div>
     </div>
   `;
 
   const chartContainer = root.querySelector<HTMLElement>('#chart-container');
-  if (chartContainer) setupChartTooltip(chartContainer, primaryHourly, secondaryHourly, unit, dark, hc, primaryLabelShort, secondaryLabelShort);
+  if (chartContainer) setupChartTooltip(chartContainer, primaryHourly, secondaryHourly, unit, primaryLabelShort, secondaryLabelShort);
 
   document.querySelectorAll<HTMLButtonElement>('[data-comp]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -735,29 +682,19 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 function renderNoDataError(location: GeoResult): void {
-  const dark = isDark();
-  const hc   = highContrast;
   const currentModel = findModel(model);
-  const menuBg          = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const menuBorderColor = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
-  const menuItemTextCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-700');
-  const btnCls = hc
-    ? (dark ? 'border-white text-white' : 'border-black text-black')
-    : (dark ? 'border-slate-700 text-slate-300' : 'border-slate-200 text-slate-600');
-  const headingCls = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-200' : 'text-slate-800');
-  const textCls = hc ? (dark ? 'text-gray-100' : 'text-gray-900') : (dark ? 'text-slate-400' : 'text-slate-500');
 
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="text-center max-w-sm w-full">
         <div class="text-4xl mb-4">📡</div>
-        <h2 class="text-xl font-semibold ${headingCls} mb-2">${t('error.noDataTitle')}</h2>
-        <p class="${textCls} text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
+        <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 hc:text-black dark-hc:text-white mb-2">${t('error.noDataTitle')}</h2>
+        <p class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
         <div class="relative inline-block mb-3">
-          <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border ${btnCls} hover-btn flex items-center gap-1.5">
+          <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border ${BTN_CLS} hover-btn flex items-center gap-1.5">
             ${currentModel.shortLabel} <span class="text-xs opacity-50">▾</span>
           </button>
-          ${modelMenuHTML(menuBg, menuBorderColor, menuItemTextCls, true)}
+          ${modelMenuHTML(true)}
         </div>
         <div>
           <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors text-sm">

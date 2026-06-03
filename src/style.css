@@ -10,11 +10,29 @@
   --hover-btn:  #f8fafc;
   --hover-item: #f0f9ff;
 
-  --chart-grid:  #f1f5f9;
-  --chart-label: #64748b; /* slate-500 — was slate-400, too low contrast on white */
+  --chart-grid:     #f1f5f9;
+  --chart-label:    #64748b;
+  --chart-lbl-size: 16px;
 
-  --text-subtle:       #64748b; /* slate-500 */
-  --text-subtle-hover: #334155; /* slate-700 */
+  --text-subtle:       #64748b;
+  --text-subtle-hover: #334155;
+
+  --card-bg:     #ffffff;
+  --card-border: none;
+  --cmp-bg:      #f0f9ff;
+  --cmp-border:  none;
+  --menu-bg:     #ffffff;
+  --menu-border: #e2e8f0;
+  --modal-bg:    #ffffff;
+  --modal-border: none;
+
+  --tooltip-bg:        #ffffff;
+  --tooltip-border:    #e2e8f0;
+  --tooltip-text-main: #1e293b;
+  --tooltip-text-sub:  #94a3b8;
+
+  --hover-line: #94a3b8;
+  --dot-bg:     #ffffff;
 }
 
 .dark {
@@ -25,10 +43,79 @@
   --hover-item: #334155;
 
   --chart-grid:  #1e293b;
-  --chart-label: #94a3b8; /* slate-400 — was slate-600, barely visible on dark */
+  --chart-label: #94a3b8;
 
-  --text-subtle:       #94a3b8; /* slate-400 */
-  --text-subtle-hover: #e2e8f0; /* slate-200 */
+  --text-subtle:       #94a3b8;
+  --text-subtle-hover: #e2e8f0;
+
+  --card-bg:     #1e293b;
+  --cmp-bg:      rgba(12,74,110,0.3);
+  --menu-bg:     #1e293b;
+  --menu-border: #334155;
+  --modal-bg:    #1e293b;
+
+  --tooltip-bg:        #0f172a;
+  --tooltip-border:    #334155;
+  --tooltip-text-main: #f1f5f9;
+  --tooltip-text-sub:  #64748b;
+
+  --hover-line: #64748b;
+  --dot-bg:     #1e293b;
+}
+
+.hc {
+  font-size: 130%;
+
+  --bg-from:   #ffffff;
+  --bg-to:     #ffffff;
+  --hover-btn:  #e5e5e5;
+  --hover-item: #e5e5e5;
+  --chart-grid:     #d1d5db;
+  --chart-label:    #111827;
+  --chart-lbl-size: 18px;
+
+  --card-bg:     #ffffff;
+  --card-border: 2px solid #000000;
+  --cmp-bg:      #ffffff;
+  --cmp-border:  2px solid #000000;
+  --menu-bg:     #ffffff;
+  --menu-border: #000000;
+  --modal-bg:    #ffffff;
+  --modal-border: 2px solid #000000;
+
+  --tooltip-bg:        #ffffff;
+  --tooltip-border:    #000000;
+  --tooltip-text-main: #000000;
+  --tooltip-text-sub:  #1f2937;
+
+  --hover-line: #000000;
+  --dot-bg:     #ffffff;
+}
+
+.hc.dark {
+  --bg-from:   #000000;
+  --bg-to:     #000000;
+  --hover-btn:  #1a1a1a;
+  --hover-item: #1a1a1a;
+  --chart-grid:  #374151;
+  --chart-label: #f9fafb;
+
+  --card-bg:     #000000;
+  --card-border: 2px solid #ffffff;
+  --cmp-bg:      #000000;
+  --cmp-border:  2px solid #ffffff;
+  --menu-bg:     #000000;
+  --menu-border: #ffffff;
+  --modal-bg:    #000000;
+  --modal-border: 2px solid #ffffff;
+
+  --tooltip-bg:        #000000;
+  --tooltip-border:    #ffffff;
+  --tooltip-text-main: #ffffff;
+  --tooltip-text-sub:  #e5e7eb;
+
+  --hover-line: #ffffff;
+  --dot-bg:     #000000;
 }
 
 /* ── Page background ──────────────────────────────── */
@@ -37,8 +124,7 @@ body {
   min-height: 100vh;
 }
 
-/* ── Hover helpers (used where Tailwind hover:bg-* */
-/*    can't carry the CSS var)                       */
+/* ── Hover helpers ────────────────────────────────── */
 .hover-btn  { transition: background-color 0.15s; }
 .hover-btn:hover  { background-color: var(--hover-btn); }
 
@@ -46,30 +132,8 @@ body {
 .hover-item:hover { background-color: var(--hover-item); }
 
 /* ── Card background ──────────────────────────────── */
-:root { --card-bg: #ffffff; }
-.dark  { --card-bg: #1e293b; } /* slate-800 */
 .bg-card { background-color: var(--card-bg); }
 
 /* ── Theme button text ────────────────────────────── */
 .subtle-text { color: var(--text-subtle); transition: color 0.15s; }
 .subtle-text:hover { color: var(--text-subtle-hover); }
-
-/* ── High contrast mode ───────────────────────────── */
-/* font-size on :root scales every rem-based Tailwind text size */
-.hc {
-  font-size: 130%;
-  --bg-from:   #ffffff;
-  --bg-to:     #ffffff;
-  --hover-btn:  #e5e5e5;
-  --hover-item: #e5e5e5;
-  --chart-grid:  #d1d5db;
-  --chart-label: #111827;
-}
-.hc.dark {
-  --bg-from:   #000000;
-  --bg-to:     #000000;
-  --hover-btn:  #1a1a1a;
-  --hover-item: #1a1a1a;
-  --chart-grid:  #374151;
-  --chart-label: #f9fafb;
-}

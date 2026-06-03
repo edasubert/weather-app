@@ -69,7 +69,7 @@ function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F')
   };
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', dark: boolean, hc = false, label1 = 'Today', label2 = 'Yesterday'): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', label1 = 'Today', label2 = 'Yesterday'): string {
   const { cvt, minT, maxT, maxPrecip, minPressure, maxPressure } = computeRange(today, yesterday, unit);
   const tT = today.temp.map(cvt);
   const tY = yesterday.temp.map(cvt);
@@ -104,20 +104,12 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
     `<text x="${xPos(h).toFixed(1)}" y="${H - 4}" text-anchor="middle" class="lbl">${String(h).padStart(2, '0')}:00</text>`
   ).join('');
 
-  const dotBg       = hc ? (dark ? '#000000' : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const hoverStroke = hc ? (dark ? '#ffffff'  : '#000000') : (dark ? '#64748b' : '#94a3b8');
-  const tooltipBg   = hc ? (dark ? '#000000'  : '#ffffff') : (dark ? '#0f172a' : '#ffffff');
-  const tooltipBorder = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#334155' : '#e2e8f0');
-  const cardBg      = hc ? (dark ? '#000000'  : '#ffffff') : (dark ? '#1e293b' : '#ffffff');
-  const cardBorder  = hc ? `;border:2px solid ${dark ? '#ffffff' : '#000000'}` : '';
-  const legendText  = hc ? (dark ? 'text-white' : 'text-black') : (dark ? 'text-slate-400' : 'text-slate-500');
-
   const dash = '4 4';
 
   return `
-    <div id="chart-container" class="rounded-2xl p-5 relative" style="background-color:${cardBg}${cardBorder}">
+    <div id="chart-container" class="rounded-2xl p-5 relative" style="background-color:var(--card-bg);border:var(--card-border)">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
-        <style>.lbl{font-size:${hc ? 18 : 16}px;fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
+        <style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         ${precipBars(yesterday.precip, maxPrecip, maxBarH, PRECIP_COLOR, -barOffset, true)}
         ${precipBars(today.precip,     maxPrecip, maxBarH, PRECIP_COLOR,  barOffset, false)}
@@ -130,18 +122,18 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
         ${pressureLabels.join('')}
         ${xLabels}
         <g id="chart-hover" style="display:none">
-          <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + CH}" stroke="${hoverStroke}" stroke-width="1" stroke-dasharray="3 3"/>
-          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${TEMP_COLOR}"     stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${FEELS_COLOR}"    stroke="${dotBg}" stroke-width="1.5"/>
-          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke="${dotBg}" stroke-width="1.5"/>
+          <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+          <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+          <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>
         </g>
         <rect id="chart-overlay" x="${PL}" y="${PT}" width="${CW}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
       </svg>
-      <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:${tooltipBg};border:1px solid ${tooltipBorder}"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs ${legendText} mt-3">
+      <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mt-3">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR};vertical-align:middle"></span>🌡️ ${label1}
         </span>
@@ -176,8 +168,6 @@ export function setupChartTooltip(
   today: HourlyData,
   yesterday: HourlyData,
   unit: 'C' | 'F',
-  dark: boolean,
-  hc = false,
   label1 = 'Today',
   label2 = 'Yest.',
 ): void {
@@ -195,9 +185,6 @@ export function setupChartTooltip(
   const aY = yesterday.apparentTemp.map(cvt);
   const pT = today.pressure;
   const pY = yesterday.pressure;
-
-  const textMain = hc ? (dark ? '#ffffff' : '#000000') : (dark ? '#f1f5f9' : '#1e293b');
-  const textSub  = hc ? (dark ? '#e5e7eb' : '#1f2937') : (dark ? '#64748b' : '#94a3b8');
 
   // Dot order: today temp, today feels, today pressure, yesterday temp, yesterday feels, yesterday pressure
   const dotDefs = [
@@ -231,23 +218,23 @@ export function setupChartTooltip(
     const precipFmt = (p: number) => p < 0.05 ? '–' : `${p.toFixed(1)} mm`;
 
     tooltip.innerHTML = `
-      <div style="font-weight:600;color:${textMain};margin-bottom:6px;font-size:12px">${hh}</div>
+      <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:6px;font-size:12px">${hh}</div>
       <div style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;font-size:11px">
-        <span style="color:${textSub}"></span>
-        <span style="color:${textSub}">${label1}</span>
-        <span style="color:${textSub}">${label2}</span>
+        <span style="color:var(--tooltip-text-sub)"></span>
+        <span style="color:var(--tooltip-text-sub)">${label1}</span>
+        <span style="color:var(--tooltip-text-sub)">${label2}</span>
         <span style="color:${TEMP_COLOR}" title="${t('tooltip.temperature')}">🌡️</span>
-        <span style="color:${textMain}">${fmt(tT[hour])}</span>
-        <span style="color:${textMain}">${fmt(tY[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${fmt(tT[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${fmt(tY[hour])}</span>
         <span style="color:${FEELS_COLOR}" title="${t('tooltip.apparentTemp')}">🧑</span>
-        <span style="color:${textMain}">${fmt(aT[hour])}</span>
-        <span style="color:${textMain}">${fmt(aY[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${fmt(aT[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${fmt(aY[hour])}</span>
         <span style="color:${PRECIP_COLOR}" title="${t('tooltip.precipitation')}">💧</span>
-        <span style="color:${textMain}">${precipFmt(today.precip[hour])}</span>
-        <span style="color:${textMain}">${precipFmt(yesterday.precip[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${precipFmt(today.precip[hour])}</span>
+        <span style="color:var(--tooltip-text-main)">${precipFmt(yesterday.precip[hour])}</span>
         <span style="color:${PRESSURE_COLOR}" title="${t('tooltip.pressure')}">🔵</span>
-        <span style="color:${textMain}">${Math.round(pT[hour])} hPa</span>
-        <span style="color:${textMain}">${Math.round(pY[hour])} hPa</span>
+        <span style="color:var(--tooltip-text-main)">${Math.round(pT[hour])} hPa</span>
+        <span style="color:var(--tooltip-text-main)">${Math.round(pY[hour])} hPa</span>
       </div>
     `;
 
