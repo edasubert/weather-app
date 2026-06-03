@@ -42,6 +42,9 @@ export default {
     sameWind: 'About the same wind speed',
     windier: '{{diff}} km/h windier',
     calmer: '{{diff}} km/h calmer',
+    samePressure: 'About the same pressure',
+    higherPressure: '{{diff}} hPa higher',
+    lowerPressure: '{{diff}} hPa lower',
   },
   card: {
     high: 'high',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Apparent temperature',
     precipitation: 'Precipitation',
     wind: 'Wind',
+    pressure: 'Pressure',
   },
   geo: {
     yourLocation: 'Your location',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Wind speed',
       body: '<p><strong>Maximum sustained wind speed</strong> at 10 m above ground recorded during the day, paired with the day\'s dominant wind direction (the direction the wind blows <em>from</em>).</p><p>Gusts — brief spikes above the sustained speed — are a separate variable and can be considerably higher.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">About wind speed ↗</a></p><p class="opacity-60 text-xs">Source: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Atmospheric pressure',
+      body: '<p><strong>Surface atmospheric pressure</strong> at the measurement location, expressed in hectopascals (hPa, equivalent to millibars).</p><p>High pressure (above ~1013 hPa) generally brings stable, clear weather; low pressure is associated with clouds, wind, and precipitation. A rapid drop of 5–10 hPa in 24 hours often signals an approaching storm.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">About atmospheric pressure ↗</a></p><p class="opacity-60 text-xs">Source: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -42,6 +42,9 @@ export default {
     sameWind: 'ほぼ同じ風速',
     windier: '{{diff}} km/h 風が強い',
     calmer: '{{diff}} km/h 風が弱い',
+    samePressure: '気圧はほぼ同じ',
+    higherPressure: '{{diff}} hPa 高い',
+    lowerPressure: '{{diff}} hPa 低い',
   },
   card: {
     high: '最高',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: '体感温度',
     precipitation: '降水量',
     wind: '風速',
+    pressure: '気圧',
   },
   geo: {
     yourLocation: '現在地',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: '風速',
       body: '<p>1日を通じて記録された地上10mの<strong>最大持続風速</strong>と、その日の卓越風向（風が吹いてくる方向）。</p><p>突風 — 持続風速を超えた短時間のピーク — は別の変数であり、かなり高くなることがあります。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">風速について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: '大気圧',
+      body: '<p><strong>地表大気圧</strong>は観測地点における大気圧で、ヘクトパスカル（hPa、ミリバールと同等）で表されます。</p><p>高気圧（~1013 hPa以上）は一般に安定した晴天をもたらし、低気圧は雲・風・降水と関連しています。24時間で5〜10 hPaの急激な気圧低下は、嵐の接近を示すことが多いです。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">大気圧について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

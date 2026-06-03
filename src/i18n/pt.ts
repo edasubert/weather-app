@@ -42,6 +42,9 @@ export default {
     sameWind: 'Velocidade do vento similar',
     windier: '{{diff}} km/h mais ventoso',
     calmer: '{{diff}} km/h mais calmo',
+    samePressure: 'Pressão similar',
+    higherPressure: '{{diff}} hPa mais alta',
+    lowerPressure: '{{diff}} hPa mais baixa',
   },
   card: {
     high: 'máx',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Temperatura aparente',
     precipitation: 'Precipitação',
     wind: 'Vento',
+    pressure: 'Pressão',
   },
   geo: {
     yourLocation: 'Minha localização',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Velocidade do vento',
       body: '<p><strong>Velocidade máxima do vento sustentado</strong> a 10 m acima do solo registrada durante o dia, com a direção dominante do vento (de onde o vento sopra).</p><p>Rajadas — picos breves acima da velocidade sustentada — são uma variável separada e podem ser consideravelmente maiores.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">Sobre velocidade do vento ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Pressão atmosférica',
+      body: '<p><strong>Pressão atmosférica superficial</strong> no local de medição, expressa em hectopascais (hPa, equivalente a milibares).</p><p>Pressão alta (acima de ~1013 hPa) geralmente traz tempo estável e ensolarado; pressão baixa está associada a nuvens, vento e chuva. Uma queda rápida de 5–10 hPa em 24 horas frequentemente sinaliza a aproximação de uma tempestade.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sobre pressão atmosférica ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

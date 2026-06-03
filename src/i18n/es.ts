@@ -42,6 +42,9 @@ export default {
     sameWind: 'Velocidad del viento similar',
     windier: '{{diff}} km/h más ventoso',
     calmer: '{{diff}} km/h más calmado',
+    samePressure: 'Presión similar',
+    higherPressure: '{{diff}} hPa más alta',
+    lowerPressure: '{{diff}} hPa más baja',
   },
   card: {
     high: 'máx',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Temperatura aparente',
     precipitation: 'Precipitación',
     wind: 'Viento',
+    pressure: 'Presión',
   },
   geo: {
     yourLocation: 'Mi ubicación',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Velocidad del viento',
       body: '<p><strong>Velocidad máxima del viento sostenido</strong> a 10 m sobre el suelo registrada durante el día, junto con la dirección dominante del viento (de dónde viene).</p><p>Las ráfagas — picos breves sobre la velocidad sostenida — son una variable separada y pueden ser considerablemente superiores.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">Sobre la velocidad del viento ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Presión atmosférica',
+      body: '<p><strong>Presión atmosférica superficial</strong> en el lugar de medición, expresada en hectopascales (hPa, equivalente a milibares).</p><p>La presión alta (por encima de ~1013 hPa) generalmente trae tiempo estable y despejado; la presión baja se asocia con nubes, viento y precipitaciones. Una caída rápida de 5–10 hPa en 24 horas suele indicar la proximidad de una tormenta.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sobre la presión atmosférica ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

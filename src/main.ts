@@ -237,6 +237,13 @@ function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
   return t(diff > 0 ? 'comp.windier' : 'comp.calmer', { diff: Math.round(abs) }) + windSig(abs);
 }
 
+function pressureComparison(today: DailyWeather, yesterday: DailyWeather): string {
+  const diff = today.pressureMean - yesterday.pressureMean;
+  const abs = Math.abs(diff);
+  if (abs < 1) return t('comp.samePressure');
+  return t(diff > 0 ? 'comp.higherPressure' : 'comp.lowerPressure', { diff: Math.round(abs) });
+}
+
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
 const DOCS_HTML = `<a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
@@ -323,6 +330,9 @@ function weatherCardHTML(data: DailyWeather, heading: string, dark: boolean, hc:
       </div>
       <div class="text-sm ${tD}">
         <span title="${t('tooltip.wind')}">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
+      </div>
+      <div class="text-sm ${tD}">
+        <span title="${t('tooltip.pressure')}">🔵</span> ${Math.round(data.pressureMean)} hPa
       </div>
     </div>
   `;
@@ -644,6 +654,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">🧑</span>`, 'apparentTemp', apparentTempComparison(primary, secondary), dark, hc)}
             ${comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">💧</span>`, 'precip', precipComparison(primary, secondary, isTomorrow), dark, hc)}
             ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">💨</span>`, 'wind', windComparison(primary, secondary), dark, hc)}
+            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">🔵</span>`, 'pressure', pressureComparison(primary, secondary), dark, hc)}
           </div>
         </div>
 

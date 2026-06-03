@@ -13,7 +13,7 @@ const DAILY_VARS = [
   'wind_direction_10m_dominant',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,surface_pressure';
 
 export class WeatherNoDataError extends Error {
   constructor() {
@@ -49,17 +49,22 @@ export async function fetchWeather(
   }
   const data: Record<string, unknown> = await res.json().catch(() => { throw new WeatherNoDataError(); });
 
+  const yHourly  = parseHourly(data, 0);
+  const tHourly  = parseHourly(data, 24);
+  const tmHourly = parseHourly(data, 48);
+  const avgPressure = (h: HourlyData) => h.pressure.reduce((a, b) => a + b, 0) / 24;
+
   return {
-    yesterday: parseDay(data, 0),
-    today: parseDay(data, 1),
-    tomorrow: parseDay(data, 2),
-    yesterdayHourly: parseHourly(data, 0),
-    todayHourly: parseHourly(data, 24),
-    tomorrowHourly: parseHourly(data, 48),
+    yesterday: parseDay(data, 0, avgPressure(yHourly)),
+    today:     parseDay(data, 1, avgPressure(tHourly)),
+    tomorrow:  parseDay(data, 2, avgPressure(tmHourly)),
+    yesterdayHourly: yHourly,
+    todayHourly:     tHourly,
+    tomorrowHourly:  tmHourly,
   };
 }
 
-function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
+function parseDay(data: Record<string, unknown>, i: number, pressureMean: number): DailyWeather {
   const d = data.daily as Record<string, unknown[]>;
   return {
     date: d.time[i] as string,
@@ -73,6 +78,7 @@ function parseDay(data: Record<string, unknown>, i: number): DailyWeather {
     precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
     windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
     windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
+    pressureMean,
   };
 }
 
@@ -82,5 +88,6 @@ function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
     temp: h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
     apparentTemp: h.apparent_temperature.slice(start, start + 24).map(v => v ?? 0),
     precip: h.precipitation.slice(start, start + 24).map(v => v ?? 0),
+    pressure: h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
   };
 }

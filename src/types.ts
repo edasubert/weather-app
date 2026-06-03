@@ -10,12 +10,14 @@ export interface DailyWeather {
   precipitationSum: number;
   windSpeedMax: number;
   windDirection: number;
+  pressureMean: number;
 }
 
 export interface HourlyData {
   temp: number[];
   apparentTemp: number[];
   precip: number[];
+  pressure: number[];
 }
 
 export interface GeoResult {

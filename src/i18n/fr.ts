@@ -42,6 +42,9 @@ export default {
     sameWind: 'Vitesse du vent similaire',
     windier: '{{diff}} km/h plus venteux',
     calmer: '{{diff}} km/h plus calme',
+    samePressure: 'Pression similaire',
+    higherPressure: '{{diff}} hPa de plus',
+    lowerPressure: '{{diff}} hPa de moins',
   },
   card: {
     high: 'max',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Température ressentie',
     precipitation: 'Précipitations',
     wind: 'Vent',
+    pressure: 'Pression',
   },
   geo: {
     yourLocation: 'Ma position',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Vitesse du vent',
       body: '<p><strong>Vitesse maximale du vent soutenu</strong> à 10 m au-dessus du sol enregistrée pendant la journée, associée à la direction dominante du vent (d\'où vient le vent).</p><p>Les rafales — pics brefs au-dessus de la vitesse soutenue — sont une variable distincte et peuvent être considérablement plus élevées.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">À propos de la vitesse du vent ↗</a></p><p class="opacity-60 text-xs">Source : <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Pression atmosphérique',
+      body: '<p><strong>Pression atmosphérique de surface</strong> au point de mesure, exprimée en hectopascals (hPa, équivalent aux millibars).</p><p>Une pression élevée (au-dessus de ~1013 hPa) apporte généralement un temps stable et ensoleillé ; une pression basse est associée aux nuages, au vent et aux précipitations. Une chute rapide de 5 à 10 hPa en 24 heures annonce souvent l\'approche d\'une tempête.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sur la pression atmosphérique ↗</a></p><p class="opacity-60 text-xs">Source : <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

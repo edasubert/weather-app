@@ -42,6 +42,9 @@ export default {
     sameWind: 'Etwa gleiche Windgeschwindigkeit',
     windier: '{{diff}} km/h windiger',
     calmer: '{{diff}} km/h ruhiger',
+    samePressure: 'Etwa gleicher Luftdruck',
+    higherPressure: '{{diff}} hPa höherer Luftdruck',
+    lowerPressure: '{{diff}} hPa niedrigerer Luftdruck',
   },
   card: {
     high: 'max',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Gefühlte Temperatur',
     precipitation: 'Niederschlag',
     wind: 'Wind',
+    pressure: 'Luftdruck',
   },
   geo: {
     yourLocation: 'Mein Standort',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Windgeschwindigkeit',
       body: '<p><strong>Maximale anhaltende Windgeschwindigkeit</strong> in 10 m Höhe über dem Boden, aufgezeichnet während des Tages, zusammen mit der vorherrschenden Windrichtung (woher der Wind weht).</p><p>Böen — kurze Spitzen über der anhaltenden Geschwindigkeit — sind eine eigene Variable und können erheblich höher sein.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">Über Windgeschwindigkeit ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Luftdruck',
+      body: '<p><strong>Atmosphärischer Oberflächendruck</strong> am Messort, angegeben in Hektopascal (hPa, entspricht Millibar).</p><p>Hoher Luftdruck (über ~1013 hPa) bringt in der Regel stabiles, klares Wetter; niedriger Luftdruck ist mit Wolken, Wind und Niederschlag verbunden. Ein rascher Druckabfall von 5–10 hPa in 24 Stunden kündigt oft ein herannahendes Sturmsystem an.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Über Luftdruck ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

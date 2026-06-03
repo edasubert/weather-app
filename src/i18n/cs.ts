@@ -42,6 +42,9 @@ export default {
     sameWind: 'Přibližně stejná rychlost větru',
     windier: 'O {{diff}} km/h větrněji',
     calmer: 'O {{diff}} km/h klidněji',
+    samePressure: 'Přibližně stejný tlak',
+    higherPressure: 'Tlak o {{diff}} hPa vyšší',
+    lowerPressure: 'Tlak o {{diff}} hPa nižší',
   },
   card: {
     high: 'max',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Pocitová teplota',
     precipitation: 'Srážky',
     wind: 'Vítr',
+    pressure: 'Tlak vzduchu',
   },
   geo: {
     yourLocation: 'Moje poloha',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Rychlost větru',
       body: '<p><strong>Maximální trvalá rychlost větru</strong> ve výšce 10 m nad zemí zaznamenaná během dne, spolu s převažujícím směrem větru (odkud vítr vane).</p><p>Nárazy — krátké špičky nad trvalou rychlost — jsou samostatnou veličinou a mohou být výrazně vyšší.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">O rychlosti větru ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Atmosférický tlak',
+      body: '<p><strong>Povrchový atmosférický tlak</strong> v místě měření, vyjádřený v hektopascalech (hPa, totéž co milibary).</p><p>Vysoký tlak (nad ~1013 hPa) zpravidla přináší stabilní, jasné počasí; nízký tlak bývá spojen s oblačností, větrem a srážkami. Rychlý pokles o 5–10 hPa za 24 hodin často signalizuje blížící se bouři.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">O atmosférickém tlaku ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -42,6 +42,9 @@ export default {
     sameWind: 'Приблизно та сама швидкість вітру',
     windier: 'На {{diff}} км/год вітряніше',
     calmer: 'На {{diff}} км/год спокійніше',
+    samePressure: 'Приблизно той самий тиск',
+    higherPressure: 'На {{diff}} гПа вищий тиск',
+    lowerPressure: 'На {{diff}} гПа нижчий тиск',
   },
   card: {
     high: 'макс',
@@ -65,6 +68,7 @@ export default {
     apparentTemp: 'Відчутна температура',
     precipitation: 'Опади',
     wind: 'Вітер',
+    pressure: 'Атмосферний тиск',
   },
   geo: {
     yourLocation: 'Моє місцезнаходження',
@@ -103,6 +107,10 @@ export default {
     wind: {
       title: 'Швидкість вітру',
       body: '<p><strong>Максимальна стійка швидкість вітру</strong> на висоті 10 м над землею, зафіксована за день, разом із переважним напрямком вітру (звідки дме вітер).</p><p>Пориви — короткочасні піки вище стійкої швидкості — є окремою змінною і можуть бути значно вищими.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Wind_speed">Про швидкість вітру ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>wind_speed_10m_max</code> / <code>wind_direction_10m_dominant</code> — {{docs}}</p>',
+    },
+    pressure: {
+      title: 'Атмосферний тиск',
+      body: '<p><strong>Атмосферний тиск на поверхні</strong> в місці вимірювання, виражений у гектопаскалях (гПа, еквівалент мілібарів).</p><p>Високий тиск (вище ~1013 гПа) зазвичай приносить стабільну, ясну погоду; низький тиск пов\'язаний з хмарністю, вітром та опадами. Швидке падіння тиску на 5–10 гПа за 24 години часто сигналізує про наближення шторму.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Про атмосферний тиск ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>surface_pressure</code> — {{docs}}</p>',
     },
   },
   wmo: {
