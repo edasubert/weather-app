@@ -42,6 +42,13 @@ export default {
     sameRain: 'Precipitación similar',
     moreRain: 'Más lluvia esperada',
     lessRain: 'Menos lluvia esperada',
+    noSnow_today: 'Sin nieve hoy',
+    noSnow_tomorrow: 'Sin nieve mañana',
+    snowExpected_today: 'Se espera nieve hoy',
+    snowExpected_tomorrow: 'Se espera nieve mañana',
+    sameSnow: 'Nevada similar',
+    moreSnow: 'Más nieve esperada',
+    lessSnow: 'Menos nieve esperada',
     sameWind: 'Velocidad del viento similar',
     windier: '{{diff}} km/h más ventoso',
     calmer: '{{diff}} km/h más calmado',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: 'Temperatura',
     apparentTemp: 'Temperatura aparente',
-    precipitation: 'Precipitación',
+    precipitation: 'Lluvia',
+    showers: 'Chubascos',
+    snowfall: 'Nevada',
     wind: 'Viento',
     pressure: 'Presión',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Presión atmosférica',
       body: '<p><strong>Presión atmosférica superficial</strong> en el lugar de medición, expresada en hectopascales (hPa, equivalente a milibares).</p><p>La presión alta (por encima de ~1013 hPa) generalmente trae tiempo estable y despejado; la presión baja se asocia con nubes, viento y precipitaciones. Una caída rápida de 5–10 hPa en 24 horas suele indicar la proximidad de una tormenta.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sobre la presión atmosférica ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Nevada',
+      body: '<p><strong>Acumulación total de nieve</strong> durante el día, expresada en centímetros de nieve (no en equivalente líquido).</p><p>La nevada se muestra por separado de la lluvia para ver de un vistazo si la precipitación cae como lluvia, nieve o ambas. Las trazas inferiores a 0,1 cm se consideran sin nevada.</p><p class="opacity-60 text-xs">Fuente: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -42,6 +42,13 @@ export default {
     sameRain: '降水量ほぼ同じ',
     moreRain: '雨量増加の見込み',
     lessRain: '雨量減少の見込み',
+    noSnow_today: '今日は雪なし',
+    noSnow_tomorrow: '明日は雪なし',
+    snowExpected_today: '今日は降雪の見込み',
+    snowExpected_tomorrow: '明日は降雪の見込み',
+    sameSnow: '降雪量ほぼ同じ',
+    moreSnow: '降雪量増加の見込み',
+    lessSnow: '降雪量減少の見込み',
     sameWind: 'ほぼ同じ風速',
     windier: '{{diff}} km/h 風が強い',
     calmer: '{{diff}} km/h 風が弱い',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: '気温',
     apparentTemp: '体感温度',
-    precipitation: '降水量',
+    precipitation: '雨',
+    showers: 'にわか雨',
+    snowfall: '降雪',
     wind: '風速',
     pressure: '気圧',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: '大気圧',
       body: '<p><strong>地表大気圧</strong>は観測地点における大気圧で、ヘクトパスカル（hPa、ミリバールと同等）で表されます。</p><p>高気圧（~1013 hPa以上）は一般に安定した晴天をもたらし、低気圧は雲・風・降水と関連しています。24時間で5〜10 hPaの急激な気圧低下は、嵐の接近を示すことが多いです。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">大気圧について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: '降雪',
+      body: '<p>1日の<strong>積雪深合計</strong>で、雪の深さをセンチメートルで表します（液体換算ではありません）。</p><p>降雪は雨と別に表示されるため、降水が雨・雪・またはその両方で降っているかが一目でわかります。0.1cm未満の微量は降雪なしとして扱います。</p><p class="opacity-60 text-xs">ソース: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

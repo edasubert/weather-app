@@ -42,6 +42,13 @@ export default {
     sameRain: 'About the same amount of rain',
     moreRain: 'More rain expected',
     lessRain: 'Less rain expected',
+    noSnow_today: 'No snow today',
+    noSnow_tomorrow: 'No snow tomorrow',
+    snowExpected_today: 'Snow expected today',
+    snowExpected_tomorrow: 'Snow expected tomorrow',
+    sameSnow: 'About the same snowfall',
+    moreSnow: 'More snow expected',
+    lessSnow: 'Less snow expected',
     sameWind: 'About the same wind speed',
     windier: '{{diff}} km/h windier',
     calmer: '{{diff}} km/h calmer',
@@ -70,6 +77,8 @@ export default {
     temperature: 'Temperature',
     apparentTemp: 'Apparent temperature',
     precipitation: 'Precipitation',
+    showers: 'Showers',
+    snowfall: 'Snowfall',
     wind: 'Wind',
     pressure: 'Pressure',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Atmospheric pressure',
       body: '<p><strong>Surface atmospheric pressure</strong> at the measurement location, expressed in hectopascals (hPa, equivalent to millibars).</p><p>High pressure (above ~1013 hPa) generally brings stable, clear weather; low pressure is associated with clouds, wind, and precipitation. A rapid drop of 5–10 hPa in 24 hours often signals an approaching storm.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">About atmospheric pressure ↗</a></p><p class="opacity-60 text-xs">Source: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Snowfall',
+      body: '<p><strong>Total snowfall depth</strong> accumulated over the day, expressed in centimetres of snow (not liquid equivalent).</p><p>Snowfall is shown separately from rain so you can see at a glance whether precipitation is falling as rain, snow, or both. Trace amounts below 0.1 cm are treated as no snowfall.</p><p class="opacity-60 text-xs">Source: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

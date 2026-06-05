@@ -9,11 +9,14 @@ const DAILY_VARS = [
   'apparent_temperature_mean',
   'apparent_temperature_min',
   'precipitation_sum',
+  'rain_sum',
+  'showers_sum',
+  'snowfall_sum',
   'wind_speed_10m_max',
   'wind_direction_10m_dominant',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,surface_pressure';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,surface_pressure';
 
 export class WeatherNoDataError extends Error {
   constructor() {
@@ -76,6 +79,9 @@ function parseDay(data: Record<string, unknown>, i: number, pressureMean: number
     apparentTempMean: d.apparent_temperature_mean[i] as number,
     apparentTempMin: d.apparent_temperature_min[i] as number,
     precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
+    rainSum: (d.rain_sum[i] as number | null) ?? 0,
+    showersSum: (d.showers_sum[i] as number | null) ?? 0,
+    snowfallSum: (d.snowfall_sum[i] as number | null) ?? 0,
     windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
     windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
     pressureMean,
@@ -84,10 +90,14 @@ function parseDay(data: Record<string, unknown>, i: number, pressureMean: number
 
 function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
   const h = data.hourly as Record<string, (number | null)[]>;
+  const rainSlice    = h.rain.slice(start, start + 24);
+  const showersSlice = h.showers.slice(start, start + 24);
   return {
-    temp: h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
+    temp:         h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
     apparentTemp: h.apparent_temperature.slice(start, start + 24).map(v => v ?? 0),
-    precip: h.precipitation.slice(start, start + 24).map(v => v ?? 0),
-    pressure: h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
+    precip:       h.precipitation.slice(start, start + 24).map(v => v ?? 0),
+    rain:         rainSlice.map((v, i) => (v ?? 0) + ((showersSlice[i] as number | null) ?? 0)),
+    snow:         h.snowfall.slice(start, start + 24).map(v => v ?? 0),
+    pressure:     h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
   };
 }

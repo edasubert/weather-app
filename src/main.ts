@@ -5,6 +5,7 @@ import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildChart, setupChartTooltip } from './chart';
 import { t, setLang, getLang, LANGS, type Lang } from './i18n';
+import { ICONS } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
@@ -233,8 +234,8 @@ function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
 }
 
 function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
-  const todayMm = today.precipitationSum;
-  const yestMm  = yesterday.precipitationSum;
+  const todayMm = today.rainSum + today.showersSum;
+  const yestMm  = yesterday.rainSum + yesterday.showersSum;
   const ctx = isTomorrowMode ? 'tomorrow' : 'today';
   if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
   if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}` as string);
@@ -242,6 +243,17 @@ function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorr
   const diff = todayMm - yestMm;
   if (Math.abs(diff) < 0.5) return t('comp.sameRain');
   return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
+}
+
+function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
+  const todayCm = today.snowfallSum;
+  const yestCm  = yesterday.snowfallSum;
+  const ctx = isTomorrowMode ? 'tomorrow' : 'today';
+  if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}` as string);
+  if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}` as string);
+  const diff = todayCm - yestCm;
+  if (Math.abs(diff) < 0.2) return t('comp.sameSnow');
+  return t(diff > 0 ? 'comp.moreSnow' : 'comp.lessSnow');
 }
 
 function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
@@ -308,8 +320,8 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
         <thead>
           <tr>
             <th></th>
-            <th class="text-right font-normal pb-0.5" title="${t('tooltip.temperature')}">🌡️</th>
-            <th class="text-right font-normal pb-0.5" title="${t('tooltip.apparentTemp')}">🧑</th>
+            <th class="text-right font-normal pb-0.5" title="${t('tooltip.temperature')}">${ICONS.temp}</th>
+            <th class="text-right font-normal pb-0.5" title="${t('tooltip.apparentTemp')}">${ICONS.feels}</th>
           </tr>
         </thead>
         <tbody>
@@ -330,14 +342,23 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
           </tr>
         </tbody>
       </table>
+      ${(() => {
+        const hasRain    = data.rainSum > 0.1;
+        const hasShowers = data.showersSum > 0.1;
+        const hasLiquid  = hasRain || hasShowers;
+        const hasSnow    = data.snowfallSum > 0.1;
+        const cls = 'text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100';
+        const showLiquidRows = !hasSnow || hasLiquid;
+        const rainRow    = showLiquidRows && (hasRain || !hasShowers) ? `<div class="${cls}"><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${hasRain ? `${data.rainSum.toFixed(1)} mm` : t('card.noRain')}</div>` : '';
+        const showersRow = showLiquidRows && hasShowers ? `<div class="${cls}"><span title="${t('tooltip.showers')}">${ICONS.showers}</span> ${data.showersSum.toFixed(1)} mm</div>` : '';
+        const snowRow    = hasSnow ? `<div class="${cls}"><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${data.snowfallSum.toFixed(1)} cm</div>` : '';
+        return rainRow + showersRow + snowRow;
+      })()}
       <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
-        <span title="${t('tooltip.precipitation')}">💧</span> ${data.precipitationSum > 0 ? `${data.precipitationSum.toFixed(1)} mm` : t('card.noRain')}
+        <span title="${t('tooltip.wind')}">${ICONS.wind}</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
       <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
-        <span title="${t('tooltip.wind')}">💨</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
-      </div>
-      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
-        <span title="${t('tooltip.pressure')}">🔵</span> ${Math.round(data.pressureMean)} hPa
+        <span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${Math.round(data.pressureMean)} hPa
       </div>
     </div>
   `;
@@ -611,11 +632,18 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="rounded-2xl p-4 mb-4" style="background-color:var(--cmp-bg);border:var(--cmp-border)">
           <h1 class="text-xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3">${compHeader}</h1>
           <div class="flex flex-col gap-2">
-            ${comparisonRowHTML('🌡️', 'temp', tempComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">🧑</span>`, 'apparentTemp', apparentTempComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">💧</span>`, 'precip', precipComparison(primary, secondary, isTomorrow))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">💨</span>`, 'wind', windComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">🔵</span>`, 'pressure', pressureComparison(primary, secondary))}
+            ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', apparentTempComparison(primary, secondary))}
+            ${(() => {
+              const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
+              const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
+              const showRain = !hasAnySnow || hasAnyRain;
+              const showSnow = hasAnySnow;
+              return (showRain ? comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
+                   + (showSnow ? comparisonRowHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
+            })()}
+            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary))}
           </div>
         </div>
 

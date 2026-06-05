@@ -42,6 +42,13 @@ export default {
     sameRain: 'Přibližně stejné srážky',
     moreRain: 'Více srážek',
     lessRain: 'Méně srážek',
+    noSnow_today: 'Dnes bez sněhu',
+    noSnow_tomorrow: 'Zítra bez sněhu',
+    snowExpected_today: 'Dnes se očekává sněžení',
+    snowExpected_tomorrow: 'Zítra se očekává sněžení',
+    sameSnow: 'Přibližně stejné sněžení',
+    moreSnow: 'Více sněhu',
+    lessSnow: 'Méně sněhu',
     sameWind: 'Přibližně stejná rychlost větru',
     windier: 'O {{diff}} km/h větrněji',
     calmer: 'O {{diff}} km/h klidněji',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: 'Teplota',
     apparentTemp: 'Pocitová teplota',
-    precipitation: 'Srážky',
+    precipitation: 'Déšť',
+    showers: 'Přeháňky',
+    snowfall: 'Sněžení',
     wind: 'Vítr',
     pressure: 'Tlak vzduchu',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Atmosférický tlak',
       body: '<p><strong>Povrchový atmosférický tlak</strong> v místě měření, vyjádřený v hektopascalech (hPa, totéž co milibary).</p><p>Vysoký tlak (nad ~1013 hPa) zpravidla přináší stabilní, jasné počasí; nízký tlak bývá spojen s oblačností, větrem a srážkami. Rychlý pokles o 5–10 hPa za 24 hodin často signalizuje blížící se bouři.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">O atmosférickém tlaku ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Sněžení',
+      body: '<p><strong>Celková výška sněhové pokrývky</strong> nashromážděná za den, vyjádřená v centimetrech sněhu (nikoli v mm vodního sloupce).</p><p>Sněžení je zobrazeno odděleně od deště, abyste mohli na první pohled vidět, zda srážky padají jako déšť, sníh nebo obojí. Stopové množství pod 0,1 cm se bere jako žádné sněžení.</p><p class="opacity-60 text-xs">Zdroj: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

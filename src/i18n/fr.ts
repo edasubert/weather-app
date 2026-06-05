@@ -42,6 +42,13 @@ export default {
     sameRain: 'Précipitations similaires',
     moreRain: 'Plus de pluie attendue',
     lessRain: 'Moins de pluie attendue',
+    noSnow_today: "Pas de neige aujourd'hui",
+    noSnow_tomorrow: 'Pas de neige demain',
+    snowExpected_today: "Chutes de neige prévues aujourd'hui",
+    snowExpected_tomorrow: 'Chutes de neige prévues demain',
+    sameSnow: 'Chutes de neige similaires',
+    moreSnow: 'Plus de neige attendue',
+    lessSnow: 'Moins de neige attendue',
     sameWind: 'Vitesse du vent similaire',
     windier: '{{diff}} km/h plus venteux',
     calmer: '{{diff}} km/h plus calme',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: 'Température',
     apparentTemp: 'Température ressentie',
-    precipitation: 'Précipitations',
+    precipitation: 'Pluie',
+    showers: 'Averses',
+    snowfall: 'Chutes de neige',
     wind: 'Vent',
     pressure: 'Pression',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Pression atmosphérique',
       body: '<p><strong>Pression atmosphérique de surface</strong> au point de mesure, exprimée en hectopascals (hPa, équivalent aux millibars).</p><p>Une pression élevée (au-dessus de ~1013 hPa) apporte généralement un temps stable et ensoleillé ; une pression basse est associée aux nuages, au vent et aux précipitations. Une chute rapide de 5 à 10 hPa en 24 heures annonce souvent l\'approche d\'une tempête.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sur la pression atmosphérique ↗</a></p><p class="opacity-60 text-xs">Source : <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Chutes de neige',
+      body: '<p><strong>Accumulation totale de neige</strong> sur la journée, exprimée en centimètres de neige (non en équivalent eau).</p><p>Les chutes de neige sont affichées séparément de la pluie pour voir d\'un coup d\'œil si les précipitations tombent sous forme de pluie, de neige ou des deux. Les traces inférieures à 0,1 cm sont traitées comme sans chutes de neige.</p><p class="opacity-60 text-xs">Source : <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

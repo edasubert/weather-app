@@ -42,6 +42,13 @@ export default {
     sameRain: 'Etwa gleiche Niederschlagsmenge',
     moreRain: 'Mehr Regen erwartet',
     lessRain: 'Weniger Regen erwartet',
+    noSnow_today: 'Heute kein Schnee',
+    noSnow_tomorrow: 'Morgen kein Schnee',
+    snowExpected_today: 'Heute Schneefall erwartet',
+    snowExpected_tomorrow: 'Morgen Schneefall erwartet',
+    sameSnow: 'Etwa gleicher Schneefall',
+    moreSnow: 'Mehr Schnee erwartet',
+    lessSnow: 'Weniger Schnee erwartet',
     sameWind: 'Etwa gleiche Windgeschwindigkeit',
     windier: '{{diff}} km/h windiger',
     calmer: '{{diff}} km/h ruhiger',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: 'Temperatur',
     apparentTemp: 'Gefühlte Temperatur',
-    precipitation: 'Niederschlag',
+    precipitation: 'Regen',
+    showers: 'Schauer',
+    snowfall: 'Schneefall',
     wind: 'Wind',
     pressure: 'Luftdruck',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Luftdruck',
       body: '<p><strong>Atmosphärischer Oberflächendruck</strong> am Messort, angegeben in Hektopascal (hPa, entspricht Millibar).</p><p>Hoher Luftdruck (über ~1013 hPa) bringt in der Regel stabiles, klares Wetter; niedriger Luftdruck ist mit Wolken, Wind und Niederschlag verbunden. Ein rascher Druckabfall von 5–10 hPa in 24 Stunden kündigt oft ein herannahendes Sturmsystem an.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Über Luftdruck ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Schneefall',
+      body: '<p><strong>Gesamte Schneefallhöhe</strong> über den Tag angesammelt, in Zentimetern Schnee (nicht Wasseräquivalent) angegeben.</p><p>Schneefall wird separat von Regen angezeigt, damit auf einen Blick erkennbar ist, ob Niederschlag als Regen, Schnee oder beides fällt. Spuren unter 0,1 cm gelten als kein Schneefall.</p><p class="opacity-60 text-xs">Quelle: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {

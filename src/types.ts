@@ -8,6 +8,9 @@ export interface DailyWeather {
   apparentTempMean: number;
   apparentTempMin: number;
   precipitationSum: number;
+  rainSum: number;
+  showersSum: number;
+  snowfallSum: number;
   windSpeedMax: number;
   windDirection: number;
   pressureMean: number;
@@ -17,6 +20,8 @@ export interface HourlyData {
   temp: number[];
   apparentTemp: number[];
   precip: number[];
+  rain: number[];
+  snow: number[];
   pressure: number[];
 }
 

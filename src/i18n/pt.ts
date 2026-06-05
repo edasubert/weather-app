@@ -42,6 +42,13 @@ export default {
     sameRain: 'Precipitação similar',
     moreRain: 'Mais chuva esperada',
     lessRain: 'Menos chuva esperada',
+    noSnow_today: 'Sem neve hoje',
+    noSnow_tomorrow: 'Sem neve amanhã',
+    snowExpected_today: 'Neve esperada hoje',
+    snowExpected_tomorrow: 'Neve esperada amanhã',
+    sameSnow: 'Nevada similar',
+    moreSnow: 'Mais neve esperada',
+    lessSnow: 'Menos neve esperada',
     sameWind: 'Velocidade do vento similar',
     windier: '{{diff}} km/h mais ventoso',
     calmer: '{{diff}} km/h mais calmo',
@@ -69,7 +76,9 @@ export default {
   tooltip: {
     temperature: 'Temperatura',
     apparentTemp: 'Temperatura aparente',
-    precipitation: 'Precipitação',
+    precipitation: 'Chuva',
+    showers: 'Pancadas',
+    snowfall: 'Nevada',
     wind: 'Vento',
     pressure: 'Pressão',
   },
@@ -114,6 +123,10 @@ export default {
     pressure: {
       title: 'Pressão atmosférica',
       body: '<p><strong>Pressão atmosférica superficial</strong> no local de medição, expressa em hectopascais (hPa, equivalente a milibares).</p><p>Pressão alta (acima de ~1013 hPa) geralmente traz tempo estável e ensolarado; pressão baixa está associada a nuvens, vento e chuva. Uma queda rápida de 5–10 hPa em 24 horas frequentemente sinaliza a aproximação de uma tempestade.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Atmospheric_pressure">Sobre pressão atmosférica ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>surface_pressure</code> — {{docs}}</p>',
+    },
+    snow: {
+      title: 'Nevada',
+      body: '<p><strong>Acumulação total de neve</strong> durante o dia, expressa em centímetros de neve (não em equivalente líquido).</p><p>A nevada é exibida separadamente da chuva para ver de relance se a precipitação está caindo como chuva, neve ou ambas. Traços abaixo de 0,1 cm são tratados como sem nevada.</p><p class="opacity-60 text-xs">Fonte: <code>snowfall_sum</code> — {{docs}}</p>',
     },
   },
   wmo: {
