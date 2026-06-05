@@ -35,7 +35,7 @@ function langMenuHTML(openUp = false): string {
     const active = getLang() === lang ? ' font-semibold' : '';
     return `<button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${active}" data-lang="${lang}"${sep}>${LANG_NAMES[lang]}</button>`;
   }).join('');
-  return `<div id="lang-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:130px">${items}</div>`;
+  return `<div id="lang-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:130px">${items}</div>`;
 }
 
 function modelMenuHTML(openUp = false): string {
@@ -60,7 +60,7 @@ function modelMenuHTML(openUp = false): string {
     }
     first = false;
   }
-  return `<div id="model-menu" class="absolute right-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:300px;max-height:360px">${html}</div>`;
+  return `<div id="model-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:300px;max-height:360px">${html}</div>`;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -106,6 +106,12 @@ function attachHCHandler(): void {
   });
 }
 
+function closeAllMenus(): void {
+  document.getElementById('lang-menu')?.classList.add('hidden');
+  document.getElementById('model-menu')?.classList.add('hidden');
+  document.getElementById('unit-menu')?.classList.add('hidden');
+}
+
 function attachDropdownHandlers(): void {
   const langBtn  = document.getElementById('lang-btn');
   const langMenu = document.getElementById('lang-menu');
@@ -113,8 +119,9 @@ function attachDropdownHandlers(): void {
     langBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const wasHidden = langMenu.classList.contains('hidden');
-      langMenu.classList.toggle('hidden');
+      closeAllMenus();
       if (wasHidden) {
+        langMenu.classList.remove('hidden');
         setTimeout(() => document.addEventListener('click', () => langMenu.classList.add('hidden'), { once: true }), 0);
       }
     });
@@ -134,8 +141,9 @@ function attachDropdownHandlers(): void {
     modelBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const wasHidden = modelMenu.classList.contains('hidden');
-      modelMenu.classList.toggle('hidden');
+      closeAllMenus();
       if (wasHidden) {
+        modelMenu.classList.remove('hidden');
         setTimeout(() => document.addEventListener('click', () => modelMenu.classList.add('hidden'), { once: true }), 0);
       }
     });
@@ -155,8 +163,9 @@ function attachDropdownHandlers(): void {
     unitBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const wasHidden = unitMenu.classList.contains('hidden');
-      unitMenu.classList.toggle('hidden');
+      closeAllMenus();
       if (wasHidden) {
+        unitMenu.classList.remove('hidden');
         setTimeout(() => document.addEventListener('click', () => unitMenu.classList.add('hidden'), { once: true }), 0);
       }
     });
@@ -577,7 +586,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
               <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
                 °${unit} <span class="text-xs opacity-50">▾</span>
               </button>
-              <div id="unit-menu" class="absolute right-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:72px">
+              <div id="unit-menu" class="absolute left-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:72px">
                 <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
                 <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid var(--menu-border)">°F</button>
               </div>
