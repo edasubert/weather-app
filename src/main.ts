@@ -641,6 +641,13 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             </button>
           </div>
         </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
+          <div class="flex items-center gap-4">
+            <a class="text-sm subtle-text" href="https://github.com/edasubert/weather-app/issues" target="_blank" rel="noopener noreferrer">
+            ${t('footer.reportIssue')} ↗
+          </a>
+        </div>
+        </div>
       </div>
     </div>
 

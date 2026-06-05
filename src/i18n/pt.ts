@@ -20,6 +20,9 @@ export default {
     changeLocation: 'Mudar localização',
     dataSource: 'Fonte de dados:',
   },
+  footer: {
+    reportIssue: 'Reportar um problema no GitHub',
+  },
   comp: {
     yesterdayToday: 'Ontem e hoje',
     todayTomorrow: 'Hoje e amanhã',

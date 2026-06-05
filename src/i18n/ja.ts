@@ -20,6 +20,9 @@ export default {
     changeLocation: '場所を変更',
     dataSource: 'データソース：',
   },
+  footer: {
+    reportIssue: 'GitHubで問題を報告する',
+  },
   comp: {
     yesterdayToday: '昨日と今日',
     todayTomorrow: '今日と明日',

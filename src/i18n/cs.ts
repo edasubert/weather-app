@@ -17,8 +17,11 @@ export default {
     switch: 'EN',
   },
   weather: {
-    changeLocation: 'Změnit místo',
+    changeLocation: 'Změnit polohu',
     dataSource: 'Zdroj dat:',
+  },
+  footer: {
+    reportIssue: 'Nahlásit problém na GitHub',
   },
   comp: {
     yesterdayToday: 'Včera a dnes',
@@ -80,9 +83,9 @@ export default {
     failed: 'Nepodařilo se načíst data o počasí. Zkuste to znovu.',
     locationDenied: 'Přístup k poloze odepřen. Prosím vyhledejte město ručně.',
     tryAgain: 'Zkusit znovu',
-    noDataTitle: 'Žádná data o počasí pro toto místo',
+    noDataTitle: 'Žádná data o počasí pro tuto polohu',
     noDataBody: '<strong>{{model}}</strong> nepokrývá {{location}}. Vyberte prosím jiný model.',
-    changeLocation: 'Změnit místo',
+    changeLocation: 'Změnit polohu',
   },
   model: {
     label: 'Model',
