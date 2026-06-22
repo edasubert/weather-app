@@ -385,18 +385,32 @@ function olContent(
   }
 
   // Day separator lines + date labels + hour ticks (all x-position dependent)
+  // Thin labels dynamically so they never overlap as zoom changes.
+  const dayW = OL_DAY_W * zoom;
+  const rawDayStep = Math.ceil(68 / dayW);  // 68px ≈ width of a short date label
+  const dayStep = ([1, 2, 7, 14] as const).find(s => s >= rawDayStep) ?? 14;
+  const showHrAll = dayW >= 80;   // show 6, 12, 18 ticks
+  const showHrMid = dayW >= 40;   // show only 12 tick
+
   const dayLines: string[] = [];
   const dayLabels: string[] = [];
   const hrTicks: string[] = [];
   for (let d = 0; d < OL_DAYS; d++) {
     const x = xZ(d * 24);
     if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${PT + OL_CH}" stroke="var(--chart-grid)" stroke-width="1" stroke-dasharray="3 3"/>`);
-    const dateStr = dates[d] ?? '';
-    const label = dateStr ? new Date(dateStr + 'T12:00:00').toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
-    dayLabels.push(`<text x="${(x + 3).toFixed(1)}" y="${(OL_H - 26).toFixed(1)}" text-anchor="start" class="lbl" style="font-size:10px">${label}</text>`);
-    for (const hr of [6, 12, 18]) {
-      const hx = xZ(d * 24 + hr);
-      hrTicks.push(`<text x="${hx.toFixed(1)}" y="${(OL_H - 8).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.45">${hr}</text>`);
+    if (d % dayStep === 0) {
+      const dateStr = dates[d] ?? '';
+      const label = dateStr ? new Date(dateStr + 'T12:00:00').toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+      dayLabels.push(`<text x="${(x + 3).toFixed(1)}" y="${(OL_H - 26).toFixed(1)}" text-anchor="start" class="lbl" style="font-size:10px">${label}</text>`);
+    }
+    if (showHrAll) {
+      for (const hr of [6, 12, 18]) {
+        const hx = xZ(d * 24 + hr);
+        hrTicks.push(`<text x="${hx.toFixed(1)}" y="${(OL_H - 8).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.45">${hr}</text>`);
+      }
+    } else if (showHrMid) {
+      const hx = xZ(d * 24 + 12);
+      hrTicks.push(`<text x="${hx.toFixed(1)}" y="${(OL_H - 8).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.45">12</text>`);
     }
   }
 
