@@ -1,9 +1,9 @@
 import './style.css';
-import { fetchWeather, WeatherNoDataError } from './weather';
+import { fetchWeather, fetchOutlook, WeatherNoDataError } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildChart, setupChartTooltip } from './chart';
+import { buildChart, setupChartTooltip, buildOutlookChart, setupOutlookTooltip } from './chart';
 import { t, setLang, getLang, LANGS, type Lang } from './i18n';
 import { ICONS } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -11,6 +11,7 @@ import type { DailyWeather, GeoResult, HourlyData } from './types';
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
 let model = DEFAULT_MODEL;
+let outlookData: { dates: string[]; hourly: import('./types').HourlyData } | null = null;
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -654,6 +655,12 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
         ${buildChart(primaryHourly, secondaryHourly, unit, t('chart.' + (isTomorrow ? 'tomorrow' : 'today') as string), t('chart.' + (isTomorrow ? 'today' : 'yesterday') as string))}
 
+        <div class="flex justify-center mt-3">
+          <button id="outlook-btn" class="text-sm px-4 py-2 rounded-xl border ${BTN_CLS} hover-btn">
+            ${t('outlook.button')}
+          </button>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
           <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
             ${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
@@ -687,6 +694,15 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
         <div id="modal-body" class="text-sm text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 flex flex-col gap-2"></div>
       </div>
     </div>
+
+    <div id="outlook-modal" class="fixed inset-0 z-50 flex flex-col hidden" style="background-color:var(--modal-bg)" role="dialog" aria-modal="true">
+      <div class="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0" style="border-bottom:1px solid var(--menu-border)">
+        <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white">${t('outlook.title')}</h2>
+        <button id="outlook-close" class="w-8 h-8 flex items-center justify-center text-xl leading-none transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hc:text-black dark-hc:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-gray-200 dark-hc:hover:bg-gray-800">&times;</button>
+      </div>
+      <div id="outlook-content" class="flex-1 overflow-auto p-4 sm:p-6">
+      </div>
+    </div>
   `;
 
   const chartContainer = root.querySelector<HTMLElement>('#chart-container');
@@ -710,7 +726,14 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
   document.getElementById('modal-close')!.addEventListener('click', closeModal);
   document.getElementById('modal-backdrop')!.addEventListener('click', closeModal);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  const outlookModal   = document.getElementById('outlook-modal')!;
+  const outlookContent = document.getElementById('outlook-content')!;
+  const closeOutlook   = () => outlookModal.classList.add('hidden');
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeModal(); closeOutlook(); }
+  });
 
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -720,6 +743,35 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
       modalBody.innerHTML = info.body;
       modal.classList.remove('hidden');
     });
+  });
+
+  document.getElementById('outlook-close')!.addEventListener('click', closeOutlook);
+
+  const renderOutlookChart = () => {
+    if (!outlookData) return;
+    const locale = LOCALE_MAP[getLang()] ?? 'en-US';
+    outlookContent.innerHTML = buildOutlookChart(outlookData.hourly, unit, outlookData.dates, locale);
+    const cc = outlookContent.querySelector<HTMLElement>('#outlook-chart-container');
+    if (cc) setupOutlookTooltip(cc, outlookData.hourly, unit, outlookData.dates, locale);
+  };
+
+  document.getElementById('outlook-btn')!.addEventListener('click', async () => {
+    outlookModal.classList.remove('hidden');
+    if (outlookData) {
+      renderOutlookChart();
+      return;
+    }
+    outlookContent.innerHTML = `
+      <div class="flex items-center justify-center min-h-[200px]">
+        <div class="w-10 h-10 border-4 border-sky-200 dark:border-sky-900 border-t-sky-500 rounded-full animate-spin"></div>
+      </div>
+    `;
+    try {
+      outlookData = await fetchOutlook(location.latitude, location.longitude, model);
+      renderOutlookChart();
+    } catch {
+      outlookContent.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400 p-8">${t('error.failed')}</p>`;
+    }
   });
 }
 
@@ -770,6 +822,7 @@ function renderNoDataError(location: GeoResult): void {
 }
 
 async function loadWeather(location: GeoResult): Promise<void> {
+  outlookData = null;
   renderLoading(t('error.loadingFor', { name: location.name }));
   try {
     const weather = await fetchWeather(location.latitude, location.longitude, model);

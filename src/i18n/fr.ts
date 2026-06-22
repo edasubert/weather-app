@@ -73,6 +73,10 @@ export default {
     yesterdayShort: 'Hier',
     tomorrowShort: 'Dem.',
   },
+  outlook: {
+    button: '14 prochains jours',
+    title: 'Prévision à 14 jours',
+  },
   tooltip: {
     temperature: 'Température',
     apparentTemp: 'Température ressentie',

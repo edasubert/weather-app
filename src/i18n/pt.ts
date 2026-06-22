@@ -73,6 +73,10 @@ export default {
     yesterdayShort: 'Ont.',
     tomorrowShort: 'Amh.',
   },
+  outlook: {
+    button: 'Próximos 14 dias',
+    title: 'Previsão de 14 dias',
+  },
   tooltip: {
     temperature: 'Temperatura',
     apparentTemp: 'Temperatura aparente',

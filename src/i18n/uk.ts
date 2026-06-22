@@ -73,6 +73,10 @@ export default {
     yesterdayShort: 'Вч.',
     tomorrowShort: 'Завт.',
   },
+  outlook: {
+    button: 'Наступні 14 днів',
+    title: 'Прогноз на 14 днів',
+  },
   tooltip: {
     temperature: 'Температура',
     apparentTemp: 'Відчутна температура',

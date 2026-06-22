@@ -73,6 +73,10 @@ export default {
     yesterdayShort: 'Gest.',
     tomorrowShort: 'Morg.',
   },
+  outlook: {
+    button: 'Nächste 14 Tage',
+    title: '14-Tage-Vorhersage',
+  },
   tooltip: {
     temperature: 'Temperatur',
     apparentTemp: 'Gefühlte Temperatur',

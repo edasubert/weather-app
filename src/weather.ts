@@ -101,3 +101,46 @@ function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
     pressure:     h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
   };
 }
+
+export async function fetchOutlook(
+  lat: number,
+  lon: number,
+  model?: string,
+): Promise<{ dates: string[]; hourly: HourlyData }> {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(lat));
+  url.searchParams.set('longitude', String(lon));
+  url.searchParams.set('hourly', HOURLY_VARS);
+  url.searchParams.set('timezone', 'auto');
+  url.searchParams.set('forecast_days', '14');
+  if (model && model !== 'best_match') {
+    url.searchParams.set('models', model);
+  }
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: boolean } | null;
+    if (body?.error === true) throw new WeatherNoDataError();
+    throw new Error(`Weather API error ${res.status}`);
+  }
+  const data: Record<string, unknown> = await res.json().catch(() => { throw new WeatherNoDataError(); });
+
+  const raw      = data.hourly as Record<string, unknown[]>;
+  const times    = raw.time    as string[];
+  const rain     = raw.rain    as (number | null)[];
+  const showers  = raw.showers as (number | null)[];
+
+  const dates = Array.from({ length: 14 }, (_, d) => times[d * 24]?.slice(0, 10) ?? '');
+
+  return {
+    dates,
+    hourly: {
+      temp:         (raw.temperature_2m    as (number | null)[]).map(v => v ?? 0),
+      apparentTemp: (raw.apparent_temperature as (number | null)[]).map(v => v ?? 0),
+      precip:       (raw.precipitation     as (number | null)[]).map(v => v ?? 0),
+      rain:         rain.map((v, i) => (v ?? 0) + ((showers[i] as number | null) ?? 0)),
+      snow:         (raw.snowfall          as (number | null)[]).map(v => v ?? 0),
+      pressure:     (raw.surface_pressure  as (number | null)[]).map(v => v ?? 0),
+    },
+  };
+}

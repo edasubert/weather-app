@@ -73,6 +73,10 @@ export default {
     yesterdayShort: 'Včera',
     tomorrowShort: 'Zítra',
   },
+  outlook: {
+    button: 'Příštích 14 dní',
+    title: 'Výhled na 14 dní',
+  },
   tooltip: {
     temperature: 'Teplota',
     apparentTemp: 'Pocitová teplota',
