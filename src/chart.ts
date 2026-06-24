@@ -333,7 +333,7 @@ function computeOutlookRange(hourly: HourlyData, unit: 'C' | 'F') {
 type OlRange = ReturnType<typeof computeOutlookRange>;
 
 function olContent(
-  hourly: HourlyData, unit: 'C' | 'F', dates: string[], locale: string,
+  hourly: HourlyData, dates: string[], locale: string,
   zoom: number, range: OlRange,
 ): string {
   const { cvt, minT, maxT, maxRain, maxSnow, minP, maxP } = range;
@@ -365,23 +365,13 @@ function olContent(
       return `<rect x="${bx.toFixed(1)}" y="${(PT + OL_CH - barH).toFixed(1)}" width="${bw.toFixed(1)}" height="${barH.toFixed(1)}" style="fill:${color}" rx="0.5"/>`;
     }).join('');
 
-  // Horizontal temperature grid + left labels (grid spans full zoomed width)
+  // Horizontal grid lines only — labels live in sticky overlays outside the scroll
   const tempRange = maxT - minT;
   const step = tempRange > 20 ? 10 : tempRange > 10 ? 5 : 2;
   const grid: string[] = [];
   for (let v = Math.ceil(minT / step) * step; v < maxT; v += step) {
     const y = yOl(v, minT, maxT);
-    grid.push(`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${(totalW - PR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>
-      <text x="${(PL - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" class="lbl">${Math.round(v)}°${unit}</text>`);
-  }
-
-  // Pressure right-side labels
-  const pressureRange = maxP - minP;
-  const pStep = pressureRange > 20 ? 10 : pressureRange > 10 ? 5 : 2;
-  const pLabels: string[] = [];
-  for (let p = Math.ceil(minP / pStep) * pStep; p < maxP; p += pStep) {
-    const y = yOl(p, minP, maxP);
-    pLabels.push(`<text x="${(totalW - PR + 6).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)}</text>`);
+    grid.push(`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${(totalW - PR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>`);
   }
 
   // Day separator lines + date labels + hour ticks (all x-position dependent)
@@ -397,7 +387,7 @@ function olContent(
   const hrTicks: string[] = [];
   for (let d = 0; d < OL_DAYS; d++) {
     const x = xZ(d * 24);
-    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${PT + OL_CH}" stroke="var(--chart-grid)" stroke-width="1" stroke-dasharray="3 3"/>`);
+    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${OL_H}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
     if (d % dayStep === 0) {
       const dateStr = dates[d] ?? '';
       const label = dateStr ? new Date(dateStr + 'T12:00:00').toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
@@ -422,7 +412,6 @@ function olContent(
     <path d="${lp(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"     stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     <path d="${lp(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}"    stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     <path d="${lp(press, minP, maxP)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-    ${pLabels.join('')}
     ${dayLabels.join('')}
     ${hrTicks.join('')}
   `;
@@ -434,6 +423,25 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
   const zBtn = 'w-7 h-7 rounded-lg border flex items-center justify-center text-sm font-bold hover-btn border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400 hc:border-black hc:text-black dark-hc:border-white dark-hc:text-white';
 
+  // Static y-axis labels — these never change with zoom, only with data range
+  const { minT, maxT, minP, maxP } = range;
+  const tRange = maxT - minT;
+  const tStep = tRange > 20 ? 10 : tRange > 10 ? 5 : 2;
+  const leftLabels: string[] = [];
+  for (let v = Math.ceil(minT / tStep) * tStep; v < maxT; v += tStep) {
+    const y = yOl(v, minT, maxT);
+    leftLabels.push(`<text x="${(PL - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" class="lbl">${Math.round(v)}°${unit}</text>`);
+  }
+  const pRange = maxP - minP;
+  const pStep = pRange > 20 ? 10 : pRange > 10 ? 5 : 2;
+  const rightLabels: string[] = [];
+  for (let p = Math.ceil(minP / pStep) * pStep; p < maxP; p += pStep) {
+    const y = yOl(p, minP, maxP);
+    rightLabels.push(`<text x="6" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)} hPa</text>`);
+  }
+  const axisSvgStyle = 'display:block;overflow:visible';
+  const axisStyle = `<style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
+
   return `
     <div id="outlook-chart-container" class="rounded-2xl p-4 relative" style="background-color:var(--card-bg);border:var(--card-border)">
       <div class="flex items-center justify-between mb-2">
@@ -443,10 +451,11 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
           <button id="ol-zoom-in"  title="Zoom in"  class="${zBtn}">+</button>
         </div>
       </div>
+      <div class="relative">
       <div id="ol-scroll" style="overflow-x:auto">
         <svg id="ol-svg" viewBox="0 0 ${OL_W} ${OL_H}" style="display:block;width:${OL_W}px;height:${OL_H}px">
           <style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
-          <g id="ol-content">${olContent(hourly, unit, dates, locale, 1, range)}</g>
+          <g id="ol-content">${olContent(hourly, dates, locale, 1, range)}</g>
           <g id="ol-chart-hover" style="display:none">
             <line id="ol-hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + OL_CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
             <circle class="ol-hover-dot" r="3" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>
@@ -455,6 +464,13 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
           </g>
           <rect id="ol-chart-overlay" x="${PL}" y="${PT}" width="${OL_CW}" height="${OL_CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
         </svg>
+      </div>
+      <div style="position:absolute;top:0;left:0;width:${PL}px;height:${OL_H}px;pointer-events:none">
+        <svg viewBox="0 0 ${PL} ${OL_H}" width="${PL}" height="${OL_H}" style="${axisSvgStyle}">${axisStyle}${leftLabels.join('')}</svg>
+      </div>
+      <div style="position:absolute;top:0;right:0;width:${PR}px;height:${OL_H}px;pointer-events:none">
+        <svg viewBox="0 0 ${PR} ${OL_H}" width="${PR}" height="${OL_H}" style="${axisSvgStyle}">${axisStyle}${rightLabels.join('')}</svg>
+      </div>
       </div>
       <div id="ol-chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mt-3">
@@ -515,7 +531,7 @@ export function setupOutlookTooltip(
     svg.style.width = `${newTotalW}px`;
 
     // Recompute all x-position-dependent elements at the new zoom
-    contentGrp.innerHTML = olContent(hourly, unit, dates, locale, zoom, range);
+    contentGrp.innerHTML = olContent(hourly, dates, locale, zoom, range);
 
     // Expand the overlay to cover the new chart width
     overlay.setAttribute('width', (OL_CW * zoom).toFixed(1));
