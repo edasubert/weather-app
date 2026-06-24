@@ -228,10 +228,19 @@ function windDirLabel(degrees: number): string {
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
 function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const diff = today.tempMean - yesterday.tempMean;
-  const abs = Math.abs(diff);
-  if (abs < 0.5) return t('comp.sameTemp');
-  return t(diff > 0 ? 'comp.warmer' : 'comp.cooler', { diff: diffStr(abs) }) + tempSig(abs);
+  const dMax  = today.tempMax  - yesterday.tempMax;
+  const dMean = today.tempMean - yesterday.tempMean;
+  const dMin  = today.tempMin  - yesterday.tempMin;
+  const absMean = Math.abs(dMean);
+
+  const headline = absMean < 0.5
+    ? t('comp.sameTemp')
+    : `${t(dMean > 0 ? 'comp.warmer' : 'comp.cooler', { diff: diffStr(absMean) })}${tempSig(absMean)}`;
+
+  const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
+  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
+
+  return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 }
 
 function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
@@ -258,10 +267,19 @@ function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrow
 }
 
 function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const diff = today.apparentTempMean - yesterday.apparentTempMean;
-  const abs = Math.abs(diff);
-  if (abs < 0.5) return t('comp.feelsSame');
-  return t(diff > 0 ? 'comp.feelsWarmer' : 'comp.feelsCooler', { diff: diffStr(abs) }) + tempSig(abs);
+  const dMax  = today.apparentTempMax  - yesterday.apparentTempMax;
+  const dMean = today.apparentTempMean - yesterday.apparentTempMean;
+  const dMin  = today.apparentTempMin  - yesterday.apparentTempMin;
+  const absMean = Math.abs(dMean);
+
+  const headline = absMean < 0.5
+    ? t('comp.feelsSame')
+    : `${t(dMean > 0 ? 'comp.feelsWarmer' : 'comp.feelsCooler', { diff: diffStr(absMean) })}${tempSig(absMean)}`;
+
+  const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
+  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
+
+  return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 }
 
 function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
