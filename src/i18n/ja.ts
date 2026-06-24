@@ -85,6 +85,7 @@ export default {
     snowfall: '降雪',
     wind: '風速',
     pressure: '気圧',
+    cloudCover: '総雲量',
   },
   geo: {
     yourLocation: '現在地',

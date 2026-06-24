@@ -85,6 +85,7 @@ export default {
     snowfall: 'Nevada',
     wind: 'Viento',
     pressure: 'Presión',
+    cloudCover: 'Nubosidad total',
   },
   geo: {
     yourLocation: 'Mi ubicación',

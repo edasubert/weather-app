@@ -85,6 +85,7 @@ export default {
     snowfall: 'Snowfall',
     wind: 'Wind',
     pressure: 'Pressure',
+    cloudCover: 'Total cloud cover',
   },
   geo: {
     yourLocation: 'Your location',

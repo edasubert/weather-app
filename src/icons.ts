@@ -6,4 +6,5 @@ export const ICONS = {
   snow:     '❄️',
   wind:     '💨',
   pressure: '🔵',
+  cloud:    '☁️',
 } as const;

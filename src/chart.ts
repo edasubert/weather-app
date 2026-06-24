@@ -26,6 +26,7 @@ const FEELS_COLOR    = '#eab308';         // yellow
 const PRECIP_COLOR   = '#38bdf8';         // sky
 const SNOW_COLOR     = 'var(--snow-color)'; // black (light) / white (dark)
 const PRESSURE_COLOR = '#a78bfa';         // violet
+const CLOUD_COLOR    = 'var(--chart-label)'; // adapts to theme
 
 function xPos(hour: number): number {
   return PL + (hour / 23) * CW;
@@ -33,6 +34,12 @@ function xPos(hour: number): number {
 
 function yPos(val: number, min: number, max: number): number {
   return PT + CH - ((val - min) / (max - min || 1)) * CH;
+}
+
+function cloudPath(clouds: number[]): string {
+  const n = clouds.length;
+  const pts = clouds.map((c, i) => `L${xPos(i).toFixed(1)},${(PT + (c / 100) * CH).toFixed(1)}`).join('');
+  return `M${xPos(0).toFixed(1)},${PT}${pts}L${xPos(n - 1).toFixed(1)},${PT}Z`;
 }
 
 function linePath(vals: number[], min: number, max: number): string {
@@ -128,8 +135,15 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   return `
     <div id="chart-container" class="rounded-2xl p-5 relative" style="background-color:var(--card-bg);border:var(--card-border)">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
+        <defs>
+          <pattern id="cloud-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="3" height="6" fill="var(--chart-label)" fill-opacity="0.40"/>
+          </pattern>
+        </defs>
         <style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
+        <path d="${cloudPath(yesterday.cloud)}" fill="url(#cloud-hatch)"/>
+        <path d="${cloudPath(today.cloud)}"     fill="${CLOUD_COLOR}" fill-opacity="0.20"/>
         ${hasAnyRain ? precipBars(yesterday.rain, maxRain, maxBarH, PRECIP_COLOR, -rainOffset, true,  rainBW) : ''}
         ${hasAnyRain ? precipBars(today.rain,     maxRain, maxBarH, PRECIP_COLOR,  rainOffset, false, rainBW) : ''}
         ${hasAnySnow ? precipBars(yesterday.snow, maxSnow, maxBarH, SNOW_COLOR,   -snowOffset, true,  snowBW) : ''}
@@ -186,6 +200,12 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
         </span>
         <span class="flex items-center gap-1.5">
           <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-dasharray="${dash}"/></svg><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${label2}
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px;vertical-align:middle"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span> ${label1}
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg width="14" height="10" style="vertical-align:middle;border-radius:2px;overflow:hidden"><defs><pattern id="cl-leg" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="var(--chart-label)" fill-opacity="0.50"/></pattern></defs><rect width="14" height="10" fill="url(#cl-leg)"/></svg><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span> ${label2}
         </span>
       </div>
     </div>
@@ -272,6 +292,9 @@ export function setupChartTooltip(
         <span style="color:${PRESSURE_COLOR}" title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(pT[hour])} hPa</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(pY[hour])} hPa</span>
+        <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
+        <span style="color:var(--tooltip-text-main)">${today.cloud[hour]}%</span>
+        <span style="color:var(--tooltip-text-main)">${yesterday.cloud[hour]}%</span>
       </div>
     `;
 
@@ -404,9 +427,13 @@ function olContent(
     }
   }
 
+  const cloudPts = hourly.cloud.map((c, i) => `L${xZ(i).toFixed(1)},${(PT + (c / 100) * OL_CH).toFixed(1)}`).join('');
+  const cloudFill = `<path d="M${xZ(0).toFixed(1)},${PT}${cloudPts}L${xZ(OL_N - 1).toFixed(1)},${PT}Z" fill="${CLOUD_COLOR}" fill-opacity="0.20"/>`;
+
   return `
     ${grid.join('')}
     ${dayLines.join('')}
+    ${cloudFill}
     ${hasAnyRain ? brect(hourly.rain, maxRain, PRECIP_COLOR, rainOff) : ''}
     ${hasAnySnow ? brect(hourly.snow, maxSnow, SNOW_COLOR,   snowOff) : ''}
     <path d="${lp(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"     stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -490,6 +517,9 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
         </span>` : ''}
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR};vertical-align:middle"></span><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span style="display:inline-block;width:14px;height:10px;background:${CLOUD_COLOR};opacity:0.3;border-radius:2px;vertical-align:middle"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
         </span>
       </div>
     </div>
@@ -606,6 +636,8 @@ export function setupOutlookTooltip(
         <span style="color:var(--tooltip-text-main)">${snowFmt(hourly.snow[idx])}</span>` : ''}
         <span style="color:${PRESSURE_COLOR}" title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(press[idx])} hPa</span>
+        <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
+        <span style="color:var(--tooltip-text-main)">${hourly.cloud[idx]}%</span>
       </div>
     `;
 

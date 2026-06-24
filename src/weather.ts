@@ -16,7 +16,7 @@ const DAILY_VARS = [
   'wind_direction_10m_dominant',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,surface_pressure';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,surface_pressure,cloud_cover';
 
 export class WeatherNoDataError extends Error {
   constructor() {
@@ -99,6 +99,7 @@ function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
     rain:         rainSlice.map((v, i) => (v ?? 0) + ((showersSlice[i] as number | null) ?? 0)),
     snow:         h.snowfall.slice(start, start + 24).map(v => v ?? 0),
     pressure:     h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
+    cloud:        h.cloud_cover.slice(start, start + 24).map(v => v ?? 0),
   };
 }
 
@@ -141,6 +142,7 @@ export async function fetchOutlook(
       rain:         rain.map((v, i) => (v ?? 0) + ((showers[i] as number | null) ?? 0)),
       snow:         (raw.snowfall          as (number | null)[]).map(v => v ?? 0),
       pressure:     (raw.surface_pressure  as (number | null)[]).map(v => v ?? 0),
+      cloud:        (raw.cloud_cover       as (number | null)[]).map(v => v ?? 0),
     },
   };
 }

@@ -85,6 +85,7 @@ export default {
     snowfall: 'Chutes de neige',
     wind: 'Vent',
     pressure: 'Pression',
+    cloudCover: 'Nébulosité totale',
   },
   geo: {
     yourLocation: 'Ma position',

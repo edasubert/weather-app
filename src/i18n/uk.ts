@@ -85,6 +85,7 @@ export default {
     snowfall: 'Снігопад',
     wind: 'Вітер',
     pressure: 'Атмосферний тиск',
+    cloudCover: 'Загальна хмарність',
   },
   geo: {
     yourLocation: 'Моє місцезнаходження',

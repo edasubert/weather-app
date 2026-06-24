@@ -85,6 +85,7 @@ export default {
     snowfall: 'Sněžení',
     wind: 'Vítr',
     pressure: 'Tlak vzduchu',
+    cloudCover: 'Celková oblačnost',
   },
   geo: {
     yourLocation: 'Moje poloha',

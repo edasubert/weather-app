@@ -23,6 +23,7 @@ export interface HourlyData {
   rain: number[];
   snow: number[];
   pressure: number[];
+  cloud: number[];
 }
 
 export interface GeoResult {
