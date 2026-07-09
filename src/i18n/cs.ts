@@ -55,6 +55,9 @@ export default {
     samePressure: 'Přibližně stejný tlak',
     higherPressure: 'Tlak o {{diff}} hPa vyšší',
     lowerPressure: 'Tlak o {{diff}} hPa nižší',
+    sameDaylight: 'Přibližně stejná délka dne',
+    moreDaylight: 'Den o {{diff}} min delší',
+    lessDaylight: 'Den o {{diff}} min kratší',
   },
   card: {
     high: 'max',
@@ -86,9 +89,7 @@ export default {
     wind: 'Vítr',
     pressure: 'Tlak vzduchu',
     cloudCover: 'Celková oblačnost',
-  },
-  geo: {
-    yourLocation: 'Moje poloha',
+    daylight: 'Denní světlo (východ – západ slunce)',
   },
   error: {
     loading: 'Načítám počasí…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: 'Sněžení',
       body: '<p><strong>Celková výška sněhové pokrývky</strong> nashromážděná za den, vyjádřená v centimetrech sněhu (nikoli v mm vodního sloupce).</p><p>Sněžení je zobrazeno odděleně od deště, abyste mohli na první pohled vidět, zda srážky padají jako déšť, sníh nebo obojí. Stopové množství pod 0,1 cm se bere jako žádné sněžení.</p><p class="opacity-60 text-xs">Zdroj: <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: 'Délka dne',
+      body: '<p><strong>Délka dne</strong> — doba mezi východem a západem slunce.</p><p>Změna ze dne na den je největší kolem rovnodennosti (ve středních zeměpisných šířkách až 3–4 minuty za den) a nejmenší kolem slunovratu.</p><p class="opacity-60 text-xs">Zdroj: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

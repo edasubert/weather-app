@@ -55,6 +55,9 @@ export default {
     samePressure: 'About the same pressure',
     higherPressure: '{{diff}} hPa higher',
     lowerPressure: '{{diff}} hPa lower',
+    sameDaylight: 'About the same daylight',
+    moreDaylight: '{{diff}} min more daylight',
+    lessDaylight: '{{diff}} min less daylight',
   },
   card: {
     high: 'high',
@@ -86,9 +89,7 @@ export default {
     wind: 'Wind',
     pressure: 'Pressure',
     cloudCover: 'Total cloud cover',
-  },
-  geo: {
-    yourLocation: 'Your location',
+    daylight: 'Daylight (sunrise – sunset)',
   },
   error: {
     loading: 'Loading weather…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: 'Snowfall',
       body: '<p><strong>Total snowfall depth</strong> accumulated over the day, expressed in centimetres of snow (not liquid equivalent).</p><p>Snowfall is shown separately from rain so you can see at a glance whether precipitation is falling as rain, snow, or both. Trace amounts below 0.1 cm are treated as no snowfall.</p><p class="opacity-60 text-xs">Source: <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: 'Daylight duration',
+      body: '<p><strong>Daylight duration</strong> — the time between sunrise and sunset.</p><p>The day-to-day change is largest around the equinoxes (up to 3–4 minutes per day at mid-latitudes) and smallest around the solstices.</p><p class="opacity-60 text-xs">Source: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

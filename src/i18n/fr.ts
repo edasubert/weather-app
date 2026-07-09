@@ -55,6 +55,9 @@ export default {
     samePressure: 'Pression similaire',
     higherPressure: '{{diff}} hPa de plus',
     lowerPressure: '{{diff}} hPa de moins',
+    sameDaylight: 'Durée du jour similaire',
+    moreDaylight: '{{diff}} min de jour en plus',
+    lessDaylight: '{{diff}} min de jour en moins',
   },
   card: {
     high: 'max',
@@ -86,9 +89,7 @@ export default {
     wind: 'Vent',
     pressure: 'Pression',
     cloudCover: 'Nébulosité totale',
-  },
-  geo: {
-    yourLocation: 'Ma position',
+    daylight: 'Lumière du jour (lever – coucher du soleil)',
   },
   error: {
     loading: 'Chargement de la météo…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: 'Chutes de neige',
       body: '<p><strong>Accumulation totale de neige</strong> sur la journée, exprimée en centimètres de neige (non en équivalent eau).</p><p>Les chutes de neige sont affichées séparément de la pluie pour voir d\'un coup d\'œil si les précipitations tombent sous forme de pluie, de neige ou des deux. Les traces inférieures à 0,1 cm sont traitées comme sans chutes de neige.</p><p class="opacity-60 text-xs">Source : <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: 'Durée du jour',
+      body: '<p><strong>Durée du jour</strong> — le temps entre le lever et le coucher du soleil.</p><p>La variation d\'un jour à l\'autre est maximale autour des équinoxes (jusqu\'à 3–4 minutes par jour aux latitudes moyennes) et minimale autour des solstices.</p><p class="opacity-60 text-xs">Source : <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

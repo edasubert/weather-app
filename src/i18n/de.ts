@@ -55,6 +55,9 @@ export default {
     samePressure: 'Etwa gleicher Luftdruck',
     higherPressure: '{{diff}} hPa höherer Luftdruck',
     lowerPressure: '{{diff}} hPa niedrigerer Luftdruck',
+    sameDaylight: 'Etwa gleich viel Tageslicht',
+    moreDaylight: '{{diff}} min mehr Tageslicht',
+    lessDaylight: '{{diff}} min weniger Tageslicht',
   },
   card: {
     high: 'max',
@@ -86,9 +89,7 @@ export default {
     wind: 'Wind',
     pressure: 'Luftdruck',
     cloudCover: 'Gesamtbewölkung',
-  },
-  geo: {
-    yourLocation: 'Mein Standort',
+    daylight: 'Tageslicht (Sonnenaufgang – Sonnenuntergang)',
   },
   error: {
     loading: 'Wetter wird geladen…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: 'Schneefall',
       body: '<p><strong>Gesamte Schneefallhöhe</strong> über den Tag angesammelt, in Zentimetern Schnee (nicht Wasseräquivalent) angegeben.</p><p>Schneefall wird separat von Regen angezeigt, damit auf einen Blick erkennbar ist, ob Niederschlag als Regen, Schnee oder beides fällt. Spuren unter 0,1 cm gelten als kein Schneefall.</p><p class="opacity-60 text-xs">Quelle: <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: 'Tageslichtdauer',
+      body: '<p><strong>Tageslichtdauer</strong> — die Zeit zwischen Sonnenaufgang und Sonnenuntergang.</p><p>Die Änderung von Tag zu Tag ist um die Tagundnachtgleichen am größten (bis zu 3–4 Minuten pro Tag in mittleren Breiten) und um die Sonnenwenden am kleinsten.</p><p class="opacity-60 text-xs">Quelle: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -135,6 +135,9 @@ body {
 .hover-item { transition: background-color 0.15s; }
 .hover-item:hover { background-color: var(--hover-item); }
 
+/* Keyboard-highlighted suggestion — same look as hover */
+.kb-active { background-color: var(--hover-item); }
+
 /* ── Card background ──────────────────────────────── */
 .bg-card { background-color: var(--card-bg); }
 

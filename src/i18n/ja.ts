@@ -55,6 +55,9 @@ export default {
     samePressure: '気圧はほぼ同じ',
     higherPressure: '{{diff}} hPa 高い',
     lowerPressure: '{{diff}} hPa 低い',
+    sameDaylight: '昼の長さはほぼ同じ',
+    moreDaylight: '昼が{{diff}}分長い',
+    lessDaylight: '昼が{{diff}}分短い',
   },
   card: {
     high: '最高',
@@ -86,9 +89,7 @@ export default {
     wind: '風速',
     pressure: '気圧',
     cloudCover: '総雲量',
-  },
-  geo: {
-    yourLocation: '現在地',
+    daylight: '日照時間（日の出〜日の入り）',
   },
   error: {
     loading: '天気を読み込み中…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: '降雪',
       body: '<p>1日の<strong>積雪深合計</strong>で、雪の深さをセンチメートルで表します（液体換算ではありません）。</p><p>降雪は雨と別に表示されるため、降水が雨・雪・またはその両方で降っているかが一目でわかります。0.1cm未満の微量は降雪なしとして扱います。</p><p class="opacity-60 text-xs">ソース: <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: '昼の長さ',
+      body: '<p><strong>昼の長さ</strong> — 日の出から日の入りまでの時間です。</p><p>日ごとの変化は春分・秋分の頃に最も大きく（中緯度では1日あたり3〜4分）、夏至・冬至の頃に最も小さくなります。</p><p class="opacity-60 text-xs">ソース: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -247,9 +247,9 @@ export function setupChartTooltip(
     { vals: pY, color: PRESSURE_COLOR, min: minPressure, max: maxPressure },
   ];
 
-  overlay.addEventListener('mousemove', (e: MouseEvent) => {
+  const showAt = (clientX: number): void => {
     const svgRect = svg.getBoundingClientRect();
-    const svgX = (e.clientX - svgRect.left) / svgRect.width * W;
+    const svgX = (clientX - svgRect.left) / svgRect.width * W;
     const hour = Math.max(0, Math.min(23, Math.round((svgX - PL) / CW * 23)));
     const x = xPos(hour);
 
@@ -310,12 +310,23 @@ export function setupChartTooltip(
     tooltip.style.left = tipX + tipW + 14 > containerRect.width
       ? `${tipX - tipW - 8}px`
       : `${tipX + 12}px`;
-  });
+  };
 
-  overlay.addEventListener('mouseleave', () => {
+  attachPointerHandlers(overlay, showAt, () => {
     hoverGroup.style.display = 'none';
     tooltip.style.display = 'none';
   });
+}
+
+// Hover on mouse devices; scrub-while-touching on touch devices. Touch
+// listeners stay passive so they never block page scrolling or panning.
+function attachPointerHandlers(overlay: SVGRectElement, showAt: (clientX: number) => void, hide: () => void): void {
+  overlay.addEventListener('mousemove', (e: MouseEvent) => showAt(e.clientX));
+  overlay.addEventListener('mouseleave', hide);
+  overlay.addEventListener('touchstart', (e: TouchEvent) => showAt(e.touches[0].clientX), { passive: true });
+  overlay.addEventListener('touchmove',  (e: TouchEvent) => showAt(e.touches[0].clientX), { passive: true });
+  overlay.addEventListener('touchend', hide);
+  overlay.addEventListener('touchcancel', hide);
 }
 
 // ─── Outlook chart helpers ────────────────────────────────────────────────────
@@ -592,10 +603,10 @@ export function setupOutlookTooltip(
     { vals: press, min: minP, max: maxP },
   ];
 
-  overlay.addEventListener('mousemove', (e: MouseEvent) => {
+  const showAt = (clientX: number): void => {
     const svgRect = svg.getBoundingClientRect();
     // SVG is 1:1 (no viewBox scaling) — client coords map directly to SVG units
-    const svgX = e.clientX - svgRect.left;
+    const svgX = clientX - svgRect.left;
     const xRange = OL_CW * zoom;
     const idx = Math.max(0, Math.min(OL_N - 1, Math.round((svgX - PL) / xRange * (OL_N - 1))));
     const x = PL + (idx / (OL_N - 1)) * xRange;
@@ -651,9 +662,9 @@ export function setupOutlookTooltip(
     tooltip.style.left = tipX + tipW + 14 > containerRect.width
       ? `${tipX - tipW - 8}px`
       : `${tipX + 12}px`;
-  });
+  };
 
-  overlay.addEventListener('mouseleave', () => {
+  attachPointerHandlers(overlay, showAt, () => {
     hoverGroup.style.display = 'none';
     tooltip.style.display = 'none';
   });

@@ -55,6 +55,9 @@ export default {
     samePressure: 'Presión similar',
     higherPressure: '{{diff}} hPa más alta',
     lowerPressure: '{{diff}} hPa más baja',
+    sameDaylight: 'Duración del día similar',
+    moreDaylight: '{{diff}} min más de luz de día',
+    lessDaylight: '{{diff}} min menos de luz de día',
   },
   card: {
     high: 'máx',
@@ -86,9 +89,7 @@ export default {
     wind: 'Viento',
     pressure: 'Presión',
     cloudCover: 'Nubosidad total',
-  },
-  geo: {
-    yourLocation: 'Mi ubicación',
+    daylight: 'Luz de día (amanecer – atardecer)',
   },
   error: {
     loading: 'Cargando clima…',
@@ -132,6 +133,10 @@ export default {
     snow: {
       title: 'Nevada',
       body: '<p><strong>Acumulación total de nieve</strong> durante el día, expresada en centímetros de nieve (no en equivalente líquido).</p><p>La nevada se muestra por separado de la lluvia para ver de un vistazo si la precipitación cae como lluvia, nieve o ambas. Las trazas inferiores a 0,1 cm se consideran sin nevada.</p><p class="opacity-60 text-xs">Fuente: <code>snowfall_sum</code> — {{docs}}</p>',
+    },
+    daylight: {
+      title: 'Duración del día',
+      body: '<p><strong>Duración del día</strong>: el tiempo entre el amanecer y el atardecer.</p><p>El cambio de un día a otro es mayor cerca de los equinoccios (hasta 3–4 minutos por día en latitudes medias) y menor cerca de los solsticios.</p><p class="opacity-60 text-xs">Fuente: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
     },
   },
   wmo: {

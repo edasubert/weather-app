@@ -11,7 +11,7 @@ import type { DailyWeather, GeoResult, HourlyData } from './types';
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
 let model = DEFAULT_MODEL;
-let outlookData: { dates: string[]; hourly: import('./types').HourlyData } | null = null;
+let outlookData: { dates: string[]; hourly: HourlyData } | null = null;
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -114,71 +114,45 @@ function closeAllMenus(): void {
   document.getElementById('unit-menu')?.classList.add('hidden');
 }
 
+function setupDropdown(btnId: string, menuId: string, dataAttr: string, onSelect: (value: string) => void): void {
+  const btn  = document.getElementById(btnId);
+  const menu = document.getElementById(menuId);
+  if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasHidden = menu.classList.contains('hidden');
+    closeAllMenus();
+    if (wasHidden) {
+      menu.classList.remove('hidden');
+      setTimeout(() => document.addEventListener('click', () => menu.classList.add('hidden'), { once: true }), 0);
+    }
+  });
+  menu.querySelectorAll<HTMLButtonElement>(`[data-${dataAttr}]`).forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onSelect(item.dataset[dataAttr]!);
+    });
+  });
+}
+
+function rerenderCurrentView(): void {
+  if (currentView?.type === 'search') renderSearch();
+  else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+}
+
 function attachDropdownHandlers(): void {
-  const langBtn  = document.getElementById('lang-btn');
-  const langMenu = document.getElementById('lang-menu');
-  if (langBtn && langMenu) {
-    langBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wasHidden = langMenu.classList.contains('hidden');
-      closeAllMenus();
-      if (wasHidden) {
-        langMenu.classList.remove('hidden');
-        setTimeout(() => document.addEventListener('click', () => langMenu.classList.add('hidden'), { once: true }), 0);
-      }
-    });
-    langMenu.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setLang(btn.dataset.lang as Lang);
-        if (currentView?.type === 'search') renderSearch();
-        else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
-      });
-    });
-  }
-
-  const modelBtn  = document.getElementById('model-btn');
-  const modelMenu = document.getElementById('model-menu');
-  if (modelBtn && modelMenu) {
-    modelBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wasHidden = modelMenu.classList.contains('hidden');
-      closeAllMenus();
-      if (wasHidden) {
-        modelMenu.classList.remove('hidden');
-        setTimeout(() => document.addEventListener('click', () => modelMenu.classList.add('hidden'), { once: true }), 0);
-      }
-    });
-    modelMenu.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        model = btn.dataset.model as string;
-        if (currentView?.type === 'search') renderSearch();
-        else if (currentView?.type === 'weather') void loadWeather(currentView.location);
-      });
-    });
-  }
-
-  const unitBtn  = document.getElementById('unit-btn');
-  const unitMenu = document.getElementById('unit-menu');
-  if (unitBtn && unitMenu) {
-    unitBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wasHidden = unitMenu.classList.contains('hidden');
-      closeAllMenus();
-      if (wasHidden) {
-        unitMenu.classList.remove('hidden');
-        setTimeout(() => document.addEventListener('click', () => unitMenu.classList.add('hidden'), { once: true }), 0);
-      }
-    });
-    unitMenu.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        unit = btn.dataset.unit as 'C' | 'F';
-        if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
-      });
-    });
-  }
+  setupDropdown('lang-btn', 'lang-menu', 'lang', (value) => {
+    void setLang(value as Lang).then(rerenderCurrentView);
+  });
+  setupDropdown('model-btn', 'model-menu', 'model', (value) => {
+    model = value;
+    if (currentView?.type === 'search') renderSearch();
+    else if (currentView?.type === 'weather') void loadWeather(currentView.location);
+  });
+  setupDropdown('unit-btn', 'unit-menu', 'unit', (value) => {
+    unit = value as 'C' | 'F';
+    if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+  });
 }
 
 function applyTheme(): void {
@@ -225,17 +199,28 @@ function windDirLabel(degrees: number): string {
   return COMPASS[Math.round(degrees / 45) % 8];
 }
 
+// Label for geolocated positions — no reverse-geocoding service is used,
+// so the coordinates themselves serve as the location name
+function coordsLabel(lat: number, lon: number): string {
+  const fmt = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? pos : neg}`;
+  return `${fmt(lat, 'N', 'S')}, ${fmt(lon, 'E', 'W')}`;
+}
+
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
-function tempComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const dMax  = today.tempMax  - yesterday.tempMax;
-  const dMean = today.tempMean - yesterday.tempMean;
-  const dMin  = today.tempMin  - yesterday.tempMin;
+function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
+  const dMax  = apparent ? today.apparentTempMax  - yesterday.apparentTempMax  : today.tempMax  - yesterday.tempMax;
+  const dMean = apparent ? today.apparentTempMean - yesterday.apparentTempMean : today.tempMean - yesterday.tempMean;
+  const dMin  = apparent ? today.apparentTempMin  - yesterday.apparentTempMin  : today.tempMin  - yesterday.tempMin;
   const absMean = Math.abs(dMean);
 
+  const sameKey   = apparent ? 'comp.feelsSame'   : 'comp.sameTemp';
+  const warmerKey = apparent ? 'comp.feelsWarmer' : 'comp.warmer';
+  const coolerKey = apparent ? 'comp.feelsCooler' : 'comp.cooler';
+
   const headline = absMean < 0.5
-    ? t('comp.sameTemp')
-    : `${t(dMean > 0 ? 'comp.warmer' : 'comp.cooler', { diff: diffStr(absMean) })}${tempSig(absMean)}`;
+    ? t(sameKey)
+    : `${t(dMean > 0 ? warmerKey : coolerKey, { diff: diffStr(absMean) })}${tempSig(absMean)}`;
 
   const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
   const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
@@ -248,8 +233,8 @@ function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorr
   const yestMm  = yesterday.rainSum + yesterday.showersSum;
   const ctx = isTomorrowMode ? 'tomorrow' : 'today';
   if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
-  if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}` as string);
-  if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}` as string);
+  if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}`);
+  if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}`);
   const diff = todayMm - yestMm;
   if (Math.abs(diff) < 0.5) return t('comp.sameRain');
   return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
@@ -259,27 +244,11 @@ function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrow
   const todayCm = today.snowfallSum;
   const yestCm  = yesterday.snowfallSum;
   const ctx = isTomorrowMode ? 'tomorrow' : 'today';
-  if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}` as string);
-  if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}` as string);
+  if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}`);
+  if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}`);
   const diff = todayCm - yestCm;
   if (Math.abs(diff) < 0.2) return t('comp.sameSnow');
   return t(diff > 0 ? 'comp.moreSnow' : 'comp.lessSnow');
-}
-
-function apparentTempComparison(today: DailyWeather, yesterday: DailyWeather): string {
-  const dMax  = today.apparentTempMax  - yesterday.apparentTempMax;
-  const dMean = today.apparentTempMean - yesterday.apparentTempMean;
-  const dMin  = today.apparentTempMin  - yesterday.apparentTempMin;
-  const absMean = Math.abs(dMean);
-
-  const headline = absMean < 0.5
-    ? t('comp.feelsSame')
-    : `${t(dMean > 0 ? 'comp.feelsWarmer' : 'comp.feelsCooler', { diff: diffStr(absMean) })}${tempSig(absMean)}`;
-
-  const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
-  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
-
-  return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 }
 
 function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
@@ -296,6 +265,13 @@ function pressureComparison(today: DailyWeather, yesterday: DailyWeather): strin
   return t(diff > 0 ? 'comp.higherPressure' : 'comp.lowerPressure', { diff: Math.round(abs) });
 }
 
+function daylightComparison(today: DailyWeather, yesterday: DailyWeather): string {
+  const diff = today.daylightDuration - yesterday.daylightDuration;
+  const mins = Math.round(Math.abs(diff) / 60);
+  if (mins < 1) return t('comp.sameDaylight');
+  return t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins });
+}
+
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
 const DOCS_HTML = `<a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
@@ -303,8 +279,8 @@ const LINK = 'class="text-sky-500 underline" target="_blank" rel="noopener noref
 
 function getMetricInfo(id: string): { title: string; body: string } {
   return {
-    title: t(`metric.${id}.title` as string),
-    body:  t(`metric.${id}.body`  as string, { docs: DOCS_HTML }),
+    title: t(`metric.${id}.title`),
+    body:  t(`metric.${id}.body`, { docs: DOCS_HTML }),
   };
 }
 
@@ -379,6 +355,10 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
       <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
         <span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${Math.round(data.pressureMean)} hPa
       </div>
+      ${data.sunrise && data.sunset ? `
+      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
+        <span title="${t('tooltip.daylight')}">${ICONS.daylight}</span> ${data.sunrise.slice(11, 16)} – ${data.sunset.slice(11, 16)}
+      </div>` : ''}
     </div>
   `;
 }
@@ -400,7 +380,7 @@ function getLocationFromUrl(): GeoResult | null {
   };
 }
 
-function readUrlSettings(): void {
+async function readUrlSettings(): Promise<void> {
   const p = new URLSearchParams(window.location.search);
   const u = p.get('unit');
   if (u === 'F') unit = 'F';
@@ -408,10 +388,19 @@ function readUrlSettings(): void {
   if (th === 'dark' || th === 'light' || th === 'auto') theme = th;
   if (p.get('hc') === '1') highContrast = true;
   if (p.get('comp') === 'tomorrow') comparison = 'today-tomorrow';
-  const lg = p.get('lang');
-  if (lg && (LANGS as string[]).includes(lg)) setLang(lg as Lang);
   const m = p.get('model');
   if (m && MODEL_MAP.has(m)) model = m;
+  // Keep the locale load last — everything above is set synchronously,
+  // so the bootstrap can apply the theme before this resolves
+  const lg = p.get('lang');
+  if (lg && (LANGS as string[]).includes(lg)) {
+    await setLang(lg as Lang);
+  } else if (!lg) {
+    const detected = (navigator.languages ?? [navigator.language])
+      .map(l => l.slice(0, 2).toLowerCase())
+      .find((l): l is Lang => (LANGS as string[]).includes(l));
+    if (detected && detected !== 'en') await setLang(detected);
+  }
 }
 
 function settingsParams(): URLSearchParams {
@@ -514,6 +503,24 @@ function renderSearch(): void {
   const input = document.getElementById('city-input') as HTMLInputElement;
   const box = document.getElementById('suggestions-box')!;
 
+  // Keyboard navigation over suggestions: arrows move, Enter picks, Esc closes
+  let activeIdx = -1;
+  const suggestionItems = () => Array.from(box.querySelectorAll<HTMLButtonElement>('button[data-i]'));
+  const setActive = (idx: number): void => {
+    const items = suggestionItems();
+    if (!items.length) return;
+    activeIdx = ((idx % items.length) + items.length) % items.length;
+    items.forEach((el, i) => el.classList.toggle('kb-active', i === activeIdx));
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (box.classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown')    { e.preventDefault(); setActive(activeIdx + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }
+    else if (e.key === 'Enter')   { e.preventDefault(); (suggestionItems()[activeIdx] ?? suggestionItems()[0])?.click(); }
+    else if (e.key === 'Escape')  { box.classList.add('hidden'); }
+  });
+
   input.addEventListener('input', () => {
     if (debounceTimer) clearTimeout(debounceTimer);
     const q = input.value.trim();
@@ -535,6 +542,7 @@ function renderSearch(): void {
         `).join('');
 
         box.classList.remove('hidden');
+        activeIdx = -1;
         box.querySelectorAll<HTMLButtonElement>('button[data-i]').forEach(btn => {
           btn.addEventListener('click', () => void loadWeather(suggestions[Number(btn.dataset.i)]));
         });
@@ -542,12 +550,6 @@ function renderSearch(): void {
         box.classList.add('hidden');
       }
     }, 300);
-  });
-
-  document.addEventListener('click', (e) => {
-    const b = document.getElementById('suggestions-box');
-    const inp = document.getElementById('city-input');
-    if (b && !b.contains(e.target as Node) && e.target !== inp) b.classList.add('hidden');
   });
 
   document.getElementById('geolocate-btn')?.addEventListener('click', () => void handleGeolocate());
@@ -652,7 +654,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           <h1 class="text-xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3">${compHeader}</h1>
           <div class="flex flex-col gap-2">
             ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', apparentTempComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
             ${(() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
               const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
@@ -663,6 +665,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
             })()}
             ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary))}
             ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary))}
+            ${comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary))}
           </div>
         </div>
 
@@ -671,7 +674,7 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
           ${weatherCardHTML(primary, primaryLabel)}
         </div>
 
-        ${buildChart(primaryHourly, secondaryHourly, unit, t('chart.' + (isTomorrow ? 'tomorrow' : 'today') as string), t('chart.' + (isTomorrow ? 'today' : 'yesterday') as string))}
+        ${buildChart(primaryHourly, secondaryHourly, unit, t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`))}
 
         <div class="flex justify-center mt-3">
           <button id="outlook-btn" class="text-sm px-4 py-2 rounded-xl border ${BTN_CLS} hover-btn">
@@ -749,14 +752,9 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
   const outlookContent = document.getElementById('outlook-content')!;
   const closeOutlook   = () => outlookModal.classList.add('hidden');
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeModal(); closeOutlook(); }
-  });
-
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const info = getMetricInfo(btn.dataset.metric!);
-      if (!info) return;
       modalTitle.textContent = info.title;
       modalBody.innerHTML = info.body;
       modal.classList.remove('hidden');
@@ -819,22 +817,9 @@ function renderNoDataError(location: GeoResult): void {
     </div>
   `;
 
-  const modelBtn  = document.getElementById('model-btn')!;
-  const modelMenu = document.getElementById('model-menu')!;
-  modelBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const wasHidden = modelMenu.classList.contains('hidden');
-    modelMenu.classList.toggle('hidden');
-    if (wasHidden) {
-      setTimeout(() => document.addEventListener('click', () => modelMenu.classList.add('hidden'), { once: true }), 0);
-    }
-  });
-  modelMenu.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      model = btn.dataset.model as string;
-      void loadWeather(location);
-    });
+  setupDropdown('model-btn', 'model-menu', 'model', (value) => {
+    model = value;
+    void loadWeather(location);
   });
   document.getElementById('back-btn')!.addEventListener('click', renderSearch);
 }
@@ -860,13 +845,14 @@ async function handleGeolocate(): Promise<void> {
     const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }),
     );
+    const { latitude, longitude } = pos.coords;
     const location: GeoResult = {
-      name: t('geo.yourLocation'),
-      latitude: pos.coords.latitude,
-      longitude: pos.coords.longitude,
+      name: coordsLabel(latitude, longitude),
       country: '',
+      latitude,
+      longitude,
     };
-    const weather = await fetchWeather(location.latitude, location.longitude);
+    const weather = await fetchWeather(latitude, longitude, model);
     renderWeather(location, weather);
   } catch (err) {
     renderError(
@@ -879,16 +865,32 @@ async function handleGeolocate(): Promise<void> {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
-readUrlSettings();
-applyTheme();
-
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (theme === 'auto') applyTheme();
 });
 
-const initialLocation = getLocationFromUrl();
-if (initialLocation) {
-  void loadWeather(initialLocation);
-} else {
-  renderSearch();
-}
+// Hide city suggestions when clicking outside the search box
+document.addEventListener('click', (e) => {
+  const b = document.getElementById('suggestions-box');
+  const inp = document.getElementById('city-input');
+  if (b && !b.contains(e.target as Node) && e.target !== inp) b.classList.add('hidden');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.getElementById('info-modal')?.classList.add('hidden');
+  document.getElementById('outlook-modal')?.classList.add('hidden');
+});
+
+void (async () => {
+  const settingsReady = readUrlSettings();
+  applyTheme();
+  await settingsReady;
+
+  const initialLocation = getLocationFromUrl();
+  if (initialLocation) {
+    void loadWeather(initialLocation);
+  } else {
+    renderSearch();
+  }
+})();

@@ -14,6 +14,9 @@ export interface DailyWeather {
   windSpeedMax: number;
   windDirection: number;
   pressureMean: number;
+  sunrise: string;
+  sunset: string;
+  daylightDuration: number;
 }
 
 export interface HourlyData {

@@ -29,6 +29,6 @@ const EMOJIS: Record<number, string> = {
 
 export function describeCode(code: number): { label: string; emoji: string } {
   const emoji = EMOJIS[code];
-  if (!emoji) return { label: t(`wmo.unknown`), emoji: '🌡️' };
-  return { label: t(`wmo.${code}` as never), emoji };
+  if (!emoji) return { label: t('wmo.unknown'), emoji: '🌡️' };
+  return { label: t(`wmo.${code}`), emoji };
 }

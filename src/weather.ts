@@ -14,6 +14,9 @@ const DAILY_VARS = [
   'snowfall_sum',
   'wind_speed_10m_max',
   'wind_direction_10m_dominant',
+  'sunrise',
+  'sunset',
+  'daylight_duration',
 ].join(',');
 
 const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,surface_pressure,cloud_cover';
@@ -25,19 +28,18 @@ export class WeatherNoDataError extends Error {
   }
 }
 
-export async function fetchWeather(
+async function fetchForecast(
   lat: number,
   lon: number,
+  params: Record<string, string>,
   model?: string,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData }> {
+): Promise<Record<string, unknown>> {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
-  url.searchParams.set('daily', DAILY_VARS);
   url.searchParams.set('hourly', HOURLY_VARS);
   url.searchParams.set('timezone', 'auto');
-  url.searchParams.set('past_days', '1');
-  url.searchParams.set('forecast_days', '2');
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   if (model && model !== 'best_match') {
     url.searchParams.set('models', model);
   }
@@ -45,12 +47,23 @@ export async function fetchWeather(
   const res = await fetch(url.toString());
   if (!res.ok) {
     const body = await res.json().catch(() => null) as { error?: boolean; reason?: string } | null;
-    if (body?.error === true) {
-      throw new WeatherNoDataError();
-    }
+    if (body?.error === true) throw new WeatherNoDataError();
     throw new Error(`Weather API error ${res.status}`);
   }
-  const data: Record<string, unknown> = await res.json().catch(() => { throw new WeatherNoDataError(); });
+  // Some models return 200 with NaN payloads for out-of-coverage locations
+  return await res.json().catch(() => { throw new WeatherNoDataError(); }) as Record<string, unknown>;
+}
+
+export async function fetchWeather(
+  lat: number,
+  lon: number,
+  model?: string,
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData }> {
+  const data = await fetchForecast(lat, lon, {
+    daily: DAILY_VARS,
+    past_days: '1',
+    forecast_days: '2',
+  }, model);
 
   const yHourly  = parseHourly(data, 0);
   const tHourly  = parseHourly(data, 24);
@@ -85,22 +98,29 @@ function parseDay(data: Record<string, unknown>, i: number, pressureMean: number
     windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
     windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
     pressureMean,
+    sunrise: (d.sunrise[i] as string | null) ?? '',
+    sunset: (d.sunset[i] as string | null) ?? '',
+    daylightDuration: (d.daylight_duration[i] as number | null) ?? 0,
+  };
+}
+
+function toHourly(h: Record<string, (number | null)[]>, start: number, len: number): HourlyData {
+  const series = (key: string) => h[key].slice(start, start + len).map(v => v ?? 0);
+  const rain    = series('rain');
+  const showers = series('showers');
+  return {
+    temp:         series('temperature_2m'),
+    apparentTemp: series('apparent_temperature'),
+    precip:       series('precipitation'),
+    rain:         rain.map((v, i) => v + showers[i]),
+    snow:         series('snowfall'),
+    pressure:     series('surface_pressure'),
+    cloud:        series('cloud_cover'),
   };
 }
 
 function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
-  const h = data.hourly as Record<string, (number | null)[]>;
-  const rainSlice    = h.rain.slice(start, start + 24);
-  const showersSlice = h.showers.slice(start, start + 24);
-  return {
-    temp:         h.temperature_2m.slice(start, start + 24).map(v => v ?? 0),
-    apparentTemp: h.apparent_temperature.slice(start, start + 24).map(v => v ?? 0),
-    precip:       h.precipitation.slice(start, start + 24).map(v => v ?? 0),
-    rain:         rainSlice.map((v, i) => (v ?? 0) + ((showersSlice[i] as number | null) ?? 0)),
-    snow:         h.snowfall.slice(start, start + 24).map(v => v ?? 0),
-    pressure:     h.surface_pressure.slice(start, start + 24).map(v => v ?? 0),
-    cloud:        h.cloud_cover.slice(start, start + 24).map(v => v ?? 0),
-  };
+  return toHourly(data.hourly as Record<string, (number | null)[]>, start, 24);
 }
 
 export async function fetchOutlook(
@@ -108,41 +128,11 @@ export async function fetchOutlook(
   lon: number,
   model?: string,
 ): Promise<{ dates: string[]; hourly: HourlyData }> {
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.searchParams.set('latitude', String(lat));
-  url.searchParams.set('longitude', String(lon));
-  url.searchParams.set('hourly', HOURLY_VARS);
-  url.searchParams.set('timezone', 'auto');
-  url.searchParams.set('forecast_days', '14');
-  if (model && model !== 'best_match') {
-    url.searchParams.set('models', model);
-  }
+  const data = await fetchForecast(lat, lon, { forecast_days: '14' }, model);
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.json().catch(() => null) as { error?: boolean } | null;
-    if (body?.error === true) throw new WeatherNoDataError();
-    throw new Error(`Weather API error ${res.status}`);
-  }
-  const data: Record<string, unknown> = await res.json().catch(() => { throw new WeatherNoDataError(); });
-
-  const raw      = data.hourly as Record<string, unknown[]>;
-  const times    = raw.time    as string[];
-  const rain     = raw.rain    as (number | null)[];
-  const showers  = raw.showers as (number | null)[];
-
+  const raw   = data.hourly as Record<string, (number | null)[]>;
+  const times = raw.time as unknown as string[];
   const dates = Array.from({ length: 14 }, (_, d) => times[d * 24]?.slice(0, 10) ?? '');
 
-  return {
-    dates,
-    hourly: {
-      temp:         (raw.temperature_2m    as (number | null)[]).map(v => v ?? 0),
-      apparentTemp: (raw.apparent_temperature as (number | null)[]).map(v => v ?? 0),
-      precip:       (raw.precipitation     as (number | null)[]).map(v => v ?? 0),
-      rain:         rain.map((v, i) => (v ?? 0) + ((showers[i] as number | null) ?? 0)),
-      snow:         (raw.snowfall          as (number | null)[]).map(v => v ?? 0),
-      pressure:     (raw.surface_pressure  as (number | null)[]).map(v => v ?? 0),
-      cloud:        (raw.cloud_cover       as (number | null)[]).map(v => v ?? 0),
-    },
-  };
+  return { dates, hourly: toHourly(raw, 0, times.length) };
 }
