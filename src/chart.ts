@@ -1,5 +1,5 @@
 import type { HourlyData } from './types';
-import { t } from './i18n';
+import { t, fmtNum } from './i18n';
 import { ICONS } from './icons';
 
 const W = 600;
@@ -170,42 +170,30 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mt-3">
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR};vertical-align:middle"></span>${ICONS.temp} ${label1}
+          <span style="display:inline-block;width:18px;height:2px;background:var(--chart-label)"></span>${label1}
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${TEMP_COLOR}" stroke-width="1.5" stroke-dasharray="${dash}"/></svg>${ICONS.temp} ${label2}
+          <svg width="18" height="4"><line x1="0" y1="2" x2="18" y2="2" stroke-width="1.5" stroke-dasharray="${dash}" style="stroke:var(--chart-label)"/></svg>${label2}
         </span>
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${FEELS_COLOR};vertical-align:middle"></span><span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span> ${label1}
+          <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR}"></span><span title="${t('tooltip.temperature')}">${ICONS.temp}</span>
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${FEELS_COLOR}" stroke-width="1.5" stroke-dasharray="${dash}"/></svg><span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span> ${label2}
+          <span style="display:inline-block;width:18px;height:2px;background:${FEELS_COLOR}"></span><span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>
         </span>
         ${hasAnyRain ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:${PRECIP_COLOR};border-radius:2px;vertical-align:middle"></span><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${label1}
-        </span>
-        <span class="flex items-center gap-1.5">
-          <svg width="10" height="10" style="vertical-align:middle"><rect x="0.75" y="0.75" width="8.5" height="8.5" fill="none" stroke="${PRECIP_COLOR}" stroke-width="1.5" rx="1"/></svg><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${label2}
+          <span style="display:inline-block;width:10px;height:10px;background:${PRECIP_COLOR};border-radius:2px"></span><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
         </span>` : ''}
         ${hasAnySnow ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:var(--snow-color);border-radius:2px;vertical-align:middle"></span><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${label1}
-        </span>
-        <span class="flex items-center gap-1.5">
-          <svg width="10" height="10" style="vertical-align:middle"><rect x="0.75" y="0.75" width="8.5" height="8.5" fill="none" stroke-width="1.5" rx="1" style="stroke:var(--snow-color)"/></svg><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${label2}
+          <span style="display:inline-block;width:10px;height:10px;background:var(--snow-color);border-radius:2px"></span><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
         </span>` : ''}
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR};vertical-align:middle"></span><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${label1}
+          <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR}"></span><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
         </span>
         <span class="flex items-center gap-1.5">
-          <svg width="18" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="18" y2="2" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-dasharray="${dash}"/></svg><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${label2}
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px;vertical-align:middle"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span> ${label1}
-        </span>
-        <span class="flex items-center gap-1.5">
-          <svg width="14" height="10" style="vertical-align:middle;border-radius:2px;overflow:hidden"><defs><pattern id="cl-leg" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="var(--chart-label)" fill-opacity="0.50"/></pattern></defs><rect width="14" height="10" fill="url(#cl-leg)"/></svg><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span> ${label2}
+          <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
         </span>
       </div>
     </div>
@@ -266,8 +254,8 @@ export function setupChartTooltip(
 
     const hh = `${String(hour).padStart(2, '0')}:00`;
     const fmt = (v: number) => `${Math.round(v)}°${unit}`;
-    const rainFmt = (p: number) => p < 0.05 ? '–' : `${p.toFixed(1)} mm`;
-    const snowFmt = (s: number) => s < 0.05 ? '–' : `${s.toFixed(1)} cm`;
+    const rainFmt = (p: number) => p < 0.05 ? '–' : `${fmtNum(p)} mm`;
+    const snowFmt = (s: number) => s < 0.05 ? '–' : `${fmtNum(s)} cm`;
 
     tooltip.innerHTML = `
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:6px;font-size:12px">${hh}</div>
@@ -478,12 +466,14 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
     rightLabels.push(`<text x="6" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)} hPa</text>`);
   }
   const axisSvgStyle = 'display:block;overflow:visible';
-  const axisStyle = `<style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
+  // Outlook renders 1:1 (no viewBox scaling), so full-size labels look
+  // oversized — scale them down while still tracking the hc size bump
+  const axisStyle = `<style>.lbl{font-size:calc(var(--chart-lbl-size)*0.75);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
 
   return `
     <div id="outlook-chart-container" class="rounded-2xl p-4 relative" style="background-color:var(--card-bg);border:var(--card-border)">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs select-none" style="color:var(--chart-label)">Ctrl + scroll to zoom</span>
+        <span class="text-xs select-none hover-only" style="color:var(--chart-label)">${t('outlook.zoomHint')}</span>
         <div class="flex items-center gap-1">
           <button id="ol-zoom-out" title="Zoom out" class="${zBtn}">−</button>
           <button id="ol-zoom-in"  title="Zoom in"  class="${zBtn}">+</button>
@@ -492,7 +482,7 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
       <div class="relative">
       <div id="ol-scroll" style="overflow-x:auto">
         <svg id="ol-svg" viewBox="0 0 ${OL_W} ${OL_H}" style="display:block;width:${OL_W}px;height:${OL_H}px">
-          <style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
+          ${axisStyle}
           <g id="ol-content">${olContent(hourly, dates, locale, 1, range)}</g>
           <g id="ol-chart-hover" style="display:none">
             <line id="ol-hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + OL_CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
@@ -629,8 +619,8 @@ export function setupOutlookTooltip(
       : '';
     const hh = `${String(hour).padStart(2, '0')}:00`;
     const fmt = (v: number) => `${Math.round(v)}°${unit}`;
-    const rainFmt = (p: number) => p < 0.05 ? '–' : `${p.toFixed(1)} mm`;
-    const snowFmt = (s: number) => s < 0.05 ? '–' : `${s.toFixed(1)} cm`;
+    const rainFmt = (p: number) => p < 0.05 ? '–' : `${fmtNum(p)} mm`;
+    const snowFmt = (s: number) => s < 0.05 ? '–' : `${fmtNum(s)} cm`;
 
     tooltip.innerHTML = `
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:4px;font-size:12px">${dateLabel}, ${hh}</div>

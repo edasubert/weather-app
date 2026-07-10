@@ -4,8 +4,12 @@
 
 /* ── Theme tokens ─────────────────────────────────── */
 :root {
+  color-scheme: light;
+
   --bg-from: #f0f9ff;
   --bg-to:   #dbeafe;
+
+  --focus-ring: #38bdf8;
 
   --hover-btn:  #f8fafc;
   --hover-item: #f0f9ff;
@@ -38,6 +42,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   --bg-from: #0f172a;
   --bg-to:   #1e293b;
 
@@ -70,6 +76,8 @@
 .hc {
   font-size: 130%;
 
+  --focus-ring: #000000;
+
   --bg-from:   #ffffff;
   --bg-to:     #ffffff;
   --hover-btn:  #e5e5e5;
@@ -97,6 +105,8 @@
 }
 
 .hc.dark {
+  --focus-ring: #ffffff;
+
   --bg-from:   #000000;
   --bg-to:     #000000;
   --hover-btn:  #1a1a1a;
@@ -126,6 +136,54 @@
 body {
   background: linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
   min-height: 100vh;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Keyboard focus ───────────────────────────────── */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Loading skeleton ─────────────────────────────── */
+.skeleton {
+  background-color: var(--card-bg);
+  border: var(--card-border);
+}
+
+/* ── Outlook scrollbar ────────────────────────────── */
+#ol-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--menu-border) transparent;
+}
+#ol-scroll::-webkit-scrollbar { height: 8px; }
+#ol-scroll::-webkit-scrollbar-thumb { background: var(--menu-border); border-radius: 4px; }
+#ol-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Pointer-dependent UI ─────────────────────────── */
+@media (hover: none) {
+  .hover-only { display: none; }
+}
+
+/* ── View transitions ─────────────────────────────── */
+/* Keep the cross-fade short: clicks landing mid-transition can be dropped
+   by the browser, so a small window matters more than a slow fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* ── Hover helpers ────────────────────────────────── */

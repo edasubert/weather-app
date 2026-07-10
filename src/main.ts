@@ -4,7 +4,7 @@ import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildChart, setupChartTooltip, buildOutlookChart, setupOutlookTooltip } from './chart';
-import { t, setLang, getLang, LANGS, type Lang } from './i18n';
+import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
@@ -19,11 +19,21 @@ const LANG_NAMES: Record<Lang, string> = {
   pt: 'Português', uk: 'Українська',
 };
 
-const LOCALE_MAP: Record<Lang, string> = {
-  en: 'en-US', cs: 'cs-CZ', de: 'de-DE',
-  es: 'es-ES', fr: 'fr-FR', ja: 'ja-JP',
-  pt: 'pt-BR', uk: 'uk-UA',
-};
+// Cross-fade DOM swaps where the browser supports the View Transitions API
+function transition(render: () => void): void {
+  const doc = document as Document & {
+    startViewTransition?: (cb: () => void) => { ready?: Promise<unknown>; finished?: Promise<unknown> };
+  };
+  if (doc.startViewTransition) {
+    // A new transition skips any pending one, rejecting its promises with
+    // AbortError — swallow those so rapid interactions don't log errors
+    const vt = doc.startViewTransition(render);
+    vt.ready?.catch(() => {});
+    vt.finished?.catch(() => {});
+  } else {
+    render();
+  }
+}
 
 // ─── Shared menu class strings ────────────────────────────────────────────────
 
@@ -155,9 +165,15 @@ function attachDropdownHandlers(): void {
   });
 }
 
+// No view transition here: the browser swallows clicks that land during a
+// transition's capture window, which breaks rapidly cycling the theme button
 function applyTheme(): void {
-  document.documentElement.classList.toggle('dark', isDark());
+  const dark = isDark();
+  document.documentElement.classList.toggle('dark', dark);
   document.documentElement.classList.toggle('hc', highContrast);
+  // Keep browser chrome (mobile address bar, etc.) in sync with the page background
+  const themeColor = highContrast ? (dark ? '#000000' : '#ffffff') : (dark ? '#0f172a' : '#f0f9ff');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
   // Update theme/hc button labels without re-rendering
   document.querySelectorAll('#theme-btn').forEach(btn => {
     const spans = btn.querySelectorAll('span');
@@ -300,8 +316,7 @@ function comparisonRowHTML(icon: string, id: string, summary: string): string {
 
 function weatherCardHTML(data: DailyWeather, heading: string): string {
   const { emoji, label } = describeCode(data.weatherCode);
-  const locale = LOCALE_MAP[getLang()] ?? 'en-US';
-  const date = new Date(data.date + 'T12:00:00').toLocaleDateString(locale, {
+  const date = new Date(data.date + 'T12:00:00').toLocaleDateString(getLocale(), {
     weekday: 'short', month: 'short', day: 'numeric',
   });
 
@@ -344,9 +359,9 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
         const hasSnow    = data.snowfallSum > 0.1;
         const cls = 'text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100';
         const showLiquidRows = !hasSnow || hasLiquid;
-        const rainRow    = showLiquidRows && (hasRain || !hasShowers) ? `<div class="${cls}"><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${hasRain ? `${data.rainSum.toFixed(1)} mm` : t('card.noRain')}</div>` : '';
-        const showersRow = showLiquidRows && hasShowers ? `<div class="${cls}"><span title="${t('tooltip.showers')}">${ICONS.showers}</span> ${data.showersSum.toFixed(1)} mm</div>` : '';
-        const snowRow    = hasSnow ? `<div class="${cls}"><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${data.snowfallSum.toFixed(1)} cm</div>` : '';
+        const rainRow    = showLiquidRows && (hasRain || !hasShowers) ? `<div class="${cls}"><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${hasRain ? `${fmtNum(data.rainSum)} mm` : t('card.noRain')}</div>` : '';
+        const showersRow = showLiquidRows && hasShowers ? `<div class="${cls}"><span title="${t('tooltip.showers')}">${ICONS.showers}</span> ${fmtNum(data.showersSum)} mm</div>` : '';
+        const snowRow    = hasSnow ? `<div class="${cls}"><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${fmtNum(data.snowfallSum)} cm</div>` : '';
         return rainRow + showersRow + snowRow;
       })()}
       <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
@@ -432,6 +447,10 @@ function clearUrlParams(): void {
 // ─── Views ────────────────────────────────────────────────────────────────────
 
 function renderSearch(): void {
+  transition(doRenderSearch);
+}
+
+function doRenderSearch(): void {
   currentView = { type: 'search' };
   clearUrlParams();
 
@@ -558,34 +577,52 @@ function renderSearch(): void {
   attachDropdownHandlers();
 }
 
+// Skeleton in the shape of the weather view — feels faster than a spinner
+// and avoids the layout flashing in when the data arrives
 function renderLoading(msg = t('error.loading')): void {
   currentView = { type: 'loading' };
-  root.innerHTML = `
-    <div class="min-h-screen flex items-center justify-center">
-      <div class="text-center text-slate-500 dark:text-slate-400">
-        <div class="w-10 h-10 border-4 border-sky-200 dark:border-sky-900 border-t-sky-500 rounded-full animate-spin mx-auto mb-4"></div>
-        <p>${msg}</p>
+  transition(() => {
+    root.innerHTML = `
+      <div class="min-h-screen p-4 sm:p-8">
+        <div class="max-w-lg mx-auto">
+          <p class="text-center text-sm text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mb-4">${msg}</p>
+          <div class="animate-pulse">
+            <div class="h-10 rounded-lg mb-3 skeleton"></div>
+            <div class="rounded-2xl mb-4 skeleton" style="height:230px"></div>
+            <div class="grid grid-cols-2 hc:grid-cols-1 gap-3 mb-3">
+              <div class="rounded-2xl skeleton" style="height:360px"></div>
+              <div class="rounded-2xl skeleton" style="height:360px"></div>
+            </div>
+            <div class="rounded-2xl skeleton" style="height:300px"></div>
+          </div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  });
 }
 
 function renderError(msg: string): void {
-  root.innerHTML = `
-    <div class="min-h-screen flex items-center justify-center p-4">
-      <div class="text-center">
-        <div class="text-4xl mb-4">⚠️</div>
-        <p class="text-slate-700 dark:text-slate-200 mb-5">${msg}</p>
-        <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
-          ${t('error.tryAgain')}
-        </button>
+  transition(() => {
+    root.innerHTML = `
+      <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="text-center">
+          <div class="text-4xl mb-4">⚠️</div>
+          <p class="text-slate-700 dark:text-slate-200 mb-5">${msg}</p>
+          <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
+            ${t('error.tryAgain')}
+          </button>
+        </div>
       </div>
-    </div>
-  `;
-  document.getElementById('back-btn')!.addEventListener('click', renderSearch);
+    `;
+    document.getElementById('back-btn')!.addEventListener('click', renderSearch);
+  });
 }
 
 function renderWeather(location: GeoResult, weather: WeatherData): void {
+  transition(() => doRenderWeather(location, weather));
+}
+
+function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   currentView = { type: 'weather', location, weather };
   setUrlParams(location);
   const { today, yesterday, tomorrow, todayHourly, yesterdayHourly, tomorrowHourly } = weather;
@@ -765,10 +802,9 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 
   const renderOutlookChart = () => {
     if (!outlookData) return;
-    const locale = LOCALE_MAP[getLang()] ?? 'en-US';
-    outlookContent.innerHTML = buildOutlookChart(outlookData.hourly, unit, outlookData.dates, locale);
+    outlookContent.innerHTML = buildOutlookChart(outlookData.hourly, unit, outlookData.dates, getLocale());
     const cc = outlookContent.querySelector<HTMLElement>('#outlook-chart-container');
-    if (cc) setupOutlookTooltip(cc, outlookData.hourly, unit, outlookData.dates, locale);
+    if (cc) setupOutlookTooltip(cc, outlookData.hourly, unit, outlookData.dates, getLocale());
   };
 
   document.getElementById('outlook-btn')!.addEventListener('click', async () => {
@@ -794,6 +830,10 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 function renderNoDataError(location: GeoResult): void {
+  transition(() => doRenderNoDataError(location));
+}
+
+function doRenderNoDataError(location: GeoResult): void {
   const currentModel = findModel(model);
 
   root.innerHTML = `

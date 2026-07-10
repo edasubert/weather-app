@@ -3,6 +3,12 @@ import en from './en';
 export type Lang = 'en' | 'cs' | 'de' | 'es' | 'fr' | 'ja' | 'pt' | 'uk';
 export const LANGS: Lang[] = ['en', 'cs', 'de', 'es', 'fr', 'ja', 'pt', 'uk'];
 
+const LOCALE_MAP: Record<Lang, string> = {
+  en: 'en-US', cs: 'cs-CZ', de: 'de-DE',
+  es: 'es-ES', fr: 'fr-FR', ja: 'ja-JP',
+  pt: 'pt-BR', uk: 'uk-UA',
+};
+
 type Dict = { [key: string]: unknown };
 
 // Non-English locales are code-split and fetched only when selected
@@ -46,4 +52,13 @@ export async function setLang(lang: Lang): Promise<void> {
 
 export function getLang(): Lang {
   return current;
+}
+
+export function getLocale(): string {
+  return LOCALE_MAP[current];
+}
+
+// One decimal, localized separator ("3.2" vs "3,2")
+export function fmtNum(v: number, digits = 1): string {
+  return v.toLocaleString(getLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }

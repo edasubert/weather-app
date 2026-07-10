@@ -79,6 +79,7 @@ export default {
   outlook: {
     button: 'Próximos 14 días',
     title: 'Previsión a 14 días',
+    zoomHint: 'Ctrl + desplazamiento para ampliar',
   },
   tooltip: {
     temperature: 'Temperatura',

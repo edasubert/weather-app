@@ -79,6 +79,7 @@ export default {
   outlook: {
     button: 'Příštích 14 dní',
     title: 'Výhled na 14 dní',
+    zoomHint: 'Ctrl + kolečko myši pro přiblížení',
   },
   tooltip: {
     temperature: 'Teplota',

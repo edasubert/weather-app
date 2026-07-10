@@ -79,6 +79,7 @@ export default {
   outlook: {
     button: '14日間の予報を見る',
     title: '14日間の見通し',
+    zoomHint: 'Ctrl+スクロールでズーム',
   },
   tooltip: {
     temperature: '気温',
