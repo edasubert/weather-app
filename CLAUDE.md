@@ -30,7 +30,7 @@ npm run typecheck  # tsc --noEmit
 
 All logic is client-side. Source is under `src/`:
 
-- `weather.ts` — single `fetchWeather(lat, lon)` call to Open-Meteo forecast API with `past_days=1&forecast_days=1`; returns `{ today, yesterday }` from the same response (index 0 = yesterday, index 1 = today)
+- `weather.ts` — single `fetchWeather(lat, lon, model?)` call to Open-Meteo forecast API with `past_days=1&forecast_days=14`; one response covers the comparison days (`yesterday`/`today`/`tomorrow`), the full 15-day hourly series for the scrollable timeline (`hourlyAll` + `days` with sunrise/sunset), and `utcOffsetSeconds` for the "now" marker
 - `geocoding.ts` — `searchCity(query)` via Open-Meteo geocoding API (no key required); geolocated positions are labeled with their coordinates (no reverse-geocoding service)
 - `wmo.ts` — WMO weather code → `{ label, emoji }` lookup table
 - `types.ts` — `DailyWeather` and `GeoResult` interfaces

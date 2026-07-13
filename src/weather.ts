@@ -54,15 +54,24 @@ async function fetchForecast(
   return await res.json().catch(() => { throw new WeatherNoDataError(); }) as Record<string, unknown>;
 }
 
+export interface TimelineDayInfo {
+  date: string;
+  sunrise: string;
+  sunset: string;
+}
+
+// One request covers everything: yesterday (past_days=1) through 14 forecast
+// days, both daily and hourly — the comparison and the scrollable timeline
+// render from the same response.
 export async function fetchWeather(
   lat: number,
   lon: number,
   model?: string,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; utcOffsetSeconds: number }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number }> {
   const data = await fetchForecast(lat, lon, {
     daily: DAILY_VARS,
     past_days: '1',
-    forecast_days: '2',
+    forecast_days: '14',
   }, model);
 
   const yHourly  = parseHourly(data, 0);
@@ -70,13 +79,21 @@ export async function fetchWeather(
   const tmHourly = parseHourly(data, 48);
   const avgPressure = (h: HourlyData) => h.pressure.reduce((a, b) => a + b, 0) / 24;
 
+  const daily = data.daily as Record<string, unknown[]>;
+  const days: TimelineDayInfo[] = (daily.time as string[]).map((date, i) => ({
+    date,
+    sunrise: (daily.sunrise[i] as string | null) ?? '',
+    sunset:  (daily.sunset[i]  as string | null) ?? '',
+  }));
+
+  const hourlyRaw = data.hourly as Record<string, (number | null)[]>;
+
   return {
     yesterday: parseDay(data, 0, avgPressure(yHourly)),
     today:     parseDay(data, 1, avgPressure(tHourly)),
     tomorrow:  parseDay(data, 2, avgPressure(tmHourly)),
-    yesterdayHourly: yHourly,
-    todayHourly:     tHourly,
-    tomorrowHourly:  tmHourly,
+    days,
+    hourlyAll: toHourly(hourlyRaw, 0, days.length * 24),
     utcOffsetSeconds: (data.utc_offset_seconds as number | undefined) ?? 0,
   };
 }
@@ -122,18 +139,4 @@ function toHourly(h: Record<string, (number | null)[]>, start: number, len: numb
 
 function parseHourly(data: Record<string, unknown>, start: number): HourlyData {
   return toHourly(data.hourly as Record<string, (number | null)[]>, start, 24);
-}
-
-export async function fetchOutlook(
-  lat: number,
-  lon: number,
-  model?: string,
-): Promise<{ dates: string[]; hourly: HourlyData }> {
-  const data = await fetchForecast(lat, lon, { forecast_days: '14' }, model);
-
-  const raw   = data.hourly as Record<string, (number | null)[]>;
-  const times = raw.time as unknown as string[];
-  const dates = Array.from({ length: 14 }, (_, d) => times[d * 24]?.slice(0, 10) ?? '');
-
-  return { dates, hourly: toHourly(raw, 0, times.length) };
 }

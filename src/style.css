@@ -201,19 +201,14 @@ a:focus-visible {
   border: 2px solid var(--color-edge);
 }
 
-/* ── Outlook scrollbar ────────────────────────────── */
-#ol-scroll {
+/* ── Timeline scrollbar ───────────────────────────── */
+#tl-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--color-edge) transparent;
 }
-#ol-scroll::-webkit-scrollbar { height: 8px; }
-#ol-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
-#ol-scroll::-webkit-scrollbar-track { background: transparent; }
-
-/* ── Pointer-dependent UI ─────────────────────────── */
-@media (hover: none) {
-  .hover-only { display: none; }
-}
+#tl-scroll::-webkit-scrollbar { height: 8px; }
+#tl-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
+#tl-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ── View transitions ─────────────────────────────── */
 /* Keep the cross-fade short: clicks landing mid-transition can be dropped

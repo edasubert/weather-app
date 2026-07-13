@@ -1,9 +1,10 @@
 import './style.css';
-import { fetchWeather, fetchOutlook, WeatherNoDataError } from './weather';
+import { fetchWeather, WeatherNoDataError } from './weather';
+import type { TimelineDayInfo } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildTimeline, setupTimelineTooltip, buildOutlookChart, setupOutlookTooltip } from './chart';
+import { buildTimeline, setupTimelineTooltip, timelineDayWidth } from './chart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -11,7 +12,6 @@ import type { DailyWeather, GeoResult, HourlyData } from './types';
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
 let model = DEFAULT_MODEL;
-let outlookData: { dates: string[]; hourly: HourlyData } | null = null;
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -80,7 +80,7 @@ let chartResizeObserver: ResizeObserver | null = null;
 
 type Theme = 'auto' | 'dark' | 'light';
 type Comparison = 'yesterday-today' | 'today-tomorrow';
-type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; utcOffsetSeconds: number };
+type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number };
 type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
@@ -222,7 +222,7 @@ function coordsLabel(lat: number, lon: number): string {
 
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
-function tempComparisonParts(today: DailyWeather, yesterday: DailyWeather, apparent = false): { headline: string; sub: string } {
+function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
   const dMax  = apparent ? today.apparentTempMax  - yesterday.apparentTempMax  : today.tempMax  - yesterday.tempMax;
   const dMean = apparent ? today.apparentTempMean - yesterday.apparentTempMean : today.tempMean - yesterday.tempMean;
   const dMin  = apparent ? today.apparentTempMin  - yesterday.apparentTempMin  : today.tempMin  - yesterday.tempMin;
@@ -239,11 +239,6 @@ function tempComparisonParts(today: DailyWeather, yesterday: DailyWeather, appar
   const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
   const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
 
-  return { headline, sub };
-}
-
-function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
-  const { headline, sub } = tempComparisonParts(today, yesterday, apparent);
   return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 }
 
@@ -637,25 +632,28 @@ function renderWeather(location: GeoResult, weather: WeatherData): void {
 function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   currentView = { type: 'weather', location, weather };
   setUrlParams(location);
-  const { today, yesterday, tomorrow, todayHourly, yesterdayHourly, tomorrowHourly } = weather;
+  const { today, yesterday, tomorrow } = weather;
   const isTomorrow = comparison === 'today-tomorrow';
   const primary         = isTomorrow ? tomorrow   : today;
   const secondary       = isTomorrow ? today      : yesterday;
-  const primaryHourly   = isTomorrow ? tomorrowHourly   : todayHourly;
-  const secondaryHourly = isTomorrow ? todayHourly      : yesterdayHourly;
   const primaryLabel    = isTomorrow ? t('card.tomorrow') : t('card.today');
   const secondaryLabel  = isTomorrow ? t('card.today')    : t('card.yesterday');
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
   const compHeader = isTomorrow ? t('comp.headerTodayTomorrow') : t('comp.headerYesterdayToday');
-  const hero = tempComparisonParts(primary, secondary);
-
-  // Position of "now" on the 48h timeline, in the location's timezone
+  // Position of "now" on the timeline, in the location's timezone
   const nowHours = (() => {
     const nowLoc = new Date(Date.now() + weather.utcOffsetSeconds * 1000);
-    const dateStr = nowLoc.toISOString().slice(0, 10);
-    const dayIdx = dateStr === secondary.date ? 0 : dateStr === primary.date ? 1 : -1;
+    const dayIdx = weather.days.findIndex(d => d.date === nowLoc.toISOString().slice(0, 10));
     return dayIdx < 0 ? null : dayIdx * 24 + nowLoc.getUTCHours() + nowLoc.getUTCMinutes() / 60;
   })();
+
+  // Day labels: named for the comparison days, locale dates beyond
+  const timelineDays = weather.days.map((d, i) => ({
+    label: i === 0 ? t('card.yesterday') : i === 1 ? t('card.today') : i === 2 ? t('card.tomorrow')
+         : new Date(d.date + 'T12:00:00').toLocaleDateString(getLocale(), { weekday: 'short', month: 'short', day: 'numeric' }),
+    sunrise: d.sunrise,
+    sunset: d.sunset,
+  }));
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
@@ -707,16 +705,10 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         </div>
 
         <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
-        <div class="rounded-2xl p-5 bg-panel hc:border-2 border-edge">
+        <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
           <h1 class="sr-only">${compHeader}</h1>
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-2xl sm:text-3xl font-semibold text-heading leading-tight">${hero.headline}</div>
-              <div class="text-sm text-muted mt-1">${hero.sub}</div>
-            </div>
-            ${infoBtnHTML('temp')}
-          </div>
-          <div class="mt-4 pt-3 border-t border-edge-soft flex flex-col gap-2">
+          <div class="flex flex-col gap-2">
+            ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
             ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
             ${(() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
@@ -765,14 +757,6 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       </div>
     </div>
 
-    <div id="outlook-modal" class="fixed inset-0 z-50 flex flex-col hidden bg-surface" role="dialog" aria-modal="true">
-      <div class="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0 border-b border-edge">
-        <h2 class="text-base font-semibold text-heading">${t('outlook.title')}</h2>
-        <button id="outlook-close" class="w-8 h-8 flex items-center justify-center text-xl leading-none transition-colors text-muted hover:text-body rounded-lg hover-btn">&times;</button>
-      </div>
-      <div id="outlook-content" class="flex-1 overflow-auto p-4 sm:p-6">
-      </div>
-    </div>
   `;
 
   document.querySelectorAll<HTMLButtonElement>('[data-comp]').forEach(btn => {
@@ -794,10 +778,6 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   document.getElementById('modal-close')!.addEventListener('click', closeModal);
   document.getElementById('modal-backdrop')!.addEventListener('click', closeModal);
 
-  const outlookModal   = document.getElementById('outlook-modal')!;
-  const outlookContent = document.getElementById('outlook-content')!;
-  const closeOutlook   = () => outlookModal.classList.add('hidden');
-
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const info = getMetricInfo(btn.dataset.metric!);
@@ -807,48 +787,20 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     });
   });
 
-  document.getElementById('outlook-close')!.addEventListener('click', closeOutlook);
-
-  const renderOutlookChart = () => {
-    if (!outlookData) return;
-    outlookContent.innerHTML = buildOutlookChart(outlookData.hourly, unit, outlookData.dates, getLocale());
-    const cc = outlookContent.querySelector<HTMLElement>('#outlook-chart-container');
-    if (cc) setupOutlookTooltip(cc, outlookData.hourly, unit, outlookData.dates, getLocale());
-  };
-
-  const onOutlookClick = async (): Promise<void> => {
-    outlookModal.classList.remove('hidden');
-    if (outlookData) {
-      renderOutlookChart();
-      return;
-    }
-    outlookContent.innerHTML = `
-      <div class="flex items-center justify-center min-h-[200px]">
-        <div class="w-10 h-10 border-4 border-sky-200 dark:border-sky-900 border-t-sky-500 rounded-full animate-spin"></div>
-      </div>
-    `;
-    try {
-      outlookData = await fetchOutlook(location.latitude, location.longitude, model);
-      renderOutlookChart();
-    } catch {
-      outlookContent.innerHTML = `<p class="text-center text-muted p-8">${t('error.failed')}</p>`;
-    }
-  };
-
   // The chart renders 1:1 at the slot's measured width and re-renders on
-  // resize, so it never scales up on wide screens
+  // resize. The viewport shows the two compared days; the remaining forecast
+  // days are reachable by scrolling right.
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
+  let currentDayW = 0;
   const mountChart = (): void => {
     const innerWidth = chartSlot.clientWidth - (highContrast ? 44 : 40); // card p-5 padding (+ hc border)
-    const dayA = { label: secondaryLabel, daily: secondary, hourly: secondaryHourly };
-    const dayB = { label: primaryLabel,   daily: primary,   hourly: primaryHourly };
-    chartSlot.innerHTML = buildTimeline(
-      dayA, dayB, unit,
-      `<button id="outlook-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">${t('outlook.button')}</button>`,
-      innerWidth, nowHours,
-    );
-    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, dayA, dayB, unit);
-    document.getElementById('outlook-btn')!.addEventListener('click', () => void onOutlookClick());
+    // keep the scroll position (in days) across resize re-renders
+    const prevScroll = chartSlot.querySelector<HTMLElement>('#tl-scroll');
+    const scrollDays = prevScroll && currentDayW ? prevScroll.scrollLeft / currentDayW : (isTomorrow ? 1 : 0);
+    chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours);
+    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, timelineDays, weather.hourlyAll, unit);
+    currentDayW = timelineDayWidth(innerWidth);
+    chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
   };
   mountChart();
 
@@ -904,7 +856,6 @@ function doRenderNoDataError(location: GeoResult): void {
 }
 
 async function loadWeather(location: GeoResult): Promise<void> {
-  outlookData = null;
   renderLoading(t('error.loadingFor', { name: location.name }));
   try {
     const weather = await fetchWeather(location.latitude, location.longitude, model);
@@ -958,7 +909,6 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   document.getElementById('info-modal')?.classList.add('hidden');
-  document.getElementById('outlook-modal')?.classList.add('hidden');
 });
 
 void (async () => {
