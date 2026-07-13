@@ -80,7 +80,7 @@ let chartResizeObserver: ResizeObserver | null = null;
 
 type Theme = 'auto' | 'dark' | 'light';
 type Comparison = 'yesterday-today' | 'today-tomorrow';
-type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number };
+type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number };
 type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
@@ -336,7 +336,7 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
 
   // temperature with feels-like in parentheses
   const temp2 = (v: number, feels: number, strong = false) =>
-    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted" title="${t('tooltip.apparentTemp')}">(${tempStr(feels)})</span>`;
+    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${ICONS.feels} ${tempStr(feels)})</span>`;
 
   const row = (labelHTML: string, cellA: string, cellB: string) => `
     <tr>
@@ -365,9 +365,9 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
           </tr>
         </thead>
         <tbody>
-          ${row(t('card.high'), temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax))}
-          ${row(t('card.avg'),  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true))}
-          ${row(t('card.low'),  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin))}
+          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.high')}`, temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax))}
+          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.avg')}`,  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true))}
+          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.low')}`,  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin))}
           ${showLiquid ? row(icon(ICONS.rain, t('tooltip.precipitation')), mm(a.rainSum), mm(b.rainSum)) : ''}
           ${hasShowers ? row(icon(ICONS.showers, t('tooltip.showers')), mm(a.showersSum), mm(b.showersSum)) : ''}
           ${hasSnow ? row(icon(ICONS.snow, t('tooltip.snowfall')), cm(a.snowfallSum), cm(b.snowfallSum)) : ''}
