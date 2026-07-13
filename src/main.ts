@@ -6,7 +6,7 @@ import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildTimeline, setupTimelineTooltip, timelineDayWidth } from './chart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
-import { ICONS } from './icons';
+import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
@@ -336,7 +336,7 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
 
   // temperature with feels-like in parentheses
   const temp2 = (v: number, feels: number, strong = false) =>
-    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${ICONS.feels} ${tempStr(feels)})</span>`;
+    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${feelsIcon(feels)} ${tempStr(feels)})</span>`;
 
   const row = (labelHTML: string, cellA: string, cellB: string) => `
     <tr>

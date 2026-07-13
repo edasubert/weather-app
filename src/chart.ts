@@ -1,6 +1,6 @@
 import type { HourlyData } from './types';
 import { t, fmtNum } from './i18n';
-import { ICONS } from './icons';
+import { ICONS, feelsIcon } from './icons';
 
 const PL = 52;
 const PR = 52;
@@ -284,7 +284,7 @@ export function setupTimelineTooltip(
       <div style="display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:11px">
         <span style="color:${TEMP_COLOR}" title="${t('tooltip.temperature')}">${ICONS.temp}</span>
         <span style="color:var(--tooltip-text-main)">${fmt(temps[idx])}</span>
-        <span style="color:${FEELS_COLOR}" title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>
+        <span style="color:${FEELS_COLOR}" title="${t('tooltip.apparentTemp')}">${feelsIcon(hourly.apparentTemp[idx])}</span>
         <span style="color:var(--tooltip-text-main)">${fmt(feels[idx])}</span>
         ${hasAnyRain ? `
         <span style="color:${PRECIP_COLOR}" title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
