@@ -3,7 +3,7 @@ import { fetchWeather, fetchOutlook, WeatherNoDataError } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildChart, setupChartTooltip, buildOutlookChart, setupOutlookTooltip } from './chart';
+import { buildTimeline, setupTimelineTooltip, buildOutlookChart, setupOutlookTooltip } from './chart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -80,7 +80,7 @@ let chartResizeObserver: ResizeObserver | null = null;
 
 type Theme = 'auto' | 'dark' | 'light';
 type Comparison = 'yesterday-today' | 'today-tomorrow';
-type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData };
+type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; utcOffsetSeconds: number };
 type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
@@ -222,7 +222,7 @@ function coordsLabel(lat: number, lon: number): string {
 
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
-function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
+function tempComparisonParts(today: DailyWeather, yesterday: DailyWeather, apparent = false): { headline: string; sub: string } {
   const dMax  = apparent ? today.apparentTempMax  - yesterday.apparentTempMax  : today.tempMax  - yesterday.tempMax;
   const dMean = apparent ? today.apparentTempMean - yesterday.apparentTempMean : today.tempMean - yesterday.tempMean;
   const dMin  = apparent ? today.apparentTempMin  - yesterday.apparentTempMin  : today.tempMin  - yesterday.tempMin;
@@ -239,6 +239,11 @@ function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent =
   const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
   const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
 
+  return { headline, sub };
+}
+
+function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
+  const { headline, sub } = tempComparisonParts(today, yesterday, apparent);
   return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 }
 
@@ -300,78 +305,88 @@ function getMetricInfo(id: string): { title: string; body: string } {
 
 // ─── Comparison row ───────────────────────────────────────────────────────────
 
+function infoBtnHTML(id: string): string {
+  return `<button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>`;
+}
+
 function comparisonRowHTML(icon: string, id: string, summary: string): string {
   return `
     <div class="flex items-center gap-2 text-sm text-detail">
       <span class="w-5 shrink-0">${icon}</span>
       <span class="flex-1">${summary}</span>
-      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>
+      ${infoBtnHTML(id)}
     </div>
   `;
 }
 
 // ─── Card HTML ────────────────────────────────────────────────────────────────
 
-function weatherCardHTML(data: DailyWeather, heading: string): string {
-  const { emoji, label } = describeCode(data.weatherCode);
-  const date = new Date(data.date + 'T12:00:00').toLocaleDateString(getLocale(), {
-    weekday: 'short', month: 'short', day: 'numeric',
-  });
+// ─── Day-by-day stat table ────────────────────────────────────────────────────
+
+function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string): string {
+  const dayHead = (d: DailyWeather, label: string) => {
+    const { emoji, label: cond } = describeCode(d.weatherCode);
+    const date = new Date(d.date + 'T12:00:00').toLocaleDateString(getLocale(), {
+      weekday: 'short', month: 'short', day: 'numeric',
+    });
+    return `
+      <th class="text-left font-normal align-top pb-2 pl-3 w-[38%]">
+        <div class="text-xs font-semibold uppercase tracking-wider text-muted">${label}</div>
+        <div class="text-xs text-muted">${date}</div>
+        <div class="text-3xl my-1.5">${emoji}</div>
+        <div class="font-medium text-body text-sm leading-tight">${cond}</div>
+      </th>
+    `;
+  };
+
+  // temperature with feels-like in parentheses
+  const temp2 = (v: number, feels: number, strong = false) =>
+    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted" title="${t('tooltip.apparentTemp')}">(${tempStr(feels)})</span>`;
+
+  const row = (labelHTML: string, cellA: string, cellB: string) => `
+    <tr>
+      <td class="text-xs text-muted py-1 pr-2 whitespace-nowrap">${labelHTML}</td>
+      <td class="py-1 pl-3 text-sm">${cellA}</td>
+      <td class="py-1 pl-3 text-sm">${cellB}</td>
+    </tr>
+  `;
+  const icon = (key: string, tip: string) => `<span title="${tip}">${key}</span>`;
+
+  const hasRain    = a.rainSum > 0.1     || b.rainSum > 0.1;
+  const hasShowers = a.showersSum > 0.1  || b.showersSum > 0.1;
+  const hasSnow    = a.snowfallSum > 0.1 || b.snowfallSum > 0.1;
+  const showLiquid = !hasSnow || hasRain || hasShowers;
+  const mm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} mm</span>` : `<span class="text-muted">${t('card.noRain')}</span>`;
+  const cm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} cm</span>` : '<span class="text-muted">–</span>';
 
   return `
-    <div class="rounded-2xl p-5 flex flex-col gap-2 bg-surface hc:border-2 border-edge">
-      <div class="text-xs font-semibold uppercase tracking-wider text-muted">${heading}</div>
-      <div class="text-sm text-muted">${date}</div>
-      <div class="text-5xl my-2">${emoji}</div>
-      <div class="font-medium text-body">${label}</div>
-      <table class="mt-2 w-full text-sm [&_td]:align-bottom [&_th]:align-bottom [&_td:not(:first-child)]:pl-3 [&_th:not(:first-child)]:pl-3">
+    <div class="rounded-2xl p-5 bg-surface hc:border-2 border-edge overflow-x-auto">
+      <table class="w-full">
         <thead>
           <tr>
             <th></th>
-            <th class="text-right font-normal pb-0.5" title="${t('tooltip.temperature')}">${ICONS.temp}</th>
-            <th class="text-right font-normal pb-0.5" title="${t('tooltip.apparentTemp')}">${ICONS.feels}</th>
+            ${dayHead(a, labelA)}
+            ${dayHead(b, labelB)}
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="text-xs text-muted">${t('card.high')}</td>
-            <td class="text-detail text-right">${tempStr(data.tempMax)}</td>
-            <td class="text-detail text-right">${tempStr(data.apparentTempMax)}</td>
-          </tr>
-          <tr>
-            <td class="text-xs font-medium text-muted">${t('card.avg')}</td>
-            <td class="text-base font-semibold text-heading text-right">${tempStr(data.tempMean)}</td>
-            <td class="text-base font-semibold text-body text-right">${tempStr(data.apparentTempMean)}</td>
-          </tr>
-          <tr>
-            <td class="text-xs text-muted">${t('card.low')}</td>
-            <td class="text-detail text-right">${tempStr(data.tempMin)}</td>
-            <td class="text-detail text-right">${tempStr(data.apparentTempMin)}</td>
-          </tr>
+          ${row(t('card.high'), temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax))}
+          ${row(t('card.avg'),  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true))}
+          ${row(t('card.low'),  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin))}
+          ${showLiquid ? row(icon(ICONS.rain, t('tooltip.precipitation')), mm(a.rainSum), mm(b.rainSum)) : ''}
+          ${hasShowers ? row(icon(ICONS.showers, t('tooltip.showers')), mm(a.showersSum), mm(b.showersSum)) : ''}
+          ${hasSnow ? row(icon(ICONS.snow, t('tooltip.snowfall')), cm(a.snowfallSum), cm(b.snowfallSum)) : ''}
+          ${row(icon(ICONS.wind, t('tooltip.wind')),
+            `<span class="text-detail">${Math.round(a.windSpeedMax)} km/h ${windDirLabel(a.windDirection)}</span>`,
+            `<span class="text-detail">${Math.round(b.windSpeedMax)} km/h ${windDirLabel(b.windDirection)}</span>`)}
+          ${row(icon(ICONS.pressure, t('tooltip.pressure')),
+            `<span class="text-detail">${Math.round(a.pressureMean)} hPa</span>`,
+            `<span class="text-detail">${Math.round(b.pressureMean)} hPa</span>`)}
+          ${a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
+            `<span class="text-detail">${a.sunrise.slice(11, 16)} – ${a.sunset.slice(11, 16)}</span>`,
+            `<span class="text-detail">${b.sunrise.slice(11, 16)} – ${b.sunset.slice(11, 16)}</span>`) : ''}
         </tbody>
       </table>
-      ${(() => {
-        const hasRain    = data.rainSum > 0.1;
-        const hasShowers = data.showersSum > 0.1;
-        const hasLiquid  = hasRain || hasShowers;
-        const hasSnow    = data.snowfallSum > 0.1;
-        const cls = 'text-sm text-muted';
-        const showLiquidRows = !hasSnow || hasLiquid;
-        const rainRow    = showLiquidRows && (hasRain || !hasShowers) ? `<div class="${cls}"><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${hasRain ? `${fmtNum(data.rainSum)} mm` : t('card.noRain')}</div>` : '';
-        const showersRow = showLiquidRows && hasShowers ? `<div class="${cls}"><span title="${t('tooltip.showers')}">${ICONS.showers}</span> ${fmtNum(data.showersSum)} mm</div>` : '';
-        const snowRow    = hasSnow ? `<div class="${cls}"><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${fmtNum(data.snowfallSum)} cm</div>` : '';
-        return rainRow + showersRow + snowRow;
-      })()}
-      <div class="text-sm text-muted">
-        <span title="${t('tooltip.wind')}">${ICONS.wind}</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
-      </div>
-      <div class="text-sm text-muted">
-        <span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${Math.round(data.pressureMean)} hPa
-      </div>
-      ${data.sunrise && data.sunset ? `
-      <div class="text-sm text-muted">
-        <span title="${t('tooltip.daylight')}">${ICONS.daylight}</span> ${data.sunrise.slice(11, 16)} – ${data.sunset.slice(11, 16)}
-      </div>` : ''}
     </div>
   `;
 }
@@ -587,11 +602,8 @@ function renderLoading(msg = t('error.loading')): void {
           <div class="animate-pulse">
             <div class="h-10 rounded-lg mb-3 skeleton"></div>
             <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
-              <div class="rounded-2xl skeleton" style="height:230px"></div>
-              <div class="grid grid-cols-1 xs:grid-cols-2 hc:grid-cols-1 gap-3">
-                <div class="rounded-2xl skeleton" style="height:360px"></div>
-                <div class="rounded-2xl skeleton" style="height:360px"></div>
-              </div>
+              <div class="rounded-2xl skeleton" style="height:280px"></div>
+              <div class="rounded-2xl skeleton" style="height:340px"></div>
             </div>
             <div class="rounded-2xl skeleton" style="height:300px"></div>
           </div>
@@ -633,10 +645,17 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   const secondaryHourly = isTomorrow ? todayHourly      : yesterdayHourly;
   const primaryLabel    = isTomorrow ? t('card.tomorrow') : t('card.today');
   const secondaryLabel  = isTomorrow ? t('card.today')    : t('card.yesterday');
-  const primaryLabelShort   = isTomorrow ? t('chart.tomorrowShort') : t('chart.todayShort');
-  const secondaryLabelShort = isTomorrow ? t('chart.todayShort')    : t('chart.yesterdayShort');
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
   const compHeader = isTomorrow ? t('comp.headerTodayTomorrow') : t('comp.headerYesterdayToday');
+  const hero = tempComparisonParts(primary, secondary);
+
+  // Position of "now" on the 48h timeline, in the location's timezone
+  const nowHours = (() => {
+    const nowLoc = new Date(Date.now() + weather.utcOffsetSeconds * 1000);
+    const dateStr = nowLoc.toISOString().slice(0, 10);
+    const dayIdx = dateStr === secondary.date ? 0 : dateStr === primary.date ? 1 : -1;
+    return dayIdx < 0 ? null : dayIdx * 24 + nowLoc.getUTCHours() + nowLoc.getUTCMinutes() / 60;
+  })();
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
@@ -688,10 +707,16 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         </div>
 
         <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
-        <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
+        <div class="rounded-2xl p-5 bg-panel hc:border-2 border-edge">
           <h1 class="sr-only">${compHeader}</h1>
-          <div class="flex flex-col gap-2">
-            ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-2xl sm:text-3xl font-semibold text-heading leading-tight">${hero.headline}</div>
+              <div class="text-sm text-muted mt-1">${hero.sub}</div>
+            </div>
+            ${infoBtnHTML('temp')}
+          </div>
+          <div class="mt-4 pt-3 border-t border-edge-soft flex flex-col gap-2">
             ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
             ${(() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
@@ -707,10 +732,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 xs:grid-cols-2 hc:grid-cols-1 gap-3">
-          ${weatherCardHTML(secondary, secondaryLabel)}
-          ${weatherCardHTML(primary, primaryLabel)}
-        </div>
+        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel)}
         </div>
 
         <div id="chart-slot"></div>
@@ -818,13 +840,14 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
   const mountChart = (): void => {
     const innerWidth = chartSlot.clientWidth - (highContrast ? 44 : 40); // card p-5 padding (+ hc border)
-    chartSlot.innerHTML = buildChart(
-      primaryHourly, secondaryHourly, unit,
-      t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`),
+    const dayA = { label: secondaryLabel, daily: secondary, hourly: secondaryHourly };
+    const dayB = { label: primaryLabel,   daily: primary,   hourly: primaryHourly };
+    chartSlot.innerHTML = buildTimeline(
+      dayA, dayB, unit,
       `<button id="outlook-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">${t('outlook.button')}</button>`,
-      innerWidth,
+      innerWidth, nowHours,
     );
-    setupChartTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, primaryHourly, secondaryHourly, unit, primaryLabelShort, secondaryLabelShort);
+    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, dayA, dayB, unit);
     document.getElementById('outlook-btn')!.addEventListener('click', () => void onOutlookClick());
   };
   mountChart();

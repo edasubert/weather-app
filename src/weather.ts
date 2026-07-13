@@ -58,7 +58,7 @@ export async function fetchWeather(
   lat: number,
   lon: number,
   model?: string,
-): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData }> {
+): Promise<{ today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; utcOffsetSeconds: number }> {
   const data = await fetchForecast(lat, lon, {
     daily: DAILY_VARS,
     past_days: '1',
@@ -77,6 +77,7 @@ export async function fetchWeather(
     yesterdayHourly: yHourly,
     todayHourly:     tHourly,
     tomorrowHourly:  tmHourly,
+    utcOffsetSeconds: (data.utc_offset_seconds as number | undefined) ?? 0,
   };
 }
 

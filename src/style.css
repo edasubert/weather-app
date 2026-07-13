@@ -20,8 +20,6 @@
    (text-heading, bg-surface, border-edge, …) is theme-aware
    without per-element variant prefixes. */
 @theme {
-  --breakpoint-xs: 23rem;          /* below 368px the day cards stack */
-
   --color-heading: #1e293b;        /* strongest text */
   --color-body: #334155;           /* regular text */
   --color-detail: #475569;         /* secondary values */
@@ -64,6 +62,7 @@
   --dot-bg:     #ffffff;
 
   --snow-color: #000000;
+  --night-shade: rgba(15, 23, 42, 0.06);
 }
 
 .dark {
@@ -100,6 +99,7 @@
   --dot-bg:     #1e293b;
 
   --snow-color: #ffffff;
+  --night-shade: rgba(0, 0, 0, 0.28);
 }
 
 .hc {
@@ -139,6 +139,7 @@
 
   --hover-line: #000000;
   --dot-bg:     #ffffff;
+  --night-shade: rgba(0, 0, 0, 0.08);
 }
 
 .hc.dark {
@@ -175,6 +176,7 @@
 
   --hover-line: #ffffff;
   --dot-bg:     #000000;
+  --night-shade: rgba(255, 255, 255, 0.10);
 }
 
 /* ── Page background ──────────────────────────────── */
