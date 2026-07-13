@@ -133,7 +133,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   const dash = '4 4';
 
   return `
-    <div id="chart-container" class="rounded-2xl p-5 relative" style="background-color:var(--card-bg);border:var(--card-border)">
+    <div id="chart-container" class="rounded-2xl p-5 relative bg-surface hc:border-2 border-edge">
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
         <defs>
           <pattern id="cloud-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -168,7 +168,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
         <rect id="chart-overlay" x="${PL}" y="${PT}" width="${CW}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
       </svg>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mt-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-3">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:var(--chart-label)"></span>${label1}
         </span>
@@ -447,7 +447,7 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
   const range = computeOutlookRange(hourly, unit);
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
-  const zBtn = 'w-7 h-7 rounded-lg border flex items-center justify-center text-sm font-bold hover-btn border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400 hc:border-black hc:text-black dark-hc:border-white dark-hc:text-white';
+  const zBtn = 'w-7 h-7 rounded-lg border flex items-center justify-center text-sm font-bold hover-btn border-edge text-muted';
 
   // Static y-axis labels — these never change with zoom, only with data range
   const { minT, maxT, minP, maxP } = range;
@@ -471,7 +471,7 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
   const axisStyle = `<style>.lbl{font-size:calc(var(--chart-lbl-size)*0.75);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
 
   return `
-    <div id="outlook-chart-container" class="rounded-2xl p-4 relative" style="background-color:var(--card-bg);border:var(--card-border)">
+    <div id="outlook-chart-container" class="rounded-2xl p-4 relative bg-surface hc:border-2 border-edge">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs select-none hover-only" style="color:var(--chart-label)">${t('outlook.zoomHint')}</span>
         <div class="flex items-center gap-1">
@@ -501,7 +501,7 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
       </div>
       </div>
       <div id="ol-chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mt-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-3">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR};vertical-align:middle"></span><span title="${t('tooltip.temperature')}">${ICONS.temp}</span>
         </span>

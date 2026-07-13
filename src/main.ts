@@ -35,19 +35,16 @@ function transition(render: () => void): void {
   }
 }
 
-// ─── Shared menu class strings ────────────────────────────────────────────────
-
-const MENU_ITEM_CLS = 'text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white';
-const BTN_CLS       = 'border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400 hc:border-black hc:text-black dark-hc:border-white dark-hc:text-white';
+// ─── Dropdown menus ───────────────────────────────────────────────────────────
 
 function langMenuHTML(openUp = false): string {
   const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
   const items = LANGS.map((lang, i) => {
-    const sep = i > 0 ? ` style="border-top:1px solid var(--menu-border)"` : '';
+    const sep = i > 0 ? ' border-t border-edge' : '';
     const active = getLang() === lang ? ' font-semibold' : '';
-    return `<button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${active}" data-lang="${lang}"${sep}>${LANG_NAMES[lang]}</button>`;
+    return `<button class="w-full text-left px-3 py-2 text-sm hover-item text-body${sep}${active}" data-lang="${lang}">${LANG_NAMES[lang]}</button>`;
   }).join('');
-  return `<div id="lang-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:130px">${items}</div>`;
+  return `<div id="lang-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:130px">${items}</div>`;
 }
 
 function modelMenuHTML(openUp = false): string {
@@ -64,15 +61,15 @@ function modelMenuHTML(openUp = false): string {
   for (const group of groups) {
     const groupModels = WEATHER_MODELS.filter(m => m.group === group);
     if (!groupModels.length) continue;
-    const groupBorder = first ? '' : `border-top:1px solid var(--menu-border);`;
-    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider ${MENU_ITEM_CLS}" style="${groupBorder}opacity:0.5">${groupLabels[group]}</div>`;
+    const groupBorder = first ? '' : ' border-t border-edge';
+    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-body opacity-50${groupBorder}">${groupLabels[group]}</div>`;
     for (const m of groupModels) {
       const active = model === m.id ? ' font-semibold' : '';
-      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${active}" data-model="${m.id}" style="border-top:1px solid var(--menu-border)"><div>${m.name}</div><div class="text-xs" style="opacity:0.5">${m.provider} · ${m.coverage}</div></button>`;
+      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item text-body border-t border-edge${active}" data-model="${m.id}"><div>${m.name}</div><div class="text-xs opacity-50">${m.provider} · ${m.coverage}</div></button>`;
     }
     first = false;
   }
-  return `<div id="model-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:300px;max-height:360px">${html}</div>`;
+  return `<div id="model-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto bg-surface border border-edge" style="min-width:300px;max-height:360px">${html}</div>`;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -290,8 +287,8 @@ function daylightComparison(today: DailyWeather, yesterday: DailyWeather): strin
 
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
-const DOCS_HTML = `<a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
-const LINK = 'class="text-sky-500 underline" target="_blank" rel="noopener noreferrer"';
+const DOCS_HTML = `<a class="text-accent underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
+const LINK = 'class="text-accent underline" target="_blank" rel="noopener noreferrer"';
 
 function getMetricInfo(id: string): { title: string; body: string } {
   return {
@@ -304,10 +301,10 @@ function getMetricInfo(id: string): { title: string; body: string } {
 
 function comparisonRowHTML(icon: string, id: string, summary: string): string {
   return `
-    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hc:text-black dark-hc:text-white">
+    <div class="flex items-center gap-2 text-sm text-detail">
       <span class="w-5 shrink-0">${icon}</span>
       <span class="flex-1">${summary}</span>
-      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-slate-400 text-slate-500 hover:border-sky-400 hover:text-sky-500 dark:border-slate-500 dark:text-slate-400 dark:hover:border-sky-500 dark:hover:text-sky-400 hc:border-black hc:text-black hc:hover:border-sky-700 hc:hover:text-sky-700 dark-hc:border-white dark-hc:text-white dark-hc:hover:border-sky-300 dark-hc:hover:text-sky-300" data-metric="${id}">i</button>
+      <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>
     </div>
   `;
 }
@@ -321,11 +318,11 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
   });
 
   return `
-    <div class="rounded-2xl p-5 flex flex-col gap-2" style="background-color:var(--card-bg);border:var(--card-border)">
-      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">${heading}</div>
-      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">${date}</div>
+    <div class="rounded-2xl p-5 flex flex-col gap-2 bg-surface hc:border-2 border-edge">
+      <div class="text-xs font-semibold uppercase tracking-wider text-muted">${heading}</div>
+      <div class="text-sm text-muted">${date}</div>
       <div class="text-5xl my-2">${emoji}</div>
-      <div class="font-medium text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white">${label}</div>
+      <div class="font-medium text-body">${label}</div>
       <table class="mt-2 w-full text-sm [&_td]:align-bottom [&_th]:align-bottom [&_td:not(:first-child)]:pl-3 [&_th:not(:first-child)]:pl-3">
         <thead>
           <tr>
@@ -336,19 +333,19 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
         </thead>
         <tbody>
           <tr>
-            <td class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.high')}</td>
-            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.tempMax)}</td>
-            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.apparentTempMax)}</td>
+            <td class="text-xs text-muted">${t('card.high')}</td>
+            <td class="text-detail text-right">${tempStr(data.tempMax)}</td>
+            <td class="text-detail text-right">${tempStr(data.apparentTempMax)}</td>
           </tr>
           <tr>
-            <td class="text-xs font-medium text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.avg')}</td>
-            <td class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white text-right">${tempStr(data.tempMean)}</td>
-            <td class="text-base font-semibold text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white text-right">${tempStr(data.apparentTempMean)}</td>
+            <td class="text-xs font-medium text-muted">${t('card.avg')}</td>
+            <td class="text-base font-semibold text-heading text-right">${tempStr(data.tempMean)}</td>
+            <td class="text-base font-semibold text-body text-right">${tempStr(data.apparentTempMean)}</td>
           </tr>
           <tr>
-            <td class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-800 dark-hc:text-gray-200">${t('card.low')}</td>
-            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.tempMin)}</td>
-            <td class="text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 text-right">${tempStr(data.apparentTempMin)}</td>
+            <td class="text-xs text-muted">${t('card.low')}</td>
+            <td class="text-detail text-right">${tempStr(data.tempMin)}</td>
+            <td class="text-detail text-right">${tempStr(data.apparentTempMin)}</td>
           </tr>
         </tbody>
       </table>
@@ -357,21 +354,21 @@ function weatherCardHTML(data: DailyWeather, heading: string): string {
         const hasShowers = data.showersSum > 0.1;
         const hasLiquid  = hasRain || hasShowers;
         const hasSnow    = data.snowfallSum > 0.1;
-        const cls = 'text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100';
+        const cls = 'text-sm text-muted';
         const showLiquidRows = !hasSnow || hasLiquid;
         const rainRow    = showLiquidRows && (hasRain || !hasShowers) ? `<div class="${cls}"><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span> ${hasRain ? `${fmtNum(data.rainSum)} mm` : t('card.noRain')}</div>` : '';
         const showersRow = showLiquidRows && hasShowers ? `<div class="${cls}"><span title="${t('tooltip.showers')}">${ICONS.showers}</span> ${fmtNum(data.showersSum)} mm</div>` : '';
         const snowRow    = hasSnow ? `<div class="${cls}"><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span> ${fmtNum(data.snowfallSum)} cm</div>` : '';
         return rainRow + showersRow + snowRow;
       })()}
-      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
+      <div class="text-sm text-muted">
         <span title="${t('tooltip.wind')}">${ICONS.wind}</span> ${Math.round(data.windSpeedMax)} km/h ${windDirLabel(data.windDirection)}
       </div>
-      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
+      <div class="text-sm text-muted">
         <span title="${t('tooltip.pressure')}">${ICONS.pressure}</span> ${Math.round(data.pressureMean)} hPa
       </div>
       ${data.sunrise && data.sunset ? `
-      <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
+      <div class="text-sm text-muted">
         <span title="${t('tooltip.daylight')}">${ICONS.daylight}</span> ${data.sunrise.slice(11, 16)} – ${data.sunset.slice(11, 16)}
       </div>` : ''}
     </div>
@@ -459,8 +456,8 @@ function doRenderSearch(): void {
       <div class="w-full max-w-sm">
         <div class="text-center mb-8">
           <div class="text-5xl mb-3">🌤️</div>
-          <h1 class="text-2xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white">${t('search.title')}</h1>
-          <p class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 mt-1 text-sm">${t('search.subtitle')}</p>
+          <h1 class="text-2xl font-semibold text-heading">${t('search.title')}</h1>
+          <p class="text-muted mt-1 text-sm">${t('search.subtitle')}</p>
         </div>
 
         <div class="relative mb-3">
@@ -469,23 +466,23 @@ function doRenderSearch(): void {
             type="text"
             placeholder="${t('search.placeholder')}"
             autocomplete="off"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 placeholder-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 hc:border-black hc:bg-white hc:text-black hc:placeholder-gray-600 dark-hc:border-white dark-hc:bg-black dark-hc:text-white dark-hc:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            class="w-full px-4 py-3 rounded-xl border border-edge bg-surface text-body placeholder:text-placeholder shadow-xs focus:outline-hidden focus:ring-2 focus:ring-sky-400"
           />
           <div
             id="suggestions-box"
-            class="absolute top-full mt-1 w-full bg-white border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hc:bg-white hc:border-black dark-hc:bg-black dark-hc:border-white rounded-xl shadow-lg z-10 hidden overflow-hidden"
+            class="absolute top-full mt-1 w-full bg-surface border border-edge-soft rounded-xl shadow-lg z-10 hidden overflow-hidden"
           ></div>
         </div>
 
         ${'geolocation' in navigator ? `
           <div class="flex items-center gap-3 my-4">
-            <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700 hc:bg-black dark-hc:bg-white"></div>
-            <span class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 uppercase tracking-wide">${t('search.or')}</span>
-            <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700 hc:bg-black dark-hc:bg-white"></div>
+            <div class="flex-1 h-px bg-edge"></div>
+            <span class="text-xs text-muted uppercase tracking-wide">${t('search.or')}</span>
+            <div class="flex-1 h-px bg-edge"></div>
           </div>
           <button
             id="geolocate-btn"
-            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 bg-white dark:border-slate-700 dark:text-slate-300 dark:bg-slate-800 hc:border-black hc:text-black hc:bg-white dark-hc:border-white dark-hc:text-white dark-hc:bg-black shadow-sm hover-btn"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-edge text-detail bg-surface shadow-xs hover-btn"
           >
             📍 ${t('search.useLocation')}
           </button>
@@ -496,7 +493,7 @@ function doRenderSearch(): void {
             <span>${THEME_ICONS[theme]}</span>
             <span>${themeLabel()}</span>
           </button>
-          <button id="hc-btn" class="flex items-center gap-2 text-xs subtle-text hc:text-black dark-hc:text-white" aria-pressed="${highContrast}" title="Toggle easy to read mode">
+          <button id="hc-btn" class="flex items-center gap-2 text-xs subtle-text" aria-pressed="${highContrast}" title="Toggle easy to read mode">
             <span>◑</span>
             <span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
           </button>
@@ -552,11 +549,11 @@ function doRenderSearch(): void {
 
         box.innerHTML = suggestions.map((r, i) => `
           <button
-            class="w-full text-left px-4 py-3 hover-item border-b border-slate-50 dark:border-slate-700 hc:border-black dark-hc:border-white last:border-0"
+            class="w-full text-left px-4 py-3 hover-item border-b border-edge-soft last:border-0"
             data-i="${i}"
           >
-            <span class="font-medium text-slate-700 dark:text-slate-200 hc:text-black dark-hc:text-white">${r.name}</span>
-            <span class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+            <span class="font-medium text-body">${r.name}</span>
+            <span class="text-muted text-sm ml-1.5">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
           </button>
         `).join('');
 
@@ -585,7 +582,7 @@ function renderLoading(msg = t('error.loading')): void {
     root.innerHTML = `
       <div class="min-h-screen p-4 sm:p-8">
         <div class="max-w-lg mx-auto">
-          <p class="text-center text-sm text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white mb-4">${msg}</p>
+          <p class="text-center text-sm text-muted mb-4">${msg}</p>
           <div class="animate-pulse">
             <div class="h-10 rounded-lg mb-3 skeleton"></div>
             <div class="rounded-2xl mb-4 skeleton" style="height:230px"></div>
@@ -607,7 +604,7 @@ function renderError(msg: string): void {
       <div class="min-h-screen flex items-center justify-center p-4">
         <div class="text-center">
           <div class="text-4xl mb-4">⚠️</div>
-          <p class="text-slate-700 dark:text-slate-200 mb-5">${msg}</p>
+          <p class="text-body mb-5">${msg}</p>
           <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
             ${t('error.tryAgain')}
           </button>
@@ -643,52 +640,52 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       <div class="max-w-lg mx-auto">
         <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
           <div class="flex items-center gap-2 min-w-0 sm:flex-1">
-            <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white min-w-0 truncate flex-1">📍 ${locationLabel}</div>
-            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn shrink-0">
+            <div class="text-sm text-muted min-w-0 truncate flex-1">📍 ${locationLabel}</div>
+            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn shrink-0">
               ${t('weather.changeLocation')}
             </button>
           </div>
           <div class="flex gap-2 shrink-0">
             <div class="relative">
-              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
+              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 ${findModel(model).shortLabel} <span class="text-xs opacity-50">▾</span>
               </button>
               ${modelMenuHTML()}
             </div>
             <div class="relative">
-              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
+              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 ${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span>
               </button>
               ${langMenuHTML()}
             </div>
             <div class="relative">
-              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn flex items-center gap-1">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 °${unit} <span class="text-xs opacity-50">▾</span>
               </button>
-              <div id="unit-menu" class="absolute left-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden" style="background-color:var(--menu-bg);border:1px solid var(--menu-border);min-width:72px">
-                <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
-                <button class="w-full text-left px-3 py-2 text-sm hover-item ${MENU_ITEM_CLS}${unit === 'F' ? ' font-semibold' : ''}" data-unit="F" style="border-top:1px solid var(--menu-border)">°F</button>
+              <div id="unit-menu" class="absolute left-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:72px">
+                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
+                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body border-t border-edge${unit === 'F' ? ' font-semibold' : ''}" data-unit="F">°F</button>
               </div>
             </div>
-            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border ${BTN_CLS} hover-btn">
+            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn">
               ${t('weather.changeLocation')}
             </button>
           </div>
         </div>
 
-        <div class="flex mb-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hc:border-black dark-hc:border-white">
+        <div class="flex mb-3 rounded-lg overflow-hidden border border-edge">
           ${(['yesterday-today', 'today-tomorrow'] as Comparison[]).map((mode, i) => {
             const active = comparison === mode;
             const label  = mode === 'yesterday-today' ? t('comp.headerYesterdayToday') : t('comp.headerTodayTomorrow');
-            const divider = i === 0 ? 'border-r border-slate-200 dark:border-slate-700 hc:border-black dark-hc:border-white' : '';
-            const activeCls   = 'bg-sky-500 text-white hc:bg-black dark-hc:bg-white dark-hc:text-black';
-            const inactiveCls = 'text-slate-500 dark:text-slate-400 hc:text-black dark-hc:text-white hover-btn';
+            const divider = i === 0 ? 'border-r border-edge' : '';
+            const activeCls   = 'bg-selected text-selected-text';
+            const inactiveCls = 'text-muted hover-btn';
             return `<button class="flex-1 text-sm py-2 text-center transition-colors ${divider} ${active ? activeCls : inactiveCls}" data-comp="${mode}">${label}</button>`;
           }).join('')}
         </div>
 
-        <div class="rounded-2xl p-4 mb-4" style="background-color:var(--cmp-bg);border:var(--cmp-border)">
-          <h1 class="text-xl font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3">${compHeader}</h1>
+        <div class="rounded-2xl p-4 mb-4 bg-panel hc:border-2 border-edge">
+          <h1 class="text-xl font-semibold text-heading mb-3">${compHeader}</h1>
           <div class="flex flex-col gap-2">
             ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
             ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
@@ -714,13 +711,13 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         ${buildChart(primaryHourly, secondaryHourly, unit, t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`))}
 
         <div class="flex justify-center mt-3">
-          <button id="outlook-btn" class="text-sm px-4 py-2 rounded-xl border ${BTN_CLS} hover-btn">
+          <button id="outlook-btn" class="text-sm px-4 py-2 rounded-xl border border-edge text-muted hover-btn">
             ${t('outlook.button')}
           </button>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-          <div class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100">
+          <div class="text-sm text-muted">
             ${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
           </div>
           <div class="flex items-center gap-4">
@@ -728,7 +725,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
               <span>${THEME_ICONS[theme]}</span>
               <span>${themeLabel()}</span>
             </button>
-            <button id="hc-btn" class="flex items-center gap-1.5 text-xs subtle-text hc:text-black dark-hc:text-white" aria-pressed="${highContrast}">
+            <button id="hc-btn" class="flex items-center gap-1.5 text-xs subtle-text" aria-pressed="${highContrast}">
               <span>◑</span>
               <span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
             </button>
@@ -746,17 +743,17 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
       <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
-      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style="background-color:var(--modal-bg);border:var(--modal-border)">
-        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none transition-colors text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hc:text-black hc:hover:text-gray-700 dark-hc:text-white dark-hc:hover:text-gray-300">&times;</button>
-        <h2 id="modal-title" class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white mb-3 pr-6"></h2>
-        <div id="modal-body" class="text-sm text-slate-600 dark:text-slate-300 hc:text-gray-900 dark-hc:text-gray-100 flex flex-col gap-2"></div>
+      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl bg-surface hc:border-2 border-edge">
+        <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none transition-colors text-muted hover:text-body">&times;</button>
+        <h2 id="modal-title" class="text-base font-semibold text-heading mb-3 pr-6"></h2>
+        <div id="modal-body" class="text-sm text-detail flex flex-col gap-2"></div>
       </div>
     </div>
 
-    <div id="outlook-modal" class="fixed inset-0 z-50 flex flex-col hidden" style="background-color:var(--modal-bg)" role="dialog" aria-modal="true">
-      <div class="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0" style="border-bottom:1px solid var(--menu-border)">
-        <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100 hc:text-black dark-hc:text-white">${t('outlook.title')}</h2>
-        <button id="outlook-close" class="w-8 h-8 flex items-center justify-center text-xl leading-none transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hc:text-black dark-hc:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-gray-200 dark-hc:hover:bg-gray-800">&times;</button>
+    <div id="outlook-modal" class="fixed inset-0 z-50 flex flex-col hidden bg-surface" role="dialog" aria-modal="true">
+      <div class="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0 border-b border-edge">
+        <h2 class="text-base font-semibold text-heading">${t('outlook.title')}</h2>
+        <button id="outlook-close" class="w-8 h-8 flex items-center justify-center text-xl leading-none transition-colors text-muted hover:text-body rounded-lg hover-btn">&times;</button>
       </div>
       <div id="outlook-content" class="flex-1 overflow-auto p-4 sm:p-6">
       </div>
@@ -822,7 +819,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       outlookData = await fetchOutlook(location.latitude, location.longitude, model);
       renderOutlookChart();
     } catch {
-      outlookContent.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400 p-8">${t('error.failed')}</p>`;
+      outlookContent.innerHTML = `<p class="text-center text-muted p-8">${t('error.failed')}</p>`;
     }
   });
 }
@@ -840,10 +837,10 @@ function doRenderNoDataError(location: GeoResult): void {
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="text-center max-w-sm w-full">
         <div class="text-4xl mb-4">📡</div>
-        <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 hc:text-black dark-hc:text-white mb-2">${t('error.noDataTitle')}</h2>
-        <p class="text-slate-500 dark:text-slate-400 hc:text-gray-900 dark-hc:text-gray-100 text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
+        <h2 class="text-xl font-semibold text-heading mb-2">${t('error.noDataTitle')}</h2>
+        <p class="text-muted text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
         <div class="relative inline-block mb-3">
-          <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border ${BTN_CLS} hover-btn flex items-center gap-1.5">
+          <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border border-edge text-muted hover-btn flex items-center gap-1.5">
             ${currentModel.shortLabel} <span class="text-xs opacity-50">▾</span>
           </button>
           ${modelMenuHTML(true)}

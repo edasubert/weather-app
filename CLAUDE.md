@@ -10,8 +10,12 @@ Static weather app — no server, no cookies, no tracking. Built with TypeScript
 
 - **Vite** — dev server and bundler
 - **TypeScript** — strict, `moduleResolution: "bundler"`
-- **Tailwind CSS v3** — utility-first styling via PostCSS
+- **Tailwind CSS v4** — via `@tailwindcss/vite` plugin (no PostCSS config, no tailwind.config.js)
 - No backend, no analytics, no cookies
+
+## Theming
+
+All colors go through semantic tokens defined in `src/style.css`: an `@theme` block declares them (`--color-heading`, `--color-surface`, `--color-edge`, …) and the `.dark` / `.hc` / `.hc.dark` blocks override the same variables. Markup uses one utility per color (`text-muted`, `bg-surface`, `border-edge`) — never per-theme variant chains. The `dark:`/`hc:` variants (declared via `@custom-variant`) are reserved for structural differences only (e.g. `hc:border-2`, `hc:grid-cols-1`). Chart SVG internals and tooltips consume plain variables (`--chart-label`, `--tooltip-bg`, …) directly.
 
 ## Commands
 

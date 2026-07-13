@@ -1,8 +1,33 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* ── Theme tokens ─────────────────────────────────── */
+/* Theme switching is class-based (html.dark / html.hc), not media-query based */
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant hc (&:where(.hc, .hc *));
+
+/* ── Semantic color tokens ────────────────────────────
+   Values here are the light theme; the .dark / .hc / .hc.dark
+   blocks below override the same variables, so every utility
+   (text-heading, bg-surface, border-edge, …) is theme-aware
+   without per-element variant prefixes. */
+@theme {
+  --color-heading: #1e293b;        /* strongest text */
+  --color-body: #334155;           /* regular text */
+  --color-detail: #475569;         /* secondary values */
+  --color-muted: #64748b;          /* labels, captions */
+  --color-placeholder: #94a3b8;
+
+  --color-surface: #ffffff;        /* cards, menus, modals, inputs */
+  --color-panel: #f0f9ff;          /* tinted comparison panel */
+  --color-edge: #e2e8f0;           /* control borders, dividers */
+  --color-edge-soft: #f1f5f9;      /* list separators */
+
+  --color-accent: #0ea5e9;         /* links, info hover */
+  --color-selected: #0ea5e9;       /* active toggle background */
+  --color-selected-text: #ffffff;
+}
+
+/* ── Non-utility theme variables ──────────────────────
+   Consumed via var() in charts, tooltips, and helpers. */
 :root {
   color-scheme: light;
 
@@ -18,18 +43,6 @@
   --chart-label:    #64748b;
   --chart-lbl-size: 16px;
 
-  --text-subtle:       #64748b;
-  --text-subtle-hover: #334155;
-
-  --card-bg:     #ffffff;
-  --card-border: none;
-  --cmp-bg:      #f0f9ff;
-  --cmp-border:  none;
-  --menu-bg:     #ffffff;
-  --menu-border: #e2e8f0;
-  --modal-bg:    #ffffff;
-  --modal-border: none;
-
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #e2e8f0;
   --tooltip-text-main: #1e293b;
@@ -44,6 +57,19 @@
 .dark {
   color-scheme: dark;
 
+  --color-heading: #f1f5f9;
+  --color-body: #e2e8f0;
+  --color-detail: #cbd5e1;
+  --color-muted: #94a3b8;
+  --color-placeholder: #64748b;
+
+  --color-surface: #1e293b;
+  --color-panel: rgba(12, 74, 110, 0.3);
+  --color-edge: #334155;
+  --color-edge-soft: #334155;
+
+  --color-accent: #38bdf8;
+
   --bg-from: #0f172a;
   --bg-to:   #1e293b;
 
@@ -52,15 +78,6 @@
 
   --chart-grid:  #1e293b;
   --chart-label: #94a3b8;
-
-  --text-subtle:       #94a3b8;
-  --text-subtle-hover: #e2e8f0;
-
-  --card-bg:     #1e293b;
-  --cmp-bg:      rgba(12,74,110,0.3);
-  --menu-bg:     #1e293b;
-  --menu-border: #334155;
-  --modal-bg:    #1e293b;
 
   --tooltip-bg:        #0f172a;
   --tooltip-border:    #334155;
@@ -76,24 +93,32 @@
 .hc {
   font-size: 130%;
 
+  --color-heading: #000000;
+  --color-body: #000000;
+  --color-detail: #111827;
+  --color-muted: #111827;
+  --color-placeholder: #4b5563;
+
+  --color-surface: #ffffff;
+  --color-panel: #ffffff;
+  --color-edge: #000000;
+  --color-edge-soft: #000000;
+
+  --color-accent: #0369a1;
+  --color-selected: #000000;
+  --color-selected-text: #ffffff;
+
   --focus-ring: #000000;
 
-  --bg-from:   #ffffff;
-  --bg-to:     #ffffff;
+  --bg-from: #ffffff;
+  --bg-to:   #ffffff;
+
   --hover-btn:  #e5e5e5;
   --hover-item: #e5e5e5;
+
   --chart-grid:     #d1d5db;
   --chart-label:    #111827;
   --chart-lbl-size: 18px;
-
-  --card-bg:     #ffffff;
-  --card-border: 2px solid #000000;
-  --cmp-bg:      #ffffff;
-  --cmp-border:  2px solid #000000;
-  --menu-bg:     #ffffff;
-  --menu-border: #000000;
-  --modal-bg:    #ffffff;
-  --modal-border: 2px solid #000000;
 
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #000000;
@@ -105,23 +130,31 @@
 }
 
 .hc.dark {
+  --color-heading: #ffffff;
+  --color-body: #ffffff;
+  --color-detail: #f3f4f6;
+  --color-muted: #f3f4f6;
+  --color-placeholder: #9ca3af;
+
+  --color-surface: #000000;
+  --color-panel: #000000;
+  --color-edge: #ffffff;
+  --color-edge-soft: #ffffff;
+
+  --color-accent: #7dd3fc;
+  --color-selected: #ffffff;
+  --color-selected-text: #000000;
+
   --focus-ring: #ffffff;
 
-  --bg-from:   #000000;
-  --bg-to:     #000000;
+  --bg-from: #000000;
+  --bg-to:   #000000;
+
   --hover-btn:  #1a1a1a;
   --hover-item: #1a1a1a;
+
   --chart-grid:  #374151;
   --chart-label: #f9fafb;
-
-  --card-bg:     #000000;
-  --card-border: 2px solid #ffffff;
-  --cmp-bg:      #000000;
-  --cmp-border:  2px solid #ffffff;
-  --menu-bg:     #000000;
-  --menu-border: #ffffff;
-  --modal-bg:    #000000;
-  --modal-border: 2px solid #ffffff;
 
   --tooltip-bg:        #000000;
   --tooltip-border:    #ffffff;
@@ -148,17 +181,19 @@ a:focus-visible {
 
 /* ── Loading skeleton ─────────────────────────────── */
 .skeleton {
-  background-color: var(--card-bg);
-  border: var(--card-border);
+  background-color: var(--color-surface);
+}
+.hc .skeleton {
+  border: 2px solid var(--color-edge);
 }
 
 /* ── Outlook scrollbar ────────────────────────────── */
 #ol-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--menu-border) transparent;
+  scrollbar-color: var(--color-edge) transparent;
 }
 #ol-scroll::-webkit-scrollbar { height: 8px; }
-#ol-scroll::-webkit-scrollbar-thumb { background: var(--menu-border); border-radius: 4px; }
+#ol-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
 #ol-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ── Pointer-dependent UI ─────────────────────────── */
@@ -196,9 +231,6 @@ a:focus-visible {
 /* Keyboard-highlighted suggestion — same look as hover */
 .kb-active { background-color: var(--hover-item); }
 
-/* ── Card background ──────────────────────────────── */
-.bg-card { background-color: var(--card-bg); }
-
 /* ── Theme button text ────────────────────────────── */
-.subtle-text { color: var(--text-subtle); transition: color 0.15s; }
-.subtle-text:hover { color: var(--text-subtle-hover); }
+.subtle-text { color: var(--color-muted); transition: color 0.15s; }
+.subtle-text:hover { color: var(--color-body); }
