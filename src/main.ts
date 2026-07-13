@@ -74,6 +74,7 @@ function modelMenuHTML(openUp = false): string {
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let suggestions: GeoResult[] = [];
+let chartResizeObserver: ResizeObserver | null = null;
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -712,11 +713,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         </div>
         </div>
 
-        ${buildChart(
-          primaryHourly, secondaryHourly, unit,
-          t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`),
-          `<button id="outlook-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">${t('outlook.button')}</button>`,
-        )}
+        <div id="chart-slot"></div>
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
@@ -755,9 +752,6 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       </div>
     </div>
   `;
-
-  const chartContainer = root.querySelector<HTMLElement>('#chart-container');
-  if (chartContainer) setupChartTooltip(chartContainer, primaryHourly, secondaryHourly, unit, primaryLabelShort, secondaryLabelShort);
 
   document.querySelectorAll<HTMLButtonElement>('[data-comp]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -800,7 +794,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     if (cc) setupOutlookTooltip(cc, outlookData.hourly, unit, outlookData.dates, getLocale());
   };
 
-  document.getElementById('outlook-btn')!.addEventListener('click', async () => {
+  const onOutlookClick = async (): Promise<void> => {
     outlookModal.classList.remove('hidden');
     if (outlookData) {
       renderOutlookChart();
@@ -817,7 +811,36 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     } catch {
       outlookContent.innerHTML = `<p class="text-center text-muted p-8">${t('error.failed')}</p>`;
     }
+  };
+
+  // The chart renders 1:1 at the slot's measured width and re-renders on
+  // resize, so it never scales up on wide screens
+  const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
+  const mountChart = (): void => {
+    const innerWidth = chartSlot.clientWidth - (highContrast ? 44 : 40); // card p-5 padding (+ hc border)
+    chartSlot.innerHTML = buildChart(
+      primaryHourly, secondaryHourly, unit,
+      t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`),
+      `<button id="outlook-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">${t('outlook.button')}</button>`,
+      innerWidth,
+    );
+    setupChartTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, primaryHourly, secondaryHourly, unit, primaryLabelShort, secondaryLabelShort);
+    document.getElementById('outlook-btn')!.addEventListener('click', () => void onOutlookClick());
+  };
+  mountChart();
+
+  chartResizeObserver?.disconnect();
+  let chartWidth = chartSlot.clientWidth;
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  chartResizeObserver = new ResizeObserver(() => {
+    if (Math.abs(chartSlot.clientWidth - chartWidth) < 8) return;
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      chartWidth = chartSlot.clientWidth;
+      mountChart();
+    }, 150);
   });
+  chartResizeObserver.observe(chartSlot);
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────

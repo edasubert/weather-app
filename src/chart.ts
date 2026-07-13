@@ -2,14 +2,19 @@ import type { HourlyData } from './types';
 import { t, fmtNum } from './i18n';
 import { ICONS } from './icons';
 
-const W = 600;
-const H = 200;
 const PL = 52;
 const PR = 52;
 const PT = 12;
 const PB = 28;
-const CW = W - PL - PR;
-const CH = H - PT - PB;
+
+// The main chart renders 1:1 (viewBox width = CSS pixels, like the outlook
+// chart) so label and stroke sizes stay constant across container widths.
+// Height grows gently with width instead of proportionally.
+function chartDims(width: number): { w: number; h: number; cw: number; ch: number } {
+  const w = Math.max(280, Math.round(width));
+  const h = Math.round(Math.min(240, Math.max(150, w * 0.32)));
+  return { w, h, cw: w - PL - PR, ch: h - PT - PB };
+}
 
 const OL_DAYS  = 14;
 const OL_DAY_W = 150;
@@ -28,37 +33,12 @@ const SNOW_COLOR     = 'var(--snow-color)'; // black (light) / white (dark)
 const PRESSURE_COLOR = '#a78bfa';         // violet
 const CLOUD_COLOR    = 'var(--chart-label)'; // adapts to theme
 
-function xPos(hour: number): number {
-  return PL + (hour / 23) * CW;
+function xPos(hour: number, cw: number): number {
+  return PL + (hour / 23) * cw;
 }
 
-function yPos(val: number, min: number, max: number): number {
-  return PT + CH - ((val - min) / (max - min || 1)) * CH;
-}
-
-function cloudPath(clouds: number[]): string {
-  const n = clouds.length;
-  const pts = clouds.map((c, i) => `L${xPos(i).toFixed(1)},${(PT + (c / 100) * CH).toFixed(1)}`).join('');
-  return `M${xPos(0).toFixed(1)},${PT}${pts}L${xPos(n - 1).toFixed(1)},${PT}Z`;
-}
-
-function linePath(vals: number[], min: number, max: number): string {
-  return vals
-    .map((v, i) => `${i === 0 ? 'M' : 'L'}${xPos(i).toFixed(1)},${yPos(v, min, max).toFixed(1)}`)
-    .join(' ');
-}
-
-function precipBars(precips: number[], maxPrecip: number, maxBarH: number, color: string, xOffset: number, outlined: boolean, bw: number): string {
-  return precips.map((p, i) => {
-    const h = (p / maxPrecip) * maxBarH;
-    if (h < 0.5) return '';
-    const bx = xPos(i) + xOffset - bw / 2;
-    const by = PT + CH - h;
-    const attrs = outlined
-      ? `fill="none" stroke-width="1.5" style="stroke:${color}"`
-      : `style="fill:${color}"`;
-    return `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" ${attrs} rx="1"/>`;
-  }).join('');
+function yPos(val: number, min: number, max: number, ch: number): number {
+  return PT + ch - ((val - min) / (max - min || 1)) * ch;
 }
 
 function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F') {
@@ -87,7 +67,31 @@ function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F')
   };
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', label1 = 'Today', label2 = 'Yesterday', actionHTML = ''): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', label1 = 'Today', label2 = 'Yesterday', actionHTML = '', width = 600): string {
+  const { w, h, cw, ch } = chartDims(width);
+  const xP = (hour: number) => xPos(hour, cw);
+  const yP = (val: number, min: number, max: number) => yPos(val, min, max, ch);
+
+  const linePath = (vals: number[], min: number, max: number) =>
+    vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xP(i).toFixed(1)},${yP(v, min, max).toFixed(1)}`).join(' ');
+
+  const cloudPath = (clouds: number[]) => {
+    const pts = clouds.map((c, i) => `L${xP(i).toFixed(1)},${(PT + (c / 100) * ch).toFixed(1)}`).join('');
+    return `M${xP(0).toFixed(1)},${PT}${pts}L${xP(clouds.length - 1).toFixed(1)},${PT}Z`;
+  };
+
+  const precipBars = (precips: number[], maxPrecip: number, color: string, xOffset: number, outlined: boolean, bw: number) =>
+    precips.map((p, i) => {
+      const barH = (p / maxPrecip) * maxBarH;
+      if (barH < 0.5) return '';
+      const bx = xP(i) + xOffset - bw / 2;
+      const by = PT + ch - barH;
+      const attrs = outlined
+        ? `fill="none" stroke-width="1.5" style="stroke:${color}"`
+        : `style="fill:${color}"`;
+      return `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${barH.toFixed(1)}" ${attrs} rx="1"/>`;
+    }).join('');
+
   const { cvt, minT, maxT, maxRain, maxSnow, minPressure, maxPressure } = computeRange(today, yesterday, unit);
   const tT = today.temp.map(cvt);
   const tY = yesterday.temp.map(cvt);
@@ -99,21 +103,21 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   const hasAnyRain = today.rain.some(v => v > 0.05) || yesterday.rain.some(v => v > 0.05);
   const hasAnySnow = today.snow.some(v => v > 0.05) || yesterday.snow.some(v => v > 0.05);
   const showBoth   = hasAnyRain && hasAnySnow;
-  const slot = CW / 24;
+  const slot = cw / 24;
   const rainBW     = showBoth ? slot * 0.18 : slot * 0.32;
   const rainOffset = showBoth ? slot * 0.10 : slot * 0.18;
   const snowBW     = showBoth ? slot * 0.18 : slot * 0.32;
   const snowOffset = showBoth ? slot * 0.30 : slot * 0.18;
 
-  const maxBarH = CH * 0.25;
+  const maxBarH = ch * 0.25;
 
   const tempRange = maxT - minT;
   const step = tempRange > 20 ? 10 : tempRange > 10 ? 5 : 2;
   const grid = [];
   for (let v = Math.ceil(minT / step) * step; v < maxT; v += step) {
-    const y = yPos(v, minT, maxT);
+    const y = yP(v, minT, maxT);
     grid.push(`
-      <line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>
+      <line x1="${PL}" y1="${y.toFixed(1)}" x2="${w - PR}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>
       <text x="${(PL - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" class="lbl">${Math.round(v)}°${unit}</text>
     `);
   }
@@ -122,12 +126,12 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   const pStep = pressureRange > 20 ? 10 : pressureRange > 10 ? 5 : 2;
   const pressureLabels = [];
   for (let p = Math.ceil(minPressure / pStep) * pStep; p < maxPressure; p += pStep) {
-    const y = yPos(p, minPressure, maxPressure);
-    pressureLabels.push(`<text x="${(W - PR + 6).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)}</text>`);
+    const y = yP(p, minPressure, maxPressure);
+    pressureLabels.push(`<text x="${(w - PR + 6).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)}</text>`);
   }
 
-  const xLabels = [0, 6, 12, 18].map(h =>
-    `<text x="${xPos(h).toFixed(1)}" y="${H - 4}" text-anchor="middle" class="lbl">${String(h).padStart(2, '0')}:00</text>`
+  const xLabels = [0, 6, 12, 18].map(hr =>
+    `<text x="${xP(hr).toFixed(1)}" y="${h - 4}" text-anchor="middle" class="lbl">${String(hr).padStart(2, '0')}:00</text>`
   ).join('');
 
   const dash = '4 4';
@@ -135,20 +139,20 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
   return `
     <div id="chart-container" class="rounded-2xl p-5 relative bg-surface hc:border-2 border-edge">
       ${actionHTML ? `<div class="flex justify-end mb-2">${actionHTML}</div>` : ''}
-      <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
+      <svg viewBox="0 0 ${w} ${h}" class="w-full" style="overflow:visible;height:auto">
         <defs>
           <pattern id="cloud-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="3" height="6" fill="var(--chart-label)" fill-opacity="0.40"/>
           </pattern>
         </defs>
-        <style>.lbl{font-size:var(--chart-lbl-size);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
+        <style>.lbl{font-size:calc(var(--chart-lbl-size)*0.75);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>
         ${grid.join('')}
         <path d="${cloudPath(yesterday.cloud)}" fill="url(#cloud-hatch)"/>
         <path d="${cloudPath(today.cloud)}"     fill="${CLOUD_COLOR}" fill-opacity="0.20"/>
-        ${hasAnyRain ? precipBars(yesterday.rain, maxRain, maxBarH, PRECIP_COLOR, -rainOffset, true,  rainBW) : ''}
-        ${hasAnyRain ? precipBars(today.rain,     maxRain, maxBarH, PRECIP_COLOR,  rainOffset, false, rainBW) : ''}
-        ${hasAnySnow ? precipBars(yesterday.snow, maxSnow, maxBarH, SNOW_COLOR,   -snowOffset, true,  snowBW) : ''}
-        ${hasAnySnow ? precipBars(today.snow,     maxSnow, maxBarH, SNOW_COLOR,    snowOffset, false, snowBW) : ''}
+        ${hasAnyRain ? precipBars(yesterday.rain, maxRain, PRECIP_COLOR, -rainOffset, true,  rainBW) : ''}
+        ${hasAnyRain ? precipBars(today.rain,     maxRain, PRECIP_COLOR,  rainOffset, false, rainBW) : ''}
+        ${hasAnySnow ? precipBars(yesterday.snow, maxSnow, SNOW_COLOR,   -snowOffset, true,  snowBW) : ''}
+        ${hasAnySnow ? precipBars(today.snow,     maxSnow, SNOW_COLOR,    snowOffset, false, snowBW) : ''}
         <path d="${linePath(tY, minT, maxT)}"               fill="none" stroke="${TEMP_COLOR}"     stroke-width="1.5" stroke-dasharray="${dash}" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(aY, minT, maxT)}"               fill="none" stroke="${FEELS_COLOR}"    stroke-width="1.5" stroke-dasharray="${dash}" stroke-linejoin="round" stroke-linecap="round"/>
         <path d="${linePath(pY, minPressure, maxPressure)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-dasharray="${dash}" stroke-linejoin="round" stroke-linecap="round"/>
@@ -158,7 +162,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
         ${pressureLabels.join('')}
         ${xLabels}
         <g id="chart-hover" style="display:none">
-          <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
+          <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + ch}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
           <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>
           <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>
           <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>
@@ -166,7 +170,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
           <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>
           <circle class="hover-dot" r="3"   cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>
         </g>
-        <rect id="chart-overlay" x="${PL}" y="${PT}" width="${CW}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
+        <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
       </svg>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-3">
@@ -209,12 +213,20 @@ export function setupChartTooltip(
   label1 = 'Today',
   label2 = 'Yest.',
 ): void {
-  const svg        = container.querySelector('svg')!;
+  const svg        = container.querySelector<SVGSVGElement>('svg')!;
   const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
   const hoverGroup = container.querySelector<SVGGElement>('#chart-hover')!;
   const hoverLine  = container.querySelector<SVGLineElement>('#hover-line')!;
   const dots       = Array.from(container.querySelectorAll<SVGCircleElement>('.hover-dot'));
   const tooltip    = container.querySelector<HTMLElement>('#chart-tooltip')!;
+
+  // Recover the dimensions this chart was built with from its viewBox
+  const vb = svg.viewBox.baseVal;
+  const w  = vb.width;
+  const cw = w - PL - PR;
+  const ch = vb.height - PT - PB;
+  const xP = (hour: number) => xPos(hour, cw);
+  const yP = (val: number, min: number, max: number) => yPos(val, min, max, ch);
 
   const { cvt, minT, maxT, minPressure, maxPressure } = computeRange(today, yesterday, unit);
   const hasAnyRain = today.rain.some(v => v > 0.05) || yesterday.rain.some(v => v > 0.05);
@@ -238,16 +250,16 @@ export function setupChartTooltip(
 
   const showAt = (clientX: number): void => {
     const svgRect = svg.getBoundingClientRect();
-    const svgX = (clientX - svgRect.left) / svgRect.width * W;
-    const hour = Math.max(0, Math.min(23, Math.round((svgX - PL) / CW * 23)));
-    const x = xPos(hour);
+    const svgX = (clientX - svgRect.left) / svgRect.width * w;
+    const hour = Math.max(0, Math.min(23, Math.round((svgX - PL) / cw * 23)));
+    const x = xP(hour);
 
     hoverLine.setAttribute('x1', x.toFixed(1));
     hoverLine.setAttribute('x2', x.toFixed(1));
 
     dotDefs.forEach(({ vals, color, min, max }, i) => {
       dots[i].setAttribute('cx', x.toFixed(1));
-      dots[i].setAttribute('cy', yPos(vals[hour], min, max).toFixed(1));
+      dots[i].setAttribute('cy', yP(vals[hour], min, max).toFixed(1));
       dots[i].setAttribute('fill', color);
     });
 
@@ -290,7 +302,7 @@ export function setupChartTooltip(
     tooltip.style.display = 'block';
 
     const containerRect = container.getBoundingClientRect();
-    const scale = svgRect.width / W;
+    const scale = svgRect.width / w;
     const tipX = (svgRect.left - containerRect.left) + x * scale;
     const tipY = (svgRect.top - containerRect.top) + 8;
     const tipW = tooltip.offsetWidth;
