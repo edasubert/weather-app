@@ -87,7 +87,7 @@ function computeRange(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F')
   };
 }
 
-export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', label1 = 'Today', label2 = 'Yesterday'): string {
+export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' | 'F', label1 = 'Today', label2 = 'Yesterday', actionHTML = ''): string {
   const { cvt, minT, maxT, maxRain, maxSnow, minPressure, maxPressure } = computeRange(today, yesterday, unit);
   const tT = today.temp.map(cvt);
   const tY = yesterday.temp.map(cvt);
@@ -134,6 +134,7 @@ export function buildChart(today: HourlyData, yesterday: HourlyData, unit: 'C' |
 
   return `
     <div id="chart-container" class="rounded-2xl p-5 relative bg-surface hc:border-2 border-edge">
+      ${actionHTML ? `<div class="flex justify-end mb-2">${actionHTML}</div>` : ''}
       <svg viewBox="0 0 ${W} ${H}" class="w-full" style="overflow:visible">
         <defs>
           <pattern id="cloud-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -447,7 +448,7 @@ export function buildOutlookChart(hourly: HourlyData, unit: 'C' | 'F', dates: st
   const range = computeOutlookRange(hourly, unit);
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
-  const zBtn = 'w-7 h-7 rounded-lg border flex items-center justify-center text-sm font-bold hover-btn border-edge text-muted';
+  const zBtn = 'w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 rounded-lg border flex items-center justify-center text-sm font-bold hover-btn border-edge text-muted';
 
   // Static y-axis labels — these never change with zoom, only with data range
   const { minT, maxT, minP, maxP } = range;

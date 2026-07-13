@@ -42,7 +42,7 @@ function langMenuHTML(openUp = false): string {
   const items = LANGS.map((lang, i) => {
     const sep = i > 0 ? ' border-t border-edge' : '';
     const active = getLang() === lang ? ' font-semibold' : '';
-    return `<button class="w-full text-left px-3 py-2 text-sm hover-item text-body${sep}${active}" data-lang="${lang}">${LANG_NAMES[lang]}</button>`;
+    return `<button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body${sep}${active}" data-lang="${lang}">${LANG_NAMES[lang]}</button>`;
   }).join('');
   return `<div id="lang-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:130px">${items}</div>`;
 }
@@ -65,7 +65,7 @@ function modelMenuHTML(openUp = false): string {
     html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-body opacity-50${groupBorder}">${groupLabels[group]}</div>`;
     for (const m of groupModels) {
       const active = model === m.id ? ' font-semibold' : '';
-      html += `<button class="w-full text-left px-3 py-2 text-sm hover-item text-body border-t border-edge${active}" data-model="${m.id}"><div>${m.name}</div><div class="text-xs opacity-50">${m.provider} · ${m.coverage}</div></button>`;
+      html += `<button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body border-t border-edge${active}" data-model="${m.id}"><div>${m.name}</div><div class="text-xs opacity-50">${m.provider} · ${m.coverage}</div></button>`;
     }
     first = false;
   }
@@ -581,14 +581,16 @@ function renderLoading(msg = t('error.loading')): void {
   transition(() => {
     root.innerHTML = `
       <div class="min-h-screen p-4 sm:p-8">
-        <div class="max-w-lg mx-auto">
+        <div class="max-w-lg wide:max-w-4xl mx-auto">
           <p class="text-center text-sm text-muted mb-4">${msg}</p>
           <div class="animate-pulse">
             <div class="h-10 rounded-lg mb-3 skeleton"></div>
-            <div class="rounded-2xl mb-4 skeleton" style="height:230px"></div>
-            <div class="grid grid-cols-2 hc:grid-cols-1 gap-3 mb-3">
-              <div class="rounded-2xl skeleton" style="height:360px"></div>
-              <div class="rounded-2xl skeleton" style="height:360px"></div>
+            <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
+              <div class="rounded-2xl skeleton" style="height:230px"></div>
+              <div class="grid grid-cols-1 xs:grid-cols-2 hc:grid-cols-1 gap-3">
+                <div class="rounded-2xl skeleton" style="height:360px"></div>
+                <div class="rounded-2xl skeleton" style="height:360px"></div>
+              </div>
             </div>
             <div class="rounded-2xl skeleton" style="height:300px"></div>
           </div>
@@ -637,37 +639,37 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
-      <div class="max-w-lg mx-auto">
+      <div class="max-w-lg wide:max-w-4xl mx-auto">
         <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
           <div class="flex items-center gap-2 min-w-0 sm:flex-1">
             <div class="text-sm text-muted min-w-0 truncate flex-1">📍 ${locationLabel}</div>
-            <button class="search-btn sm:hidden text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn shrink-0">
+            <button class="search-btn sm:hidden text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn shrink-0">
               ${t('weather.changeLocation')}
             </button>
           </div>
           <div class="flex gap-2 shrink-0">
             <div class="relative">
-              <button id="model-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
+              <button id="model-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 ${findModel(model).shortLabel} <span class="text-xs opacity-50">▾</span>
               </button>
               ${modelMenuHTML()}
             </div>
             <div class="relative">
-              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
+              <button id="lang-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 ${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span>
               </button>
               ${langMenuHTML()}
             </div>
             <div class="relative">
-              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 °${unit} <span class="text-xs opacity-50">▾</span>
               </button>
               <div id="unit-menu" class="absolute left-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:72px">
-                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
-                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body border-t border-edge${unit === 'F' ? ' font-semibold' : ''}" data-unit="F">°F</button>
+                <button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
+                <button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body border-t border-edge${unit === 'F' ? ' font-semibold' : ''}" data-unit="F">°F</button>
               </div>
             </div>
-            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn">
+            <button class="search-btn hidden sm:block text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">
               ${t('weather.changeLocation')}
             </button>
           </div>
@@ -684,8 +686,9 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
           }).join('')}
         </div>
 
-        <div class="rounded-2xl p-4 mb-4 bg-panel hc:border-2 border-edge">
-          <h1 class="text-xl font-semibold text-heading mb-3">${compHeader}</h1>
+        <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
+        <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
+          <h1 class="sr-only">${compHeader}</h1>
           <div class="flex flex-col gap-2">
             ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
             ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
@@ -703,24 +706,24 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 hc:grid-cols-1 gap-3 mb-3">
+        <div class="grid grid-cols-1 xs:grid-cols-2 hc:grid-cols-1 gap-3">
           ${weatherCardHTML(secondary, secondaryLabel)}
           ${weatherCardHTML(primary, primaryLabel)}
         </div>
-
-        ${buildChart(primaryHourly, secondaryHourly, unit, t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`))}
-
-        <div class="flex justify-center mt-3">
-          <button id="outlook-btn" class="text-sm px-4 py-2 rounded-xl border border-edge text-muted hover-btn">
-            ${t('outlook.button')}
-          </button>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-          <div class="text-sm text-muted">
-            ${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a>
+        ${buildChart(
+          primaryHourly, secondaryHourly, unit,
+          t(`chart.${isTomorrow ? 'tomorrow' : 'today'}`), t(`chart.${isTomorrow ? 'today' : 'yesterday'}`),
+          `<button id="outlook-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">${t('outlook.button')}</button>`,
+        )}
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+            <span>${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a></span>
+            <a class="subtle-text" href="https://github.com/edasubert/weather-app/issues" target="_blank" rel="noopener noreferrer">${t('footer.reportIssue')} ↗</a>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 shrink-0">
             <button id="theme-btn" class="flex items-center gap-1.5 text-xs subtle-text">
               <span>${THEME_ICONS[theme]}</span>
               <span>${themeLabel()}</span>
@@ -730,13 +733,6 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
               <span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span>
             </button>
           </div>
-        </div>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-          <div class="flex items-center gap-4">
-            <a class="text-sm subtle-text" href="https://github.com/edasubert/weather-app/issues" target="_blank" rel="noopener noreferrer">
-            ${t('footer.reportIssue')} ↗
-          </a>
-        </div>
         </div>
       </div>
     </div>

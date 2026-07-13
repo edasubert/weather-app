@@ -4,12 +4,24 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant hc (&:where(.hc, .hc *));
 
+/* Desktop layout applies only outside high-contrast mode — hc's 130% text
+   needs the full column width */
+@custom-variant wide {
+  @media (width >= 64rem) {
+    &:not(:where(.hc, .hc *)) {
+      @slot;
+    }
+  }
+}
+
 /* ── Semantic color tokens ────────────────────────────
    Values here are the light theme; the .dark / .hc / .hc.dark
    blocks below override the same variables, so every utility
    (text-heading, bg-surface, border-edge, …) is theme-aware
    without per-element variant prefixes. */
 @theme {
+  --breakpoint-xs: 23rem;          /* below 368px the day cards stack */
+
   --color-heading: #1e293b;        /* strongest text */
   --color-body: #334155;           /* regular text */
   --color-detail: #475569;         /* secondary values */
