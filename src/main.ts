@@ -793,7 +793,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
   let currentDayW = 0;
   const mountChart = (): void => {
-    const innerWidth = chartSlot.clientWidth - (highContrast ? 44 : 40); // card p-5 padding (+ hc border)
+    const innerWidth = chartSlot.clientWidth - (highContrast ? 4 : 0); // chart bleeds to the card edges (hc border excepted)
     // keep the scroll position (in days) across resize re-renders
     const prevScroll = chartSlot.querySelector<HTMLElement>('#tl-scroll');
     const scrollDays = prevScroll && currentDayW ? prevScroll.scrollLeft / currentDayW : (isTomorrow ? 1 : 0);

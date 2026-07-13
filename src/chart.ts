@@ -3,8 +3,11 @@ import { t, fmtNum } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 
 const PL = 52;
-const PR = 52;
-const PT = 12;
+const PR = 60;
+// No top padding: night shading and cloud fill run to the card edge. The
+// temperature/pressure ranges carry their own headroom (computeRange pads
+// 15–20%), so curves never touch the top.
+const PT = 0;
 const TL_H  = 230;
 const TL_PB = 44; // two-row x axis: day labels + hour ticks
 const TL_CH = TL_H - PT - TL_PB;
@@ -126,6 +129,7 @@ export function buildTimeline(
   const leftLabels: string[] = [];
   for (let v = Math.ceil(minT / step) * step; v < maxT; v += step) {
     const y = yP(v, minT, maxT);
+    if (y < 10) continue; // label would clip at the card's top edge
     grid.push(`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${(w - PR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>`);
     leftLabels.push(`<text x="${(PL - 5).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" class="lbl">${Math.round(v)}°${unit}</text>`);
   }
@@ -135,6 +139,7 @@ export function buildTimeline(
   const rightLabels: string[] = [];
   for (let p = Math.ceil(minPressure / pStep) * pStep; p < maxPressure; p += pStep) {
     const y = yP(p, minPressure, maxPressure);
+    if (y < 10) continue; // label would clip at the card's top edge
     rightLabels.push(`<text x="6" y="${(y + 3.5).toFixed(1)}" text-anchor="start" class="lbl">${Math.round(p)} hPa</text>`);
   }
 
@@ -166,7 +171,7 @@ export function buildTimeline(
   const cloudFill = `<path d="M${xP(0).toFixed(1)},${PT}${cloudPts}L${xP(n - 1).toFixed(1)},${PT}Z" fill="${CLOUD_COLOR}" fill-opacity="0.18"/>`;
 
   return `
-    <div id="chart-container" class="rounded-2xl p-5 relative bg-surface hc:border-2 border-edge">
+    <div id="chart-container" class="rounded-2xl relative bg-surface hc:border-2 border-edge overflow-hidden">
       <div class="relative">
         <div id="tl-scroll" style="overflow-x:auto">
           <svg id="tl-svg" viewBox="0 0 ${w} ${TL_H}" style="display:block;width:${w}px;height:${TL_H}px">
@@ -192,15 +197,15 @@ export function buildTimeline(
             <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${TL_CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
         </div>
-        <div style="position:absolute;top:0;left:0;width:${PL}px;height:${TL_H}px;pointer-events:none">
+        <div style="position:absolute;top:0;left:0;width:${PL}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">
           <svg viewBox="0 0 ${PL} ${TL_H}" width="${PL}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${leftLabels.join('')}</svg>
         </div>
-        <div style="position:absolute;top:0;right:0;width:${PR}px;height:${TL_H}px;pointer-events:none">
+        <div style="position:absolute;top:0;right:0;width:${PR}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to left, var(--color-surface) 70%, transparent)">
           <svg viewBox="0 0 ${PR} ${TL_H}" width="${PR}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${rightLabels.join('')}</svg>
         </div>
       </div>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-3">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted px-5 pt-2 pb-4">
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR}"></span><span title="${t('tooltip.temperature')}">${ICONS.temp}</span>
         </span>
