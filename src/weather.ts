@@ -80,13 +80,19 @@ export async function fetchWeather(
   const avgPressure = (h: HourlyData) => h.pressure.reduce((a, b) => a + b, 0) / 24;
 
   const daily = data.daily as Record<string, unknown[]>;
-  const days: TimelineDayInfo[] = (daily.time as string[]).map((date, i) => ({
+  const allDays: TimelineDayInfo[] = (daily.time as string[]).map((date, i) => ({
     date,
     sunrise: (daily.sunrise[i] as string | null) ?? '',
     sunset:  (daily.sunset[i]  as string | null) ?? '',
   }));
 
   const hourlyRaw = data.hourly as Record<string, (number | null)[]>;
+
+  // Not every model covers the full 14-day forecast; Open-Meteo still returns
+  // the requested range but fills uncovered days with null. Trim the timeline to
+  // the whole days the model actually provides so it doesn't flatline at 0.
+  const nDays = coveredDays(hourlyRaw, allDays.length);
+  const days = allDays.slice(0, nDays);
 
   return {
     yesterday: parseDay(data, 0, avgPressure(yHourly)),
@@ -96,7 +102,7 @@ export async function fetchWeather(
     todayHourly:     tHourly,
     tomorrowHourly:  tmHourly,
     days,
-    hourlyAll: toHourly(hourlyRaw, 0, days.length * 24),
+    hourlyAll: toHourly(hourlyRaw, 0, nDays * 24),
     utcOffsetSeconds: (data.utc_offset_seconds as number | undefined) ?? 0,
   };
 }
@@ -123,6 +129,16 @@ function parseDay(data: Record<string, unknown>, i: number, pressureMean: number
     sunset: (d.sunset[i] as string | null) ?? '',
     daylightDuration: (d.daylight_duration[i] as number | null) ?? 0,
   };
+}
+
+// How many whole days the model actually covers, capped at maxDays. Temperature
+// is the core series every model returns; the uncovered tail comes back as null,
+// so leading non-null hours (rounded down to full days) is the real extent.
+function coveredDays(h: Record<string, (number | null)[]>, maxDays: number): number {
+  const temp = h['temperature_2m'] ?? [];
+  let hours = 0;
+  while (hours < temp.length && temp[hours] != null) hours++;
+  return Math.min(maxDays, Math.floor(hours / 24));
 }
 
 function toHourly(h: Record<string, (number | null)[]>, start: number, len: number): HourlyData {
