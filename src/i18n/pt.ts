@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'Combinado (global + regional)',
     groupGlobal: 'Global',
     groupRegional: 'Regional (cobertura limitada)',
+    searchPlaceholder: 'Pesquisar modelos…',
+    hereOnly: 'Disponível aqui',
+    availableHere: 'Disponível neste local',
+    noMatches: 'Nenhum modelo corresponde',
   },
   metric: {
     temp: {

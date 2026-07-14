@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:models": "node scripts/check-models.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

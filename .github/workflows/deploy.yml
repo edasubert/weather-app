@@ -27,6 +27,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Verify listed weather models still return data
+        run: npm run check:models
       - run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/

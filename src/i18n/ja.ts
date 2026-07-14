@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'シームレス（グローバル＋地域統合）',
     groupGlobal: 'グローバル',
     groupRegional: '地域（カバレッジ限定）',
+    searchPlaceholder: 'モデルを検索…',
+    hereOnly: 'ここで利用可能',
+    availableHere: 'この地点で利用可能',
+    noMatches: '一致するモデルがありません',
   },
   metric: {
     temp: {

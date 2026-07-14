@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'Kombinovaný (globální + regionální)',
     groupGlobal: 'Globální',
     groupRegional: 'Regionální (omezené pokrytí)',
+    searchPlaceholder: 'Hledat modely…',
+    hereOnly: 'Dostupné zde',
+    availableHere: 'Dostupné v této poloze',
+    noMatches: 'Žádné odpovídající modely',
   },
   metric: {
     temp: {

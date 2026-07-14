@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'Nahtlos (global + regional kombiniert)',
     groupGlobal: 'Global',
     groupRegional: 'Regional (eingeschränkte Abdeckung)',
+    searchPlaceholder: 'Modelle suchen…',
+    hereOnly: 'Hier verfügbar',
+    availableHere: 'An diesem Ort verfügbar',
+    noMatches: 'Keine passenden Modelle',
   },
   metric: {
     temp: {

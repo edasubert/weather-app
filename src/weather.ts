@@ -61,6 +61,66 @@ async function fetchForecast(
   return await res.json().catch(() => { throw new WeatherNoDataError(); }) as Record<string, unknown>;
 }
 
+// Which of the given models are usable at these coordinates. A single request
+// with a comma-joined `models=` list returns a per-model `temperature_2m_<id>`
+// series and omits models that have no data here, so the set of returned series
+// with a non-null last hour (i.e. reaching tomorrow — matching the usability
+// gate in fetchWeather) is exactly the usable set.
+//
+// Open-Meteo has no endpoint to list its models, and it rejects the whole batch
+// with a 400 if any single id is one it no longer accepts (its catalog changes
+// over time). So on request failure we split the id list and retry each half,
+// isolating a bad id to a single-model probe that we simply drop — one dead id
+// can never hide the markers of the valid models around it. Never rejects.
+export async function fetchModelAvailability(
+  lat: number,
+  lon: number,
+  modelIds: string[],
+): Promise<Set<string>> {
+  if (!modelIds.length) return new Set();
+
+  const result = await probeModels(lat, lon, modelIds);
+  if (result) return result;                 // request succeeded (subset, maybe empty)
+  if (modelIds.length === 1) return new Set(); // lone id Open-Meteo rejects → drop it
+
+  const mid = modelIds.length >> 1;
+  const [a, b] = await Promise.all([
+    fetchModelAvailability(lat, lon, modelIds.slice(0, mid)),
+    fetchModelAvailability(lat, lon, modelIds.slice(mid)),
+  ]);
+  for (const id of b) a.add(id);
+  return a;
+}
+
+// One availability request. Returns the usable subset, or null if the request
+// itself failed (so the caller can split and retry to isolate a bad id).
+async function probeModels(lat: number, lon: number, ids: string[]): Promise<Set<string> | null> {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(lat));
+  url.searchParams.set('longitude', String(lon));
+  url.searchParams.set('hourly', 'temperature_2m');
+  url.searchParams.set('timezone', 'auto');
+  url.searchParams.set('past_days', '0');
+  url.searchParams.set('forecast_days', '2');
+  url.searchParams.set('models', ids.join(','));
+
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const data = await res.json() as { hourly?: Record<string, (number | null)[]> };
+    const hourly = data.hourly ?? {};
+    const available = new Set<string>();
+    for (const id of ids) {
+      // A single-model request comes back unsuffixed (`temperature_2m`).
+      const series = hourly['temperature_2m_' + id] ?? (ids.length === 1 ? hourly['temperature_2m'] : undefined);
+      if (series?.length && series[series.length - 1] != null) available.add(id);
+    }
+    return available;
+  } catch {
+    return null;
+  }
+}
+
 export interface TimelineDayInfo {
   date: string;
   sunrise: string;

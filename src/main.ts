@@ -1,5 +1,5 @@
 import './style.css';
-import { fetchWeather, WeatherNoDataError } from './weather';
+import { fetchWeather, fetchModelAvailability, WeatherNoDataError } from './weather';
 import type { TimelineDayInfo, UnusableReason } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
@@ -47,7 +47,7 @@ function langMenuHTML(openUp = false): string {
   return `<div id="lang-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:130px">${items}</div>`;
 }
 
-function modelMenuHTML(openUp = false): string {
+function modelMenuHTML(openUp = false, hasLocation = false): string {
   const pos = openUp ? 'bottom-full mb-1' : 'top-full mt-1';
   const groups = ['auto', 'seamless', 'global', 'regional'] as const;
   const groupLabels: Record<string, string> = {
@@ -56,20 +56,40 @@ function modelMenuHTML(openUp = false): string {
     global:   t('model.groupGlobal'),
     regional: t('model.groupRegional'),
   };
-  let html = '';
+  let list = '';
   let first = true;
   for (const group of groups) {
     const groupModels = WEATHER_MODELS.filter(m => m.group === group);
     if (!groupModels.length) continue;
     const groupBorder = first ? '' : ' border-t border-edge';
-    html += `<div class="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-body opacity-50${groupBorder}">${groupLabels[group]}</div>`;
+    list += `<div class="model-group px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-body opacity-50${groupBorder}" data-group="${group}">${groupLabels[group]}</div>`;
     for (const m of groupModels) {
       const active = model === m.id ? ' font-semibold' : '';
-      html += `<button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body border-t border-edge${active}" data-model="${m.id}"><div>${m.name}</div><div class="text-xs opacity-50">${m.provider} · ${m.coverage}</div></button>`;
+      const search = `${m.name} ${m.provider} ${m.coverage} ${m.shortLabel}`.toLowerCase().replace(/"/g, '');
+      list += `<button class="model-item w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body border-t border-edge${active}" data-model="${m.id}" data-group="${group}" data-search="${search}">
+        <div class="flex items-center gap-1.5">
+          <span class="avail-mark hidden text-sky-500 shrink-0" title="${t('model.availableHere')}">✓</span>
+          <span class="min-w-0 flex-1">${m.name}</span>
+        </div>
+        <div class="text-xs opacity-50">${m.provider} · ${m.coverage}</div>
+      </button>`;
     }
     first = false;
   }
-  return `<div id="model-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden overflow-y-auto bg-surface border border-edge" style="min-width:300px;max-height:360px">${html}</div>`;
+
+  const toggle = hasLocation
+    ? `<button id="model-here-only" type="button" aria-pressed="false" class="shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-edge text-muted hover-btn"><span aria-hidden="true">✓</span><span>${t('model.hereOnly')}</span></button>`
+    : '';
+  const searchBar = `<div class="sticky top-0 z-10 bg-surface border-b border-edge p-2 flex items-center gap-2">
+    <input id="model-search" type="text" autocomplete="off" placeholder="${t('model.searchPlaceholder')}" class="min-w-0 flex-1 px-2 py-1.5 rounded-lg border border-edge bg-surface text-body text-sm placeholder:text-placeholder focus:outline-hidden focus:ring-2 focus:ring-sky-400" />
+    ${toggle}
+  </div>`;
+  const noMatch = `<div id="model-nomatch" class="hidden px-3 py-6 text-sm text-muted text-center">${t('model.noMatches')}</div>`;
+
+  return `<div id="model-menu" class="absolute left-0 ${pos} rounded-xl shadow-lg z-20 hidden flex flex-col text-left bg-surface border border-edge" style="min-width:300px;max-height:400px">
+    ${searchBar}
+    <div id="model-list" class="overflow-y-auto">${list}${noMatch}</div>
+  </div>`;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -143,6 +163,127 @@ function setupDropdown(btnId: string, menuId: string, dataAttr: string, onSelect
   });
 }
 
+// ─── Model selector: search + per-location availability ───────────────────────
+const availabilityCache = new Map<string, Set<string>>();
+const availabilityInflight = new Map<string, Promise<Set<string>>>();
+const ALL_MODEL_IDS = WEATHER_MODELS.map(m => m.id);
+
+function availabilityKey(loc: GeoResult): string {
+  return `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
+}
+
+// Deliver the usable-model set for a location: synchronously from cache (no
+// marker flash) or once the single multi-model probe resolves. One request per
+// location, deduped across rapid re-opens.
+function ensureAvailability(loc: GeoResult, apply: (set: Set<string>) => void): void {
+  const key = availabilityKey(loc);
+  const cached = availabilityCache.get(key);
+  if (cached) { apply(cached); return; }
+  let inflight = availabilityInflight.get(key);
+  if (!inflight) {
+    inflight = fetchModelAvailability(loc.latitude, loc.longitude, ALL_MODEL_IDS).then(set => {
+      availabilityCache.set(key, set);
+      availabilityInflight.delete(key);
+      return set;
+    });
+    availabilityInflight.set(key, inflight);
+  }
+  void inflight.then(apply);
+}
+
+function filterModelMenu(): void {
+  const menu = document.getElementById('model-menu');
+  if (!menu) return;
+  const q = (menu.querySelector<HTMLInputElement>('#model-search')?.value ?? '').trim().toLowerCase();
+  const hereOnly = menu.querySelector('#model-here-only')?.getAttribute('aria-pressed') === 'true';
+  let anyVisible = false;
+  menu.querySelectorAll<HTMLElement>('.model-item').forEach(item => {
+    const matchesQ = !q || (item.dataset.search ?? '').includes(q);
+    const visible = matchesQ && (!hereOnly || item.dataset.avail === '1');
+    item.classList.toggle('hidden', !visible);
+    if (visible) anyVisible = true;
+  });
+  menu.querySelectorAll<HTMLElement>('.model-group').forEach(header => {
+    const items = menu.querySelectorAll<HTMLElement>(`.model-item[data-group="${header.dataset.group}"]`);
+    const hasVisible = Array.from(items).some(i => !i.classList.contains('hidden'));
+    header.classList.toggle('hidden', !hasVisible);
+  });
+  menu.querySelector('#model-nomatch')?.classList.toggle('hidden', anyVisible);
+}
+
+function applyModelAvailability(set: Set<string>): void {
+  const menu = document.getElementById('model-menu');
+  if (!menu) return;
+  if (!set.size) {
+    // Unknown (probe failed / no coords) — leave the list plain, drop the toggle.
+    menu.querySelector('#model-here-only')?.classList.add('hidden');
+    return;
+  }
+  menu.querySelectorAll<HTMLElement>('.model-item').forEach(item => {
+    const avail = set.has(item.dataset.model ?? '');
+    item.dataset.avail = avail ? '1' : '0';
+    item.querySelector('.avail-mark')?.classList.toggle('hidden', !avail);
+  });
+  filterModelMenu();
+}
+
+function setupModelDropdown(location: GeoResult | null): void {
+  const btn  = document.getElementById('model-btn');
+  const menu = document.getElementById('model-menu');
+  if (!btn || !menu) return;
+
+  const onSelect = (value: string): void => {
+    model = value;
+    if (currentView?.type === 'search') renderSearch();
+    else if (currentView?.type === 'weather') void loadWeather(currentView.location);
+    else if (location) void loadWeather(location);
+  };
+
+  let outside: ((e: MouseEvent) => void) | null = null;
+  const close = (): void => {
+    menu.classList.add('hidden');
+    if (outside) { document.removeEventListener('click', outside); outside = null; }
+  };
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasHidden = menu.classList.contains('hidden');
+    closeAllMenus();
+    if (!wasHidden) { close(); return; }
+    menu.classList.remove('hidden');
+    const search = menu.querySelector<HTMLInputElement>('#model-search');
+    outside = (ev: MouseEvent) => { if (!menu.contains(ev.target as Node)) close(); };
+    setTimeout(() => {
+      search?.focus();
+      document.addEventListener('click', outside!);
+    }, 0);
+    if (location) ensureAvailability(location, applyModelAvailability);
+  });
+
+  // Clicks inside the menu (search box, toggle) must not bubble out and close it
+  menu.addEventListener('click', (e) => e.stopPropagation());
+  menu.querySelector<HTMLInputElement>('#model-search')?.addEventListener('input', filterModelMenu);
+
+  const toggle = menu.querySelector<HTMLButtonElement>('#model-here-only');
+  toggle?.addEventListener('click', () => {
+    const on = toggle.getAttribute('aria-pressed') !== 'true';
+    toggle.setAttribute('aria-pressed', String(on));
+    toggle.classList.toggle('bg-sky-500', on);
+    toggle.classList.toggle('text-white', on);
+    toggle.classList.toggle('border-sky-500', on);
+    toggle.classList.toggle('text-muted', !on);
+    filterModelMenu();
+  });
+
+  menu.querySelectorAll<HTMLButtonElement>('[data-model]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      close();
+      onSelect(item.dataset.model!);
+    });
+  });
+}
+
 function rerenderCurrentView(): void {
   if (currentView?.type === 'search') renderSearch();
   else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
@@ -152,11 +293,7 @@ function attachDropdownHandlers(): void {
   setupDropdown('lang-btn', 'lang-menu', 'lang', (value) => {
     void setLang(value as Lang).then(rerenderCurrentView);
   });
-  setupDropdown('model-btn', 'model-menu', 'model', (value) => {
-    model = value;
-    if (currentView?.type === 'search') renderSearch();
-    else if (currentView?.type === 'weather') void loadWeather(currentView.location);
-  });
+  setupModelDropdown(currentView?.type === 'weather' ? currentView.location : null);
   setupDropdown('unit-btn', 'unit-menu', 'unit', (value) => {
     unit = value as 'C' | 'F';
     if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
@@ -670,7 +807,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
               <button id="model-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
                 ${findModel(model).shortLabel} <span class="text-xs opacity-50">▾</span>
               </button>
-              ${modelMenuHTML()}
+              ${modelMenuHTML(false, true)}
             </div>
             <div class="relative">
               <button id="lang-btn" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">
@@ -841,7 +978,7 @@ function doRenderNoDataError(location: GeoResult, reason: UnusableReason): void 
           <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border border-edge text-muted hover-btn flex items-center gap-1.5">
             ${currentModel.shortLabel} <span class="text-xs opacity-50">▾</span>
           </button>
-          ${modelMenuHTML(true)}
+          ${modelMenuHTML(true, true)}
         </div>
         <div>
           <button id="back-btn" class="px-5 py-2.5 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors text-sm">
@@ -852,10 +989,7 @@ function doRenderNoDataError(location: GeoResult, reason: UnusableReason): void 
     </div>
   `;
 
-  setupDropdown('model-btn', 'model-menu', 'model', (value) => {
-    model = value;
-    void loadWeather(location);
-  });
+  setupModelDropdown(location);
   document.getElementById('back-btn')!.addEventListener('click', renderSearch);
 }
 

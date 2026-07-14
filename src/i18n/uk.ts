@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'Комбінований (глобальний + регіональний)',
     groupGlobal: 'Глобальний',
     groupRegional: 'Регіональний (обмежене покриття)',
+    searchPlaceholder: 'Пошук моделей…',
+    hereOnly: 'Доступні тут',
+    availableHere: 'Доступно в цьому місці',
+    noMatches: 'Немає відповідних моделей',
   },
   metric: {
     temp: {

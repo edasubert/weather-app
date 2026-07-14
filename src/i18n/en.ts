@@ -111,6 +111,10 @@ export default {
     groupSeamless: 'Seamless (auto-blend global + regional)',
     groupGlobal: 'Global',
     groupRegional: 'Regional (limited coverage)',
+    searchPlaceholder: 'Search models…',
+    hereOnly: 'Available here',
+    availableHere: 'Available at this location',
+    noMatches: 'No models match',
   },
   metric: {
     temp: {
