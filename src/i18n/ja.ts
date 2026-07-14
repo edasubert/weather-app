@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> は{{location}}の明日をカバーするほど先まで予報しません。別のモデルを選択してください。',
     changeLocation: '場所を変更',
   },
+  settings: {
+    title: '表示設定',
+    cards: 'カード',
+    chart: 'グラフ',
+    done: '完了',
+    open: '表示設定',
+  },
   model: {
     label: 'モデル',
     groupAuto: '自動',

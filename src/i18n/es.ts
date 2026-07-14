@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> no pronostica con suficiente antelación para cubrir mañana en {{location}}. Por favor, selecciona otro modelo.',
     changeLocation: 'Cambiar ubicación',
   },
+  settings: {
+    title: 'Ajustes de visualización',
+    cards: 'Tarjetas',
+    chart: 'Gráfico',
+    done: 'Listo',
+    open: 'Ajustes de visualización',
+  },
   model: {
     label: 'Modelo',
     groupAuto: 'Automático',

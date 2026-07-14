@@ -4,7 +4,7 @@ import type { TimelineDayInfo, UnusableReason } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildTimeline, setupTimelineTooltip, timelineDayWidth } from './chart';
+import { buildTimeline, setupTimelineTooltip, timelineDayWidth, type ChartVisibility } from './chart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -12,6 +12,32 @@ import type { DailyWeather, GeoResult, HourlyData } from './types';
 const root = document.getElementById('app')!;
 let unit: 'C' | 'F' = 'C';
 let model = DEFAULT_MODEL;
+
+// Which parameters the cards and chart display. Order is the URL bitmask bit
+// order — APPEND only, never reorder, or shared `hide` URLs would change meaning.
+// `precip` covers all precipitation kinds (rain, showers, snow), matching the chart.
+const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight'] as const;
+const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud'] as const;
+type CardParam  = typeof CARD_PARAMS[number];
+type ChartParam = typeof CHART_PARAMS[number];
+// Default = everything shown.
+const cardVis  = new Set<string>(CARD_PARAMS);
+const chartVis = new Set<string>(CHART_PARAMS);
+const cardOn  = (id: CardParam)  => cardVis.has(id);
+const chartOn = (id: ChartParam) => chartVis.has(id);
+const chartVisibility = (): ChartVisibility => ({
+  temp:         chartOn('temp'),
+  apparentTemp: chartOn('apparentTemp'),
+  precip:       chartOn('precip'),
+  pressure:     chartOn('pressure'),
+  cloud:        chartOn('cloud'),
+});
+// Icon + label per settings param — reuses existing metric/tooltip i18n keys.
+const PARAM_ICON: Record<string, string> = {
+  temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
+  wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud,
+};
+const paramLabel = (id: string): string => id === 'cloud' ? t('tooltip.cloudCover') : t(`metric.${id}.title`);
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -105,6 +131,7 @@ type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
   | { type: 'weather'; location: GeoResult; weather: WeatherData }
+  | { type: 'settings'; location: GeoResult; weather: WeatherData }
   | null;
 
 let theme: Theme = 'auto';
@@ -472,8 +499,12 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
   };
 
   // temperature with feels-like in parentheses
-  const temp2 = (v: number, feels: number, strong = false) =>
-    `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span> <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${feelsIcon(feels)} ${tempStr(feels)})</span>`;
+  const temp2 = (v: number, feels: number, strong = false) => {
+    const feelsPart = cardOn('apparentTemp')
+      ? ` <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${feelsIcon(feels)} ${tempStr(feels)})</span>`
+      : '';
+    return `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span>${feelsPart}`;
+  };
 
   const row = (labelHTML: string, cellA: string, cellB: string) => `
     <tr>
@@ -502,19 +533,19 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
           </tr>
         </thead>
         <tbody>
-          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.high')}`, temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax))}
-          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.avg')}`,  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true))}
-          ${row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.low')}`,  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin))}
-          ${showLiquid ? row(icon(ICONS.rain, t('tooltip.precipitation')), mm(a.rainSum), mm(b.rainSum)) : ''}
-          ${hasShowers ? row(icon(ICONS.showers, t('tooltip.showers')), mm(a.showersSum), mm(b.showersSum)) : ''}
-          ${hasSnow ? row(icon(ICONS.snow, t('tooltip.snowfall')), cm(a.snowfallSum), cm(b.snowfallSum)) : ''}
-          ${row(icon(ICONS.wind, t('tooltip.wind')),
+          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.high')}`, temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax)) : ''}
+          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.avg')}`,  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true)) : ''}
+          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.low')}`,  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin)) : ''}
+          ${cardOn('precip') && showLiquid ? row(icon(ICONS.rain, t('tooltip.precipitation')), mm(a.rainSum), mm(b.rainSum)) : ''}
+          ${cardOn('precip') && hasShowers ? row(icon(ICONS.showers, t('tooltip.showers')), mm(a.showersSum), mm(b.showersSum)) : ''}
+          ${cardOn('precip') && hasSnow ? row(icon(ICONS.snow, t('tooltip.snowfall')), cm(a.snowfallSum), cm(b.snowfallSum)) : ''}
+          ${cardOn('wind') ? row(icon(ICONS.wind, t('tooltip.wind')),
             `<span class="text-detail">${Math.round(a.windSpeedMax)} km/h ${windDirLabel(a.windDirection)}</span>`,
-            `<span class="text-detail">${Math.round(b.windSpeedMax)} km/h ${windDirLabel(b.windDirection)}</span>`)}
-          ${row(icon(ICONS.pressure, t('tooltip.pressure')),
+            `<span class="text-detail">${Math.round(b.windSpeedMax)} km/h ${windDirLabel(b.windDirection)}</span>`) : ''}
+          ${cardOn('pressure') ? row(icon(ICONS.pressure, t('tooltip.pressure')),
             `<span class="text-detail">${Math.round(a.pressureMean)} hPa</span>`,
-            `<span class="text-detail">${Math.round(b.pressureMean)} hPa</span>`)}
-          ${a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
+            `<span class="text-detail">${Math.round(b.pressureMean)} hPa</span>`) : ''}
+          ${cardOn('daylight') && a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
             `<span class="text-detail">${a.sunrise.slice(11, 16)} – ${a.sunset.slice(11, 16)}</span>`,
             `<span class="text-detail">${b.sunrise.slice(11, 16)} – ${b.sunset.slice(11, 16)}</span>`) : ''}
         </tbody>
@@ -550,6 +581,12 @@ async function readUrlSettings(): Promise<void> {
   if (p.get('comp') === 'tomorrow') comparison = 'today-tomorrow';
   const m = p.get('model');
   if (m && MODEL_MAP.has(m)) model = m;
+  const hide = p.get('hide');
+  if (hide) {
+    const [c, g] = hide.split('.');
+    applyHideMask(CARD_PARAMS, cardVis, parseInt(c ?? '', 36) || 0);
+    applyHideMask(CHART_PARAMS, chartVis, parseInt(g ?? '', 36) || 0);
+  }
   // Keep the locale load last — everything above is set synchronously,
   // so the bootstrap can apply the theme before this resolves
   const lg = p.get('lang');
@@ -571,7 +608,21 @@ function settingsParams(): URLSearchParams {
   if (comparison === 'today-tomorrow') p.set('comp', 'tomorrow');
   if (getLang() !== 'en') p.set('lang', getLang());
   if (model !== DEFAULT_MODEL) p.set('model', model);
+  const cMask = maskFromVis(CARD_PARAMS, cardVis);
+  const gMask = maskFromVis(CHART_PARAMS, chartVis);
+  if (cMask || gMask) p.set('hide', `${cMask.toString(36)}.${gMask.toString(36)}`);
   return p;
+}
+
+// Hidden params packed as a base36 bitmask (bit i set = PARAMS[i] hidden), so the
+// default (all shown) is 0 and the `hide` param drops out of the URL entirely.
+function maskFromVis(params: readonly string[], vis: Set<string>): number {
+  let mask = 0;
+  params.forEach((param, i) => { if (!vis.has(param)) mask |= 1 << i; });
+  return mask;
+}
+function applyHideMask(params: readonly string[], vis: Set<string>, mask: number): void {
+  params.forEach((param, i) => { if (mask & (1 << i)) vis.delete(param); else vis.add(param); });
 }
 
 function setUrlParams(location: GeoResult): void {
@@ -762,6 +813,50 @@ function renderError(msg: string): void {
   });
 }
 
+function renderSettings(location: GeoResult, weather: WeatherData): void {
+  transition(() => doRenderSettings(location, weather));
+}
+
+function doRenderSettings(location: GeoResult, weather: WeatherData): void {
+  currentView = { type: 'settings', location, weather };
+
+  const rowHTML = (scope: 'card' | 'chart', id: string, checked: boolean): string => `
+    <label class="flex items-center gap-3 py-2.5 px-1 cursor-pointer hover-item rounded-lg">
+      <input type="checkbox" class="param-check w-4 h-4 accent-sky-500" data-scope="${scope}" data-id="${id}" ${checked ? 'checked' : ''} />
+      <span class="w-5 text-center shrink-0">${PARAM_ICON[id] ?? ''}</span>
+      <span class="flex-1 text-sm text-body">${paramLabel(id)}</span>
+    </label>`;
+
+  const section = (titleKey: string, rows: string): string => `
+    <div class="rounded-2xl p-4 bg-surface hc:border-2 border-edge">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-1">${t(titleKey)}</h2>
+      ${rows}
+    </div>`;
+
+  root.innerHTML = `
+    <div class="min-h-screen p-4 sm:p-8">
+      <div class="max-w-lg mx-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h1 class="text-xl font-semibold text-heading">${t('settings.title')}</h1>
+          <button id="settings-done" class="text-sm px-4 py-2 rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors">${t('settings.done')}</button>
+        </div>
+        <div class="flex flex-col gap-3">
+          ${section('settings.cards', CARD_PARAMS.map(id => rowHTML('card', id, cardOn(id))).join(''))}
+          ${section('settings.chart', CHART_PARAMS.map(id => rowHTML('chart', id, chartOn(id))).join(''))}
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll<HTMLInputElement>('.param-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const set = cb.dataset.scope === 'card' ? cardVis : chartVis;
+      if (cb.checked) set.add(cb.dataset.id!); else set.delete(cb.dataset.id!);
+      setUrlParams(location);
+    });
+  });
+  document.getElementById('settings-done')!.addEventListener('click', () => renderWeather(location, weather));
+}
+
 function renderWeather(location: GeoResult, weather: WeatherData): void {
   transition(() => doRenderWeather(location, weather));
 }
@@ -824,6 +919,9 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
                 <button class="w-full text-left px-3 py-2 pointer-coarse:py-3 text-sm hover-item text-body border-t border-edge${unit === 'F' ? ' font-semibold' : ''}" data-unit="F">°F</button>
               </div>
             </div>
+            <button id="settings-btn" title="${t('settings.open')}" aria-label="${t('settings.open')}" class="text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">
+              ⚙️
+            </button>
             <button class="search-btn hidden sm:block text-sm px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-edge text-muted hover-btn">
               ${t('weather.changeLocation')}
             </button>
@@ -845,19 +943,19 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
           <h1 class="sr-only">${compHeader}</h1>
           <div class="flex flex-col gap-2">
-            ${comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true))}
-            ${(() => {
+            ${cardOn('temp') ? comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary)) : ''}
+            ${cardOn('apparentTemp') ? comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true)) : ''}
+            ${cardOn('precip') ? (() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
               const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
               const showRain = !hasAnySnow || hasAnyRain;
               const showSnow = hasAnySnow;
               return (showRain ? comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
                    + (showSnow ? comparisonRowHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
-            })()}
-            ${comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary))}
-            ${comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary))}
+            })() : ''}
+            ${cardOn('wind') ? comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
+            ${cardOn('pressure') ? comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
+            ${cardOn('daylight') ? comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
           </div>
         </div>
 
@@ -903,6 +1001,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     });
   });
   document.querySelectorAll<HTMLButtonElement>('.search-btn').forEach(btn => btn.addEventListener('click', renderSearch));
+  document.getElementById('settings-btn')?.addEventListener('click', () => renderSettings(location, weather));
   attachThemeHandler();
   attachHCHandler();
   attachDropdownHandlers();
@@ -934,8 +1033,9 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     // keep the scroll position (in days) across resize re-renders
     const prevScroll = chartSlot.querySelector<HTMLElement>('#tl-scroll');
     const scrollDays = prevScroll && currentDayW ? prevScroll.scrollLeft / currentDayW : (isTomorrow ? 1 : 0);
-    chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours);
-    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, timelineDays, weather.hourlyAll, unit);
+    const vis = chartVisibility();
+    chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours, vis);
+    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, timelineDays, weather.hourlyAll, unit, vis);
     currentDayW = timelineDayWidth(innerWidth);
     chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
   };

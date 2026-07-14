@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> не прогнозує достатньо далеко, щоб охопити завтра в {{location}}. Будь ласка, виберіть іншу модель.',
     changeLocation: 'Змінити місце',
   },
+  settings: {
+    title: 'Налаштування відображення',
+    cards: 'Картки',
+    chart: 'Графік',
+    done: 'Готово',
+    open: 'Налаштування відображення',
+  },
   model: {
     label: 'Модель',
     groupAuto: 'Автоматично',

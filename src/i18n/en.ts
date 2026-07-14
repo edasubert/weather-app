@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> doesn\'t forecast far enough ahead to cover tomorrow at {{location}}. Please select a different model.',
     changeLocation: 'Change location',
   },
+  settings: {
+    title: 'Display settings',
+    cards: 'Cards',
+    chart: 'Chart',
+    done: 'Done',
+    open: 'Display settings',
+  },
   model: {
     label: 'Model',
     groupAuto: 'Automatic',

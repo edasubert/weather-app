@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> nepředpovídá dostatečně dopředu, aby pokryl zítřek v {{location}}. Vyberte prosím jiný model.',
     changeLocation: 'Změnit polohu',
   },
+  settings: {
+    title: 'Nastavení zobrazení',
+    cards: 'Karty',
+    chart: 'Graf',
+    done: 'Hotovo',
+    open: 'Nastavení zobrazení',
+  },
   model: {
     label: 'Model',
     groupAuto: 'Automaticky',

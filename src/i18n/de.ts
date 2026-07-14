@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> sagt nicht weit genug voraus, um morgen in {{location}} abzudecken. Bitte wähle ein anderes Modell.',
     changeLocation: 'Ort ändern',
   },
+  settings: {
+    title: 'Anzeigeeinstellungen',
+    cards: 'Karten',
+    chart: 'Diagramm',
+    done: 'Fertig',
+    open: 'Anzeigeeinstellungen',
+  },
   model: {
     label: 'Modell',
     groupAuto: 'Automatisch',

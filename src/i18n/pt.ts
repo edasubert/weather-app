@@ -105,6 +105,13 @@ export default {
     noForecastBody: '<strong>{{model}}</strong> não faz previsão longe o suficiente para cobrir amanhã em {{location}}. Por favor, selecione um modelo diferente.',
     changeLocation: 'Alterar localização',
   },
+  settings: {
+    title: 'Configurações de exibição',
+    cards: 'Cartões',
+    chart: 'Gráfico',
+    done: 'Concluído',
+    open: 'Configurações de exibição',
+  },
   model: {
     label: 'Modelo',
     groupAuto: 'Automático',

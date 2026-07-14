@@ -28,6 +28,16 @@ export interface TimelineDay {
   sunset: string;
 }
 
+// Which series the chart draws — driven by the display settings.
+export interface ChartVisibility {
+  temp: boolean;
+  apparentTemp: boolean;
+  precip: boolean;   // rain + snow bars
+  pressure: boolean;
+  cloud: boolean;
+}
+const ALL_VISIBLE: ChartVisibility = { temp: true, apparentTemp: true, precip: true, pressure: true, cloud: true };
+
 // The comparison toggle shows exactly two days in the viewport, so a day is
 // half the visible width (with a floor so 14 days stay readable on phones)
 export function timelineDayWidth(viewportWidth: number): number {
@@ -72,6 +82,7 @@ export function buildTimeline(
   unit: 'C' | 'F',
   viewportWidth: number,
   nowHours: number | null = null,
+  vis: ChartVisibility = ALL_VISIBLE,
 ): string {
   const nDays = days.length;
   const n     = nDays * 24;
@@ -200,53 +211,57 @@ export function buildTimeline(
             ${nightRects.join('')}
             ${grid.join('')}
             ${dayLines.join('')}
-            ${cloudFill}
-            ${hasAnyRain ? bars(hourly.rain, maxRain, PRECIP_COLOR, rainOff, 'precip-hatch') : ''}
-            ${hasAnySnow ? bars(hourly.snow, maxSnow, SNOW_COLOR,   snowOff, 'snow-hatch') : ''}
-            <path d="${linePath(press, minPressure, maxPressure)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-            <path d="${linePath(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-            <path d="${linePath(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            ${vis.cloud ? cloudFill : ''}
+            ${vis.precip && hasAnyRain ? bars(hourly.rain, maxRain, PRECIP_COLOR, rainOff, 'precip-hatch') : ''}
+            ${vis.precip && hasAnySnow ? bars(hourly.snow, maxSnow, SNOW_COLOR,   snowOff, 'snow-hatch') : ''}
+            ${vis.pressure ? `<path d="${linePath(press, minPressure, maxPressure)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+            ${vis.temp ? `<path d="${linePath(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+            ${vis.apparentTemp ? `<path d="${linePath(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
             ${nowMarker}
             ${hrTicks.join('')}
             ${dayLabels.join('')}
             <g id="chart-hover" style="display:none">
               <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + TL_CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
-              <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>
-              <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>
-              <circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>
+              ${vis.temp ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
+              ${vis.apparentTemp ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
+              ${vis.pressure ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
             </g>
             <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${TL_CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
         </div>
         <div style="position:absolute;top:0;left:0;width:${PL}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">
-          <svg viewBox="0 0 ${PL} ${TL_H}" width="${PL}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${leftLabels.join('')}</svg>
+          <svg viewBox="0 0 ${PL} ${TL_H}" width="${PL}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.temp || vis.apparentTemp ? leftLabels.join('') : ''}</svg>
         </div>
         <div style="position:absolute;top:0;right:0;width:${PR}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to left, var(--color-surface) 70%, transparent)">
-          <svg viewBox="0 0 ${PR} ${TL_H}" width="${PR}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${rightLabels.join('')}</svg>
+          <svg viewBox="0 0 ${PR} ${TL_H}" width="${PR}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.pressure ? rightLabels.join('') : ''}</svg>
         </div>
       </div>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted px-5 pt-2 pb-4">
+        ${vis.temp ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR}"></span><span title="${t('tooltip.temperature')}">${ICONS.temp}</span>
-        </span>
+        </span>` : ''}
+        ${vis.apparentTemp ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${FEELS_COLOR}"></span><span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>
-        </span>
-        ${hasAnyRain ? `
+        </span>` : ''}
+        ${vis.precip && hasAnyRain ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid ${PRECIP_COLOR};overflow:hidden"><span style="display:block;width:100%;height:100%;background:${PRECIP_COLOR};opacity:0.6"></span></span><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
         </span>` : ''}
-        ${hasAnySnow ? `
+        ${vis.precip && hasAnySnow ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--snow-color);overflow:hidden"><span style="display:block;width:100%;height:100%;background:var(--snow-color);opacity:0.6"></span></span><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
         </span>` : ''}
+        ${vis.pressure ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR}"></span><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
-        </span>
+        </span>` : ''}
+        ${vis.cloud ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
-        </span>
+        </span>` : ''}
       </div>
     </div>
   `;
@@ -257,6 +272,7 @@ export function setupTimelineTooltip(
   days: TimelineDay[],
   hourly: HourlyData,
   unit: 'C' | 'F',
+  vis: ChartVisibility = ALL_VISIBLE,
 ): void {
   const svg        = container.querySelector<SVGSVGElement>('#tl-svg')!;
   const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
@@ -276,11 +292,12 @@ export function setupTimelineTooltip(
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
 
-  const dotDefs = [
-    { vals: temps, min: minT,        max: maxT        },
-    { vals: feels, min: minT,        max: maxT        },
-    { vals: press, min: minPressure, max: maxPressure },
-  ];
+  // Order and membership must match the rendered .hover-dot circles (temp, feels,
+  // pressure — each present only when visible) so dots[i] lines up with its series.
+  const dotDefs: { vals: number[]; min: number; max: number }[] = [];
+  if (vis.temp)         dotDefs.push({ vals: temps, min: minT,        max: maxT        });
+  if (vis.apparentTemp) dotDefs.push({ vals: feels, min: minT,        max: maxT        });
+  if (vis.pressure)     dotDefs.push({ vals: press, min: minPressure, max: maxPressure });
 
   const showAt = (clientX: number): void => {
     const svgRect = svg.getBoundingClientRect();
@@ -311,20 +328,24 @@ export function setupTimelineTooltip(
     tooltip.innerHTML = `
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:4px;font-size:12px">${dayLabel}, ${hh}</div>
       <div style="display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:11px">
+        ${vis.temp ? `
         <span style="color:${TEMP_COLOR}" title="${t('tooltip.temperature')}">${ICONS.temp}</span>
-        <span style="color:var(--tooltip-text-main)">${fmt(temps[idx])}</span>
+        <span style="color:var(--tooltip-text-main)">${fmt(temps[idx])}</span>` : ''}
+        ${vis.apparentTemp ? `
         <span style="color:${FEELS_COLOR}" title="${t('tooltip.apparentTemp')}">${feelsIcon(hourly.apparentTemp[idx])}</span>
-        <span style="color:var(--tooltip-text-main)">${fmt(feels[idx])}</span>
-        ${hasAnyRain ? `
+        <span style="color:var(--tooltip-text-main)">${fmt(feels[idx])}</span>` : ''}
+        ${vis.precip && hasAnyRain ? `
         <span style="color:${PRECIP_COLOR}" title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
         <span style="color:var(--tooltip-text-main)">${rainFmt(hourly.rain[idx])}${probStr}</span>` : ''}
-        ${hasAnySnow ? `
+        ${vis.precip && hasAnySnow ? `
         <span style="color:var(--snow-color)" title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
         <span style="color:var(--tooltip-text-main)">${snowFmt(hourly.snow[idx])}${hasAnyRain ? '' : probStr}</span>` : ''}
+        ${vis.pressure ? `
         <span style="color:${PRESSURE_COLOR}" title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
-        <span style="color:var(--tooltip-text-main)">${Math.round(press[idx])} hPa</span>
+        <span style="color:var(--tooltip-text-main)">${Math.round(press[idx])} hPa</span>` : ''}
+        ${vis.cloud ? `
         <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
-        <span style="color:var(--tooltip-text-main)">${hourly.cloud[idx]}%</span>
+        <span style="color:var(--tooltip-text-main)">${hourly.cloud[idx]}%</span>` : ''}
       </div>
     `;
 
