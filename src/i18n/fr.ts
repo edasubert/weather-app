@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Réessayer',
     noDataTitle: 'Aucune donnée météo pour cet endroit',
     noDataBody: '<strong>{{model}}</strong> ne couvre pas {{location}}. Veuillez sélectionner un autre modèle.',
+    noForecastTitle: 'Ce modèle ne va pas jusqu\'à demain',
+    noForecastBody: '<strong>{{model}}</strong> ne prévoit pas assez loin pour couvrir demain à {{location}}. Veuillez sélectionner un autre modèle.',
     changeLocation: 'Changer de lieu',
   },
   model: {

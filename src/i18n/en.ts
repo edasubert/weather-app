@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Try again',
     noDataTitle: 'No weather data for this location',
     noDataBody: '<strong>{{model}}</strong> doesn\'t cover {{location}}. Please select a different model.',
+    noForecastTitle: 'This model doesn\'t reach tomorrow',
+    noForecastBody: '<strong>{{model}}</strong> doesn\'t forecast far enough ahead to cover tomorrow at {{location}}. Please select a different model.',
     changeLocation: 'Change location',
   },
   model: {

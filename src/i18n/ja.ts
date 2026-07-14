@@ -101,6 +101,8 @@ export default {
     tryAgain: 'もう一度試す',
     noDataTitle: 'この地点の気象データがありません',
     noDataBody: '<strong>{{model}}</strong> は{{location}}をカバーしていません。別のモデルを選択してください。',
+    noForecastTitle: 'このモデルは明日まで予報しません',
+    noForecastBody: '<strong>{{model}}</strong> は{{location}}の明日をカバーするほど先まで予報しません。別のモデルを選択してください。',
     changeLocation: '場所を変更',
   },
   model: {

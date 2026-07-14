@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Erneut versuchen',
     noDataTitle: 'Keine Wetterdaten für diesen Ort',
     noDataBody: '<strong>{{model}}</strong> deckt {{location}} nicht ab. Bitte wähle ein anderes Modell.',
+    noForecastTitle: 'Dieses Modell reicht nicht bis morgen',
+    noForecastBody: '<strong>{{model}}</strong> sagt nicht weit genug voraus, um morgen in {{location}} abzudecken. Bitte wähle ein anderes Modell.',
     changeLocation: 'Ort ändern',
   },
   model: {

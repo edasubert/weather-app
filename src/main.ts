@@ -1,6 +1,6 @@
 import './style.css';
 import { fetchWeather, WeatherNoDataError } from './weather';
-import type { TimelineDayInfo } from './weather';
+import type { TimelineDayInfo, UnusableReason } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
@@ -820,19 +820,23 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-function renderNoDataError(location: GeoResult): void {
-  transition(() => doRenderNoDataError(location));
+function renderNoDataError(location: GeoResult, reason: UnusableReason = 'no_coverage'): void {
+  transition(() => doRenderNoDataError(location, reason));
 }
 
-function doRenderNoDataError(location: GeoResult): void {
+function doRenderNoDataError(location: GeoResult, reason: UnusableReason): void {
   const currentModel = findModel(model);
+  const noTomorrow = reason === 'no_tomorrow';
+  const icon  = noTomorrow ? '📅' : '📡';
+  const title = t(noTomorrow ? 'error.noForecastTitle' : 'error.noDataTitle');
+  const body  = t(noTomorrow ? 'error.noForecastBody' : 'error.noDataBody', { model: currentModel.name, location: location.name });
 
   root.innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="text-center max-w-sm w-full">
-        <div class="text-4xl mb-4">📡</div>
-        <h2 class="text-xl font-semibold text-heading mb-2">${t('error.noDataTitle')}</h2>
-        <p class="text-muted text-sm mb-6">${t('error.noDataBody', { model: currentModel.name, location: location.name })}</p>
+        <div class="text-4xl mb-4">${icon}</div>
+        <h2 class="text-xl font-semibold text-heading mb-2">${title}</h2>
+        <p class="text-muted text-sm mb-6">${body}</p>
         <div class="relative inline-block mb-3">
           <button id="model-btn" class="text-sm px-4 py-2 rounded-xl border border-edge text-muted hover-btn flex items-center gap-1.5">
             ${currentModel.shortLabel} <span class="text-xs opacity-50">▾</span>
@@ -862,7 +866,7 @@ async function loadWeather(location: GeoResult): Promise<void> {
     renderWeather(location, weather);
   } catch (err) {
     if (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError')) {
-      renderNoDataError(location);
+      renderNoDataError(location, (err as WeatherNoDataError).reason ?? 'no_coverage');
     } else {
       renderError(t('error.failed'));
     }
@@ -871,12 +875,13 @@ async function loadWeather(location: GeoResult): Promise<void> {
 
 async function handleGeolocate(): Promise<void> {
   renderLoading(t('error.detecting'));
+  let location: GeoResult | null = null;
   try {
     const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }),
     );
     const { latitude, longitude } = pos.coords;
-    const location: GeoResult = {
+    location = {
       name: coordsLabel(latitude, longitude),
       country: '',
       latitude,
@@ -885,11 +890,15 @@ async function handleGeolocate(): Promise<void> {
     const weather = await fetchWeather(latitude, longitude, model);
     renderWeather(location, weather);
   } catch (err) {
-    renderError(
-      err instanceof GeolocationPositionError
-        ? t('error.locationDenied')
-        : t('error.failed'),
-    );
+    if (location && (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError'))) {
+      renderNoDataError(location, (err as WeatherNoDataError).reason ?? 'no_coverage');
+    } else {
+      renderError(
+        err instanceof GeolocationPositionError
+          ? t('error.locationDenied')
+          : t('error.failed'),
+      );
+    }
   }
 }
 

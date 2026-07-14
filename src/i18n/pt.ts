@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Tentar novamente',
     noDataTitle: 'Sem dados meteorológicos para este local',
     noDataBody: '<strong>{{model}}</strong> não cobre {{location}}. Por favor, selecione um modelo diferente.',
+    noForecastTitle: 'Este modelo não chega até amanhã',
+    noForecastBody: '<strong>{{model}}</strong> não faz previsão longe o suficiente para cobrir amanhã em {{location}}. Por favor, selecione um modelo diferente.',
     changeLocation: 'Alterar localização',
   },
   model: {

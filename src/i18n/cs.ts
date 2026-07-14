@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Zkusit znovu',
     noDataTitle: 'Žádná data o počasí pro tuto polohu',
     noDataBody: '<strong>{{model}}</strong> nepokrývá {{location}}. Vyberte prosím jiný model.',
+    noForecastTitle: 'Tento model nedosáhne do zítřka',
+    noForecastBody: '<strong>{{model}}</strong> nepředpovídá dostatečně dopředu, aby pokryl zítřek v {{location}}. Vyberte prosím jiný model.',
     changeLocation: 'Změnit polohu',
   },
   model: {

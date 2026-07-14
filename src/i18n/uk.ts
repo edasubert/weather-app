@@ -101,6 +101,8 @@ export default {
     tryAgain: 'Спробувати ще раз',
     noDataTitle: 'Немає даних про погоду для цього місця',
     noDataBody: '<strong>{{model}}</strong> не охоплює {{location}}. Будь ласка, виберіть інший модель.',
+    noForecastTitle: 'Ця модель не сягає завтрашнього дня',
+    noForecastBody: '<strong>{{model}}</strong> не прогнозує достатньо далеко, щоб охопити завтра в {{location}}. Будь ласка, виберіть іншу модель.',
     changeLocation: 'Змінити місце',
   },
   model: {

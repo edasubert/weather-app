@@ -21,10 +21,17 @@ const DAILY_VARS = [
 
 const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover';
 
+// 'no_coverage': the model returns nothing for this location.
+// 'no_tomorrow': it has near-term data but doesn't forecast through tomorrow,
+//   which the comparison view (yesterday · today · tomorrow) needs.
+export type UnusableReason = 'no_coverage' | 'no_tomorrow';
+
 export class WeatherNoDataError extends Error {
-  constructor() {
-    super('No data is available for this location');
+  reason: UnusableReason;
+  constructor(reason: UnusableReason = 'no_coverage') {
+    super('Weather data is not usable for this location');
     this.name = 'WeatherNoDataError';
+    this.reason = reason;
   }
 }
 
@@ -90,8 +97,12 @@ export async function fetchWeather(
 
   // Not every model covers the full 14-day forecast; Open-Meteo still returns
   // the requested range but fills uncovered days with null. Trim the timeline to
-  // the whole days the model actually provides so it doesn't flatline at 0.
+  // the whole days the model actually provides so it doesn't flatline at 0. The
+  // app needs at least yesterday · today · tomorrow (3 whole days) to be usable;
+  // below that, surface it as a "pick another model" prompt.
   const nDays = coveredDays(hourlyRaw, allDays.length);
+  if (nDays === 0) throw new WeatherNoDataError('no_coverage');
+  if (nDays < 3)   throw new WeatherNoDataError('no_tomorrow');
   const days = allDays.slice(0, nDays);
 
   return {
