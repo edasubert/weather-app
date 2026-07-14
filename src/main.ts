@@ -4,7 +4,7 @@ import type { TimelineDayInfo, UnusableReason } from './weather';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildTimeline, setupTimelineTooltip, timelineDayWidth, type ChartVisibility } from './chart';
+import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, type ChartVisibility } from './chart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -17,7 +17,7 @@ let model = DEFAULT_MODEL;
 // order — APPEND only, never reorder, or shared `hide` URLs would change meaning.
 // `precip` covers all precipitation kinds (rain, showers, snow), matching the chart.
 const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight'] as const;
-const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud'] as const;
+const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud', 'wind'] as const;
 type CardParam  = typeof CARD_PARAMS[number];
 type ChartParam = typeof CHART_PARAMS[number];
 // Default = everything shown.
@@ -31,6 +31,7 @@ const chartVisibility = (): ChartVisibility => ({
   precip:       chartOn('precip'),
   pressure:     chartOn('pressure'),
   cloud:        chartOn('cloud'),
+  wind:         chartOn('wind'),
 });
 // Icon + label per settings param — reuses existing metric/tooltip i18n keys.
 const PARAM_ICON: Record<string, string> = {
@@ -1028,16 +1029,20 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   // days are reachable by scrolling right.
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
   let currentDayW = 0;
+  let windStop: (() => void) | null = null;
   const mountChart = (): void => {
+    windStop?.(); // cancel the previous animation loop before re-rendering
     const innerWidth = chartSlot.clientWidth - (highContrast ? 4 : 0); // chart bleeds to the card edges (hc border excepted)
     // keep the scroll position (in days) across resize re-renders
     const prevScroll = chartSlot.querySelector<HTMLElement>('#tl-scroll');
     const scrollDays = prevScroll && currentDayW ? prevScroll.scrollLeft / currentDayW : (isTomorrow ? 1 : 0);
     const vis = chartVisibility();
     chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours, vis);
-    setupTimelineTooltip(chartSlot.querySelector<HTMLElement>('#chart-container')!, timelineDays, weather.hourlyAll, unit, vis);
+    const container = chartSlot.querySelector<HTMLElement>('#chart-container')!;
+    setupTimelineTooltip(container, timelineDays, weather.hourlyAll, unit, vis);
     currentDayW = timelineDayWidth(innerWidth);
     chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
+    windStop = vis.wind ? startWindField(container, weather.hourlyAll) : null;
   };
   mountChart();
 

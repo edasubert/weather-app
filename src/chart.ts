@@ -11,6 +11,7 @@ const PT = 0;
 const TL_H  = 230;
 const TL_PB = 44; // two-row x axis: day labels + hour ticks
 const TL_CH = TL_H - PT - TL_PB;
+const WIND_LANE_H = 30; // wind lane inserted between the plot and the x axis when enabled
 
 // Per-metric colors — consistent across the whole timeline
 const TEMP_COLOR     = '#ef4444';         // red
@@ -35,8 +36,13 @@ export interface ChartVisibility {
   precip: boolean;   // rain + snow bars
   pressure: boolean;
   cloud: boolean;
+  wind: boolean;     // wind lane: direction arrows + speed particles
 }
-const ALL_VISIBLE: ChartVisibility = { temp: true, apparentTemp: true, precip: true, pressure: true, cloud: true };
+const ALL_VISIBLE: ChartVisibility = { temp: true, apparentTemp: true, precip: true, pressure: true, cloud: true, wind: true };
+
+// 8-point compass for the direction a wind blows *from* (Open-Meteo convention).
+const COMPASS8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const compass = (deg: number): string => COMPASS8[Math.round(deg / 45) % 8];
 
 // The comparison toggle shows exactly two days in the viewport, so a day is
 // half the visible width (with a floor so 14 days stay readable on phones)
@@ -63,6 +69,7 @@ function computeRange(hourly: HourlyData, unit: 'C' | 'F') {
     maxSnow: Math.max(...hourly.snow, 0.01),
     minPressure: rawMinP - padP,
     maxPressure: rawMaxP + padP,
+    maxWind: Math.max(...hourly.windSpeed, 1),
   };
 }
 
@@ -97,10 +104,29 @@ export function buildTimeline(
   const linePath = (vals: number[], min: number, max: number) =>
     vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xP(i).toFixed(1)},${yP(v, min, max).toFixed(1)}`).join(' ');
 
-  const { cvt, minT, maxT, maxRain, maxSnow, minPressure, maxPressure } = computeRange(hourly, unit);
+  const { cvt, minT, maxT, maxRain, maxSnow, minPressure, maxPressure, maxWind } = computeRange(hourly, unit);
   const temps = hourly.temp.map(cvt);
   const feels = hourly.apparentTemp.map(cvt);
   const press = hourly.pressure;
+
+  // Wind lane sits directly below the plot body; the x axis shifts down by its
+  // height, so the total SVG height H grows only when wind is enabled.
+  const windLaneH = vis.wind ? WIND_LANE_H : 0;
+  const H = TL_H + windLaneH;
+  const laneTop = TL_CH;
+  const laneMid = laneTop + windLaneH / 2;
+  const windArrows: string[] = [];
+  if (vis.wind) {
+    const step = Math.max(1, Math.round(22 / slotW)); // ~1 arrow per 22px
+    for (let i = Math.floor(step / 2); i < n; i += step) {
+      const s = 0.45 + 0.55 * Math.min(1, hourly.windSpeed[i] / maxWind); // size ∝ speed (reduced-motion cue)
+      const dirTo = hourly.windDirection[i] + 180; // Open-Meteo gives the "from" bearing; arrow points where it blows to
+      windArrows.push(`<g transform="translate(${xP(i).toFixed(1)},${laneMid.toFixed(1)}) rotate(${dirTo.toFixed(0)}) scale(${s.toFixed(2)})" stroke="var(--chart-label)" stroke-width="1.2" fill="var(--chart-label)" style="opacity:0.75"><line x1="0" y1="5" x2="0" y2="-4"/><path d="M0,-8 L-3.2,-2.5 L3.2,-2.5 Z"/></g>`);
+    }
+  }
+  const windLane = vis.wind
+    ? `<line x1="${PL}" y1="${laneTop.toFixed(1)}" x2="${(w - PR).toFixed(1)}" y2="${laneTop.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>${windArrows.join('')}`
+    : '';
 
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
@@ -181,10 +207,10 @@ export function buildTimeline(
   const hrTicks: string[] = [];
   for (let d = 0; d < nDays; d++) {
     const x = xH(d * 24);
-    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${TL_H - 18}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
-    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(TL_H - 6).toFixed(1)}" text-anchor="middle" class="lbl" style="font-weight:600">${days[d].label}</text>`);
+    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${H - 18}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
+    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(H - 6).toFixed(1)}" text-anchor="middle" class="lbl" style="font-weight:600">${days[d].label}</text>`);
     for (const hr of showHrAll ? [6, 12, 18] : [12]) {
-      hrTicks.push(`<text x="${xH(d * 24 + hr).toFixed(1)}" y="${(TL_H - 24).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.55">${String(hr).padStart(2, '0')}</text>`);
+      hrTicks.push(`<text x="${xH(d * 24 + hr).toFixed(1)}" y="${(H - 24).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.55">${String(hr).padStart(2, '0')}</text>`);
     }
   }
 
@@ -205,7 +231,8 @@ export function buildTimeline(
     <div id="chart-container" class="rounded-2xl relative bg-surface hc:border-2 border-edge overflow-hidden">
       <div class="relative">
         <div id="tl-scroll" style="overflow-x:auto">
-          <svg id="tl-svg" viewBox="0 0 ${w} ${TL_H}" style="display:block;width:${w}px;height:${TL_H}px">
+          <div style="position:relative;width:${w}px">
+          <svg id="tl-svg" viewBox="0 0 ${w} ${H}" style="display:block;width:${w}px;height:${H}px">
             ${LBL_STYLE}
             ${barDefs}
             ${nightRects.join('')}
@@ -218,6 +245,7 @@ export function buildTimeline(
             ${vis.temp ? `<path d="${linePath(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
             ${vis.apparentTemp ? `<path d="${linePath(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
             ${nowMarker}
+            ${windLane}
             ${hrTicks.join('')}
             ${dayLabels.join('')}
             <g id="chart-hover" style="display:none">
@@ -228,12 +256,14 @@ export function buildTimeline(
             </g>
             <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${TL_CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
+          ${vis.wind ? `<canvas id="wind-canvas" style="position:absolute;left:0;top:${laneTop}px;width:${w}px;height:${windLaneH}px;pointer-events:none"></canvas>` : ''}
+          </div>
         </div>
-        <div style="position:absolute;top:0;left:0;width:${PL}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">
-          <svg viewBox="0 0 ${PL} ${TL_H}" width="${PL}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.temp || vis.apparentTemp ? leftLabels.join('') : ''}</svg>
+        <div style="position:absolute;top:0;left:0;width:${PL}px;height:${H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">
+          <svg viewBox="0 0 ${PL} ${H}" width="${PL}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.temp || vis.apparentTemp ? leftLabels.join('') : ''}</svg>
         </div>
-        <div style="position:absolute;top:0;right:0;width:${PR}px;height:${TL_H}px;pointer-events:none;background:linear-gradient(to left, var(--color-surface) 70%, transparent)">
-          <svg viewBox="0 0 ${PR} ${TL_H}" width="${PR}" height="${TL_H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.pressure ? rightLabels.join('') : ''}</svg>
+        <div style="position:absolute;top:0;right:0;width:${PR}px;height:${H}px;pointer-events:none;background:linear-gradient(to left, var(--color-surface) 70%, transparent)">
+          <svg viewBox="0 0 ${PR} ${H}" width="${PR}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.pressure ? rightLabels.join('') : ''}</svg>
         </div>
       </div>
       <div id="chart-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
@@ -261,6 +291,10 @@ export function buildTimeline(
         ${vis.cloud ? `
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px"></span><span title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
+        </span>` : ''}
+        ${vis.wind ? `
+        <span class="flex items-center gap-1.5">
+          <span style="color:var(--chart-label)">↑</span><span title="${t('tooltip.wind')}">${ICONS.wind}</span>
         </span>` : ''}
       </div>
     </div>
@@ -346,6 +380,9 @@ export function setupTimelineTooltip(
         ${vis.cloud ? `
         <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
         <span style="color:var(--tooltip-text-main)">${hourly.cloud[idx]}%</span>` : ''}
+        ${vis.wind ? `
+        <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.wind')}">${ICONS.wind}</span>
+        <span style="color:var(--tooltip-text-main)">${Math.round(hourly.windSpeed[idx])} km/h <span style="display:inline-block;transform:rotate(${(hourly.windDirection[idx] + 180).toFixed(0)}deg)">↑</span> ${compass(hourly.windDirection[idx])}</span>` : ''}
       </div>
     `;
 
@@ -365,6 +402,64 @@ export function setupTimelineTooltip(
     hoverGroup.style.display = 'none';
     tooltip.style.display = 'none';
   });
+}
+
+// Particle field over the wind lane: streaks drift left→right with velocity ∝
+// local wind speed (the "windiness" feel). Motion encodes speed only — direction
+// is carried by the SVG arrows, since horizontal drift can't honestly show a
+// compass bearing on a time axis. Returns a stop() to cancel the loop.
+export function startWindField(container: HTMLElement, hourly: HourlyData): () => void {
+  const noop = (): void => {};
+  const canvas = container.querySelector<HTMLCanvasElement>('#wind-canvas');
+  const svg = container.querySelector<SVGSVGElement>('#tl-svg');
+  if (!canvas || !svg) return noop;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return noop; // arrows still convey speed via size
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return noop;
+
+  const wpx = svg.viewBox.baseVal.width; // full content width in CSS px
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width  = Math.round(wpx * dpr);
+  canvas.height = Math.round(WIND_LANE_H * dpr);
+  ctx.scale(dpr, dpr);
+
+  const n = hourly.windSpeed.length;
+  const cw = wpx - PL - PR;
+  const slotW = cw / n;
+  const maxWind = Math.max(...hourly.windSpeed, 1);
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--chart-label').trim() || '#64748b';
+  const speedAt = (x: number): number => {
+    const i = Math.max(0, Math.min(n - 1, Math.floor((x - PL) / slotW)));
+    return hourly.windSpeed[i] / maxWind; // 0..1
+  };
+
+  const count = Math.min(400, Math.max(30, Math.floor(cw / 6)));
+  const parts = Array.from({ length: count }, () => ({ x: PL + Math.random() * cw, y: Math.random() * WIND_LANE_H }));
+
+  let running = true;
+  let raf = 0;
+  const frame = (): void => {
+    if (!running || !canvas.isConnected) return; // auto-stops on re-mount / view change
+    ctx.clearRect(0, 0, wpx, WIND_LANE_H); // transparent — SVG arrows show through
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    for (const p of parts) {
+      const sp = speedAt(p.x);
+      const v = 0.2 + 2.0 * sp;
+      ctx.globalAlpha = 0.15 + 0.45 * sp;
+      ctx.beginPath();
+      ctx.moveTo(p.x - (4 + v * 6), p.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      p.x += v;
+      if (p.x > PL + cw) { p.x = PL; p.y = Math.random() * WIND_LANE_H; }
+    }
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+  return () => { running = false; cancelAnimationFrame(raf); };
 }
 
 // Hover on mouse devices; scrub-while-touching on touch devices. Touch

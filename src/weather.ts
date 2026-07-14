@@ -19,7 +19,7 @@ const DAILY_VARS = [
   'daylight_duration',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover,wind_speed_10m,wind_direction_10m';
 
 // 'no_coverage': the model returns nothing for this location.
 // 'no_tomorrow': it has near-term data but doesn't forecast through tomorrow,
@@ -229,6 +229,8 @@ function toHourly(h: Record<string, (number | null)[]>, start: number, len: numb
     snow:         series('snowfall'),
     pressure:     series('surface_pressure'),
     cloud:        series('cloud_cover'),
+    windSpeed:    series('wind_speed_10m'),
+    windDirection: series('wind_direction_10m'),
   };
 }
 
