@@ -1,6 +1,7 @@
 import './style.css';
-import { fetchWeather, fetchModelAvailability, WeatherNoDataError } from './weather';
-import type { TimelineDayInfo, UnusableReason } from './weather';
+import { fetchWeather, fetchModelAvailability, fetchModelComparison, WeatherNoDataError } from './weather';
+import type { TimelineDayInfo, UnusableReason, CompareData } from './weather';
+import { buildCompareTable, COMPARE_PARAMS, CMP_PARAM_ICON } from './compare';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
@@ -39,6 +40,13 @@ const PARAM_ICON: Record<string, string> = {
   wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud,
 };
 const paramLabel = (id: string): string => id === 'cloud' ? t('tooltip.cloudCover') : t(`metric.${id}.title`);
+
+// ─── Model comparison state ("app in the app") ────────────────────────────────
+let cmpModels: string[] = [];
+let cmpParams = new Set<string>(COMPARE_PARAMS);
+let cmpRange: 2 | 7 | 'all' = 2;
+let cmpData: CompareData | null = null;
+let cmpLocation: GeoResult | null = null;
 
 const LANG_NAMES: Record<Lang, string> = {
   en: 'English', cs: 'Čeština', de: 'Deutsch',
@@ -133,6 +141,7 @@ type ViewState =
   | { type: 'loading' }
   | { type: 'weather'; location: GeoResult; weather: WeatherData }
   | { type: 'settings'; location: GeoResult; weather: WeatherData }
+  | { type: 'compare'; location: GeoResult }
   | null;
 
 let theme: Theme = 'auto';
@@ -168,6 +177,7 @@ function closeAllMenus(): void {
   document.getElementById('lang-menu')?.classList.add('hidden');
   document.getElementById('model-menu')?.classList.add('hidden');
   document.getElementById('unit-menu')?.classList.add('hidden');
+  document.getElementById('cmp-model-menu')?.classList.add('hidden');
 }
 
 function setupDropdown(btnId: string, menuId: string, dataAttr: string, onSelect: (value: string) => void): void {
@@ -315,6 +325,7 @@ function setupModelDropdown(location: GeoResult | null): void {
 function rerenderCurrentView(): void {
   if (currentView?.type === 'search') renderSearch();
   else if (currentView?.type === 'weather') renderWeather(currentView.location, currentView.weather);
+  else if (currentView?.type === 'compare') renderCompare(currentView.location);
 }
 
 function attachDropdownHandlers(): void {
@@ -641,6 +652,37 @@ function clearUrlParams(): void {
   history.replaceState(null, '', str ? '?' + str : window.location.pathname);
 }
 
+// The comparison view has its own URL: view=compare + its own attributes
+// (m=models, p=shown params, d=range in days), plus the shared location and
+// global unit/theme/lang. Kept separate from the weather view's params.
+function setCompareUrl(location: GeoResult): void {
+  const p = new URLSearchParams();
+  p.set('view', 'compare');
+  p.set('lat', location.latitude.toFixed(4));
+  p.set('lon', location.longitude.toFixed(4));
+  p.set('name', location.name);
+  if (location.country) p.set('country', location.country);
+  if (location.admin1) p.set('admin1', location.admin1);
+  if (unit === 'F') p.set('unit', 'F');
+  if (theme !== 'auto') p.set('theme', theme);
+  if (highContrast) p.set('hc', '1');
+  if (getLang() !== 'en') p.set('lang', getLang());
+  if (cmpModels.length) p.set('m', cmpModels.join(','));
+  if (cmpParams.size !== COMPARE_PARAMS.length) p.set('p', COMPARE_PARAMS.filter(x => cmpParams.has(x)).join(','));
+  if (cmpRange !== 2) p.set('d', String(cmpRange));
+  history.replaceState(null, '', '?' + p.toString());
+}
+
+function readCompareUrl(): void {
+  const p = new URLSearchParams(window.location.search);
+  const m = p.get('m');
+  if (m !== null) cmpModels = m.split(',').filter(id => MODEL_MAP.has(id));
+  const pp = p.get('p');
+  if (pp !== null) cmpParams = new Set((COMPARE_PARAMS as readonly string[]).filter(x => pp.split(',').includes(x)));
+  const d = p.get('d');
+  cmpRange = d === '7' ? 7 : d === 'all' ? 'all' : 2;
+}
+
 // ─── Views ────────────────────────────────────────────────────────────────────
 
 function renderSearch(): void {
@@ -858,6 +900,267 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
   document.getElementById('settings-done')!.addEventListener('click', () => renderWeather(location, weather));
 }
 
+// ─── Model comparison view ("app in the app") ─────────────────────────────────
+
+function cmpModelMenuHTML(): string {
+  const groups = ['auto', 'seamless', 'global', 'regional'] as const;
+  const groupLabels: Record<string, string> = {
+    auto: t('model.groupAuto'), seamless: t('model.groupSeamless'),
+    global: t('model.groupGlobal'), regional: t('model.groupRegional'),
+  };
+  let list = '';
+  let first = true;
+  for (const group of groups) {
+    const models = WEATHER_MODELS.filter(m => m.group === group);
+    if (!models.length) continue;
+    list += `<div class="model-group px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-body opacity-50${first ? '' : ' border-t border-edge'}" data-group="${group}">${groupLabels[group]}</div>`;
+    for (const m of models) {
+      const search = `${m.name} ${m.provider} ${m.coverage} ${m.shortLabel}`.toLowerCase().replace(/"/g, '');
+      list += `<label class="model-item flex items-center gap-2 px-3 py-2 text-sm hover-item text-body border-t border-edge cursor-pointer" data-group="${group}" data-search="${search}">
+        <input type="checkbox" class="cmp-model-check w-4 h-4 accent-sky-500 shrink-0" data-model="${m.id}" ${cmpModels.includes(m.id) ? 'checked' : ''}/>
+        <span class="avail-mark hidden text-sky-500 shrink-0" title="${t('model.availableHere')}">✓</span>
+        <span class="min-w-0 flex-1"><span>${m.name}</span><span class="block text-xs opacity-50">${m.provider} · ${m.coverage}</span></span>
+      </label>`;
+    }
+    first = false;
+  }
+  return `<div id="cmp-model-menu" class="absolute left-0 top-full mt-1 rounded-xl shadow-lg z-30 hidden flex flex-col text-left bg-surface border border-edge" style="min-width:300px;max-height:60vh">
+    <div class="sticky top-0 z-10 bg-surface border-b border-edge p-2 flex items-center gap-2">
+      <input id="cmp-model-search" type="text" autocomplete="off" placeholder="${t('model.searchPlaceholder')}" class="min-w-0 flex-1 px-2 py-1.5 rounded-lg border border-edge bg-surface text-body text-sm placeholder:text-placeholder focus:outline-hidden focus:ring-2 focus:ring-sky-400"/>
+      <button id="cmp-here-only" type="button" aria-pressed="false" class="shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-edge text-muted hover-btn"><span aria-hidden="true">✓</span><span>${t('model.hereOnly')}</span></button>
+    </div>
+    <div class="overflow-y-auto">${list}<div id="cmp-model-nomatch" class="hidden px-3 py-6 text-sm text-muted text-center">${t('model.noMatches')}</div></div>
+  </div>`;
+}
+
+function filterCmpMenu(): void {
+  const menu = document.getElementById('cmp-model-menu');
+  if (!menu) return;
+  const q = (menu.querySelector<HTMLInputElement>('#cmp-model-search')?.value ?? '').trim().toLowerCase();
+  const hereOnly = menu.querySelector('#cmp-here-only')?.getAttribute('aria-pressed') === 'true';
+  let any = false;
+  menu.querySelectorAll<HTMLElement>('.model-item').forEach(it => {
+    const vis = (!q || (it.dataset.search ?? '').includes(q)) && (!hereOnly || it.dataset.avail === '1');
+    it.classList.toggle('hidden', !vis);
+    if (vis) any = true;
+  });
+  menu.querySelectorAll<HTMLElement>('.model-group').forEach(h => {
+    const items = menu.querySelectorAll<HTMLElement>(`.model-item[data-group="${h.dataset.group}"]`);
+    h.classList.toggle('hidden', !Array.from(items).some(i => !i.classList.contains('hidden')));
+  });
+  menu.querySelector('#cmp-model-nomatch')?.classList.toggle('hidden', any);
+}
+
+function applyCmpAvailability(set: Set<string>): void {
+  const menu = document.getElementById('cmp-model-menu');
+  if (!menu) return;
+  if (!set.size) {
+    // Unknown (probe failed) — drop the toggle, leave every model selectable.
+    menu.querySelector('#cmp-here-only')?.classList.add('hidden');
+    return;
+  }
+  menu.querySelectorAll<HTMLElement>('.model-item').forEach(it => {
+    const id = it.querySelector<HTMLInputElement>('.cmp-model-check')?.dataset.model ?? '';
+    const avail = set.has(id);
+    it.dataset.avail = avail ? '1' : '0';
+    it.querySelector('.avail-mark')?.classList.toggle('hidden', !avail);
+  });
+  filterCmpMenu();
+}
+
+function setupCmpModelMenu(location: GeoResult): void {
+  const btn = document.getElementById('cmp-model-btn');
+  const menu = document.getElementById('cmp-model-menu');
+  if (!btn || !menu) return;
+  let outside: ((e: MouseEvent) => void) | null = null;
+  const close = (): void => {
+    menu.classList.add('hidden');
+    if (outside) { document.removeEventListener('click', outside); outside = null; }
+  };
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasHidden = menu.classList.contains('hidden');
+    closeAllMenus();
+    if (!wasHidden) { close(); return; }
+    menu.classList.remove('hidden');
+    const search = menu.querySelector<HTMLInputElement>('#cmp-model-search');
+    outside = (ev: MouseEvent) => { if (!menu.contains(ev.target as Node)) close(); };
+    setTimeout(() => { search?.focus(); document.addEventListener('click', outside!); }, 0);
+    ensureAvailability(location, applyCmpAvailability);
+  });
+  menu.addEventListener('click', (e) => e.stopPropagation());
+  menu.querySelector<HTMLInputElement>('#cmp-model-search')?.addEventListener('input', filterCmpMenu);
+  const toggle = menu.querySelector<HTMLButtonElement>('#cmp-here-only');
+  toggle?.addEventListener('click', () => {
+    const on = toggle.getAttribute('aria-pressed') !== 'true';
+    toggle.setAttribute('aria-pressed', String(on));
+    toggle.classList.toggle('bg-sky-500', on);
+    toggle.classList.toggle('text-white', on);
+    toggle.classList.toggle('border-sky-500', on);
+    toggle.classList.toggle('text-muted', !on);
+    filterCmpMenu();
+  });
+  menu.querySelectorAll<HTMLInputElement>('.cmp-model-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.model!;
+      if (cb.checked) { if (!cmpModels.includes(id)) cmpModels.push(id); }
+      else cmpModels = cmpModels.filter(x => x !== id);
+      setCompareUrl(location);
+      void refreshCompareTable(); // keeps the popover open
+    });
+  });
+}
+
+function cmpNowIdx(data: CompareData): number {
+  const nowIso = new Date(Date.now() + data.utcOffsetSeconds * 1000).toISOString().slice(0, 13);
+  return data.time.findIndex(tt => tt.slice(0, 13) === nowIso);
+}
+
+function cmpMessage(msgKey: string): string {
+  return `<div class="rounded-2xl bg-surface hc:border-2 border-edge p-10 text-center text-muted text-sm">${t(msgKey)}</div>`;
+}
+
+function drawCompareTable(slot: HTMLElement): void {
+  if (!cmpData) return;
+  const rangeHours = cmpRange === 'all' ? cmpData.time.length : cmpRange * 24;
+  const params = COMPARE_PARAMS.filter(p => cmpParams.has(p));
+  slot.innerHTML = buildCompareTable(cmpData, cmpModels, params, unit, rangeHours, cmpNowIdx(cmpData));
+  slot.querySelectorAll<HTMLButtonElement>('.cmp-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.model!;
+      cmpModels = cmpModels.filter(x => x !== id);
+      document.querySelector<HTMLInputElement>(`.cmp-model-check[data-model="${id}"]`)?.removeAttribute('checked');
+      const cb = document.querySelector<HTMLInputElement>(`.cmp-model-check[data-model="${id}"]`);
+      if (cb) cb.checked = false;
+      if (cmpLocation) setCompareUrl(cmpLocation);
+      void refreshCompareTable();
+    });
+  });
+}
+
+// Fill the #cmp-table slot: fetch only when the current data doesn't already
+// cover the selected models (range/param/unit changes never refetch).
+async function refreshCompareTable(): Promise<void> {
+  const slot = document.getElementById('cmp-table');
+  if (!slot || !cmpLocation) return;
+  if (!cmpModels.length) { slot.innerHTML = cmpMessage('compare.emptyModels'); return; }
+  if (!cmpParams.size)   { slot.innerHTML = cmpMessage('compare.emptyParams'); return; }
+  const covered = cmpData && cmpModels.every(id => id in cmpData!.models);
+  if (!covered) {
+    slot.innerHTML = `<div class="rounded-2xl bg-surface hc:border-2 border-edge p-10 text-center text-muted text-sm animate-pulse">${t('error.loading')}</div>`;
+    try {
+      cmpData = await fetchModelComparison(cmpLocation.latitude, cmpLocation.longitude, cmpModels);
+    } catch {
+      slot.innerHTML = cmpMessage('error.failed');
+      return;
+    }
+  }
+  drawCompareTable(slot);
+}
+
+function renderCompare(location: GeoResult): void {
+  transition(() => doRenderCompare(location));
+}
+
+function doRenderCompare(location: GeoResult): void {
+  currentView = { type: 'compare', location };
+  cmpLocation = location;
+  setCompareUrl(location);
+  const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
+  const rangeBtn = (v: string, key: string) => {
+    const active = String(cmpRange) === v;
+    return `<button class="cmp-range px-3 py-1.5 text-sm ${active ? 'bg-selected text-selected-text' : 'text-muted hover-btn'}" data-range="${v}">${t(key)}</button>`;
+  };
+  const paramChecks = COMPARE_PARAMS.map(p => `
+    <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+      <input type="checkbox" class="cmp-param-check w-4 h-4 accent-sky-500" data-param="${p}" ${cmpParams.has(p) ? 'checked' : ''}/>
+      <span>${CMP_PARAM_ICON[p]}</span><span class="text-body">${paramLabel(p)}</span>
+    </label>`).join('');
+
+  root.innerHTML = `
+    <div class="min-h-screen p-4 sm:p-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <button id="cmp-back" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn shrink-0">← ${t('compare.back')}</button>
+          <div class="text-sm text-muted min-w-0 truncate flex-1">📍 ${locationLabel}</div>
+          <div class="flex gap-2 shrink-0">
+            <div class="relative">
+              <button id="unit-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">°${unit} <span class="text-xs opacity-50">▾</span></button>
+              <div id="unit-menu" class="absolute right-0 top-full mt-1 rounded-xl shadow-lg z-20 hidden overflow-hidden bg-surface border border-edge" style="min-width:72px">
+                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body${unit === 'C' ? ' font-semibold' : ''}" data-unit="C">°C</button>
+                <button class="w-full text-left px-3 py-2 text-sm hover-item text-body border-t border-edge${unit === 'F' ? ' font-semibold' : ''}" data-unit="F">°F</button>
+              </div>
+            </div>
+            <div class="relative">
+              <button id="lang-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-muted hover-btn flex items-center gap-1">${getLang().toUpperCase()} <span class="text-xs opacity-50">▾</span></button>
+              ${langMenuHTML()}
+            </div>
+          </div>
+        </div>
+
+        <h1 class="text-xl font-semibold text-heading">${t('compare.title')}</h1>
+        <p class="text-muted text-sm mb-4">${t('compare.subtitle')}</p>
+
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-3 mb-4">
+          <div class="relative shrink-0">
+            <button id="cmp-model-btn" class="text-sm px-3 py-1.5 rounded-lg border border-edge text-body hover-btn flex items-center gap-1">＋ ${t('compare.addModels')} <span class="text-xs opacity-50">▾</span></button>
+            ${cmpModelMenuHTML()}
+          </div>
+          <div class="flex rounded-lg overflow-hidden border border-edge shrink-0">
+            ${rangeBtn('2', 'compare.range2')}${rangeBtn('7', 'compare.range7')}${rangeBtn('all', 'compare.rangeAll')}
+          </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">${paramChecks}</div>
+        </div>
+
+        <div id="cmp-table"></div>
+
+        <div class="flex items-center gap-4 mt-4 text-xs text-muted">
+          <span>${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a></span>
+          <button id="theme-btn" class="flex items-center gap-1.5 subtle-text"><span>${THEME_ICONS[theme]}</span><span>${themeLabel()}</span></button>
+          <button id="hc-btn" class="flex items-center gap-1.5 subtle-text" aria-pressed="${highContrast}"><span>◑</span><span>${highContrast ? t('theme.easyReadOn') : t('theme.easyRead')}</span></button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('cmp-back')!.addEventListener('click', () => void loadWeather(location));
+  setupCmpModelMenu(location);
+  setupDropdown('unit-btn', 'unit-menu', 'unit', (value) => {
+    unit = value as 'C' | 'F';
+    setCompareUrl(location);
+    renderCompare(location);
+  });
+  setupDropdown('lang-btn', 'lang-menu', 'lang', (value) => {
+    void setLang(value as Lang).then(rerenderCurrentView);
+  });
+  attachThemeHandler();
+  attachHCHandler();
+
+  document.querySelectorAll<HTMLButtonElement>('.cmp-range').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.range!;
+      cmpRange = v === '7' ? 7 : v === 'all' ? 'all' : 2;
+      document.querySelectorAll<HTMLButtonElement>('.cmp-range').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('bg-selected', on);
+        b.classList.toggle('text-selected-text', on);
+        b.classList.toggle('text-muted', !on);
+        b.classList.toggle('hover-btn', !on);
+      });
+      setCompareUrl(location);
+      void refreshCompareTable();
+    });
+  });
+  document.querySelectorAll<HTMLInputElement>('.cmp-param-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) cmpParams.add(cb.dataset.param!); else cmpParams.delete(cb.dataset.param!);
+      setCompareUrl(location);
+      void refreshCompareTable();
+    });
+  });
+
+  void refreshCompareTable();
+}
+
 function renderWeather(location: GeoResult, weather: WeatherData): void {
   transition(() => doRenderWeather(location, weather));
 }
@@ -965,6 +1268,8 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
         <div id="chart-slot"></div>
 
+        <button id="cmp-open" class="w-full mt-3 py-2.5 rounded-xl border border-edge text-body hover-btn text-sm flex items-center justify-center gap-2">${t('compare.open')} →</button>
+
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span>${t('weather.dataSource')} <a ${LINK} href="https://open-meteo.com/">Open-Meteo ↗</a></span>
@@ -1003,6 +1308,10 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   });
   document.querySelectorAll<HTMLButtonElement>('.search-btn').forEach(btn => btn.addEventListener('click', renderSearch));
   document.getElementById('settings-btn')?.addEventListener('click', () => renderSettings(location, weather));
+  document.getElementById('cmp-open')?.addEventListener('click', () => {
+    if (!cmpModels.length) cmpModels = [model]; // seed with the currently selected model
+    renderCompare(location);
+  });
   attachThemeHandler();
   attachHCHandler();
   attachDropdownHandlers();
@@ -1165,7 +1474,10 @@ void (async () => {
   await settingsReady;
 
   const initialLocation = getLocationFromUrl();
-  if (initialLocation) {
+  if (initialLocation && new URLSearchParams(window.location.search).get('view') === 'compare') {
+    readCompareUrl();
+    renderCompare(initialLocation);
+  } else if (initialLocation) {
     void loadWeather(initialLocation);
   } else {
     renderSearch();

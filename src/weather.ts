@@ -127,6 +127,63 @@ export interface TimelineDayInfo {
   sunset: string;
 }
 
+export interface CompareModelSeries {
+  temp: (number | null)[];
+  apparentTemp: (number | null)[];
+  precip: (number | null)[];
+  windSpeed: (number | null)[];
+  windDirection: (number | null)[];
+  pressure: (number | null)[];
+}
+export interface CompareData {
+  time: string[];               // ISO local hours, shared across models
+  utcOffsetSeconds: number;
+  models: Record<string, CompareModelSeries>; // per selected model id
+}
+
+// Hourly series for several models at one location, for the comparison table.
+// A single multi-model request returns `<var>_<id>` keys plus a shared `time`
+// array. Nulls are kept (rendered as "—") so a model that lacks a variable/hour
+// here doesn't fake a value. Fetches the full 14 days so the range control can
+// slice client-side without refetching.
+export async function fetchModelComparison(lat: number, lon: number, modelIds: string[]): Promise<CompareData> {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(lat));
+  url.searchParams.set('longitude', String(lon));
+  url.searchParams.set('hourly', 'temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure');
+  url.searchParams.set('timezone', 'auto');
+  url.searchParams.set('past_days', '0');
+  url.searchParams.set('forecast_days', '14');
+  url.searchParams.set('models', modelIds.join(','));
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: boolean } | null;
+    if (body?.error === true) throw new WeatherNoDataError();
+    throw new Error(`Weather API error ${res.status}`);
+  }
+  const data = await res.json().catch(() => { throw new WeatherNoDataError(); }) as { hourly?: Record<string, (number | null)[]>; utc_offset_seconds?: number };
+  const h = data.hourly ?? {};
+  // A single-model request comes back unsuffixed; suffix with the id otherwise.
+  const key = (v: string, id: string) => modelIds.length === 1 ? (h[`${v}_${id}`] ?? h[v] ?? []) : (h[`${v}_${id}`] ?? []);
+  const models: Record<string, CompareModelSeries> = {};
+  for (const id of modelIds) {
+    models[id] = {
+      temp:          key('temperature_2m', id),
+      apparentTemp:  key('apparent_temperature', id),
+      precip:        key('precipitation', id),
+      windSpeed:     key('wind_speed_10m', id),
+      windDirection: key('wind_direction_10m', id),
+      pressure:      key('surface_pressure', id),
+    };
+  }
+  return {
+    time: (h['time'] as unknown as string[]) ?? [],
+    utcOffsetSeconds: data.utc_offset_seconds ?? 0,
+    models,
+  };
+}
+
 // One request covers everything: yesterday (past_days=1) through 14 forecast
 // days, both daily and hourly — the comparison and the scrollable timeline
 // render from the same response.
