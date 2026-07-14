@@ -99,12 +99,32 @@ export function buildTimeline(
   const snowOff = showBoth ?  (bw / 2 + 0.5) : 0;
   const maxBarH = TL_CH * 0.25;
 
-  const bars = (vals: number[], maxV: number, color: string, xOff: number) =>
-    vals.map((p, i) => {
-      const barH = (p / maxV) * maxBarH;
+  // Precipitation probability drives each bar's fill opacity: faint = unlikely,
+  // solid = near-certain. A floor keeps even low-chance bars faintly filled, and
+  // the same-hue outline (--precip-bar-stroke) keeps the bar shape visible below
+  // it. Past hours have null probability (observed truth) → rendered solid.
+  const hasProb = hourly.precipProbability.some(v => v != null);
+  const OPACITY_FLOOR = 0.2;
+  const barOpacity = (i: number): number => {
+    const p = hourly.precipProbability[i];
+    if (p == null) return 1;
+    return OPACITY_FLOOR + (p / 100) * (1 - OPACITY_FLOOR);
+  };
+
+  // Models without a probability series get striped bars — the amount is known,
+  // the likelihood isn't.
+  const bars = (vals: number[], maxV: number, color: string, xOff: number, hatchId: string) =>
+    vals.map((v, i) => {
+      const barH = (v / maxV) * maxBarH;
       if (barH < 0.5) return '';
-      return `<rect x="${(xP(i) + xOff - bw / 2).toFixed(1)}" y="${(PT + TL_CH - barH).toFixed(1)}" width="${bw.toFixed(1)}" height="${barH.toFixed(1)}" style="fill:${color}" rx="1"/>`;
+      const fill = hasProb ? color : `url(#${hatchId})`;
+      const op   = hasProb ? barOpacity(i) : 1;
+      return `<rect x="${(xP(i) + xOff - bw / 2).toFixed(1)}" y="${(PT + TL_CH - barH).toFixed(1)}" width="${bw.toFixed(1)}" height="${barH.toFixed(1)}" rx="1" style="fill:${fill};fill-opacity:${op.toFixed(2)};stroke:${color};stroke-width:var(--precip-bar-stroke)"/>`;
     }).join('');
+
+  const hatch = (id: string, color: string) =>
+    `<pattern id="${id}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="${color}" stroke-width="5" stroke-opacity="0.55"/></pattern>`;
+  const barDefs = `<defs>${hatch('precip-hatch', PRECIP_COLOR)}${hatch('snow-hatch', SNOW_COLOR)}</defs>`;
 
   // Night shading from each day's sunrise/sunset
   const nightRects: string[] = [];
@@ -176,12 +196,13 @@ export function buildTimeline(
         <div id="tl-scroll" style="overflow-x:auto">
           <svg id="tl-svg" viewBox="0 0 ${w} ${TL_H}" style="display:block;width:${w}px;height:${TL_H}px">
             ${LBL_STYLE}
+            ${barDefs}
             ${nightRects.join('')}
             ${grid.join('')}
             ${dayLines.join('')}
             ${cloudFill}
-            ${hasAnyRain ? bars(hourly.rain, maxRain, PRECIP_COLOR, rainOff) : ''}
-            ${hasAnySnow ? bars(hourly.snow, maxSnow, SNOW_COLOR,   snowOff) : ''}
+            ${hasAnyRain ? bars(hourly.rain, maxRain, PRECIP_COLOR, rainOff, 'precip-hatch') : ''}
+            ${hasAnySnow ? bars(hourly.snow, maxSnow, SNOW_COLOR,   snowOff, 'snow-hatch') : ''}
             <path d="${linePath(press, minPressure, maxPressure)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
             <path d="${linePath(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
             <path d="${linePath(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
@@ -214,11 +235,11 @@ export function buildTimeline(
         </span>
         ${hasAnyRain ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:${PRECIP_COLOR};border-radius:2px"></span><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
+          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid ${PRECIP_COLOR};overflow:hidden"><span style="display:block;width:100%;height:100%;background:${PRECIP_COLOR};opacity:0.6"></span></span><span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
         </span>` : ''}
         ${hasAnySnow ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:10px;height:10px;background:var(--snow-color);border-radius:2px"></span><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
+          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--snow-color);overflow:hidden"><span style="display:block;width:100%;height:100%;background:var(--snow-color);opacity:0.6"></span></span><span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
         </span>` : ''}
         <span class="flex items-center gap-1.5">
           <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR}"></span><span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
@@ -283,6 +304,9 @@ export function setupTimelineTooltip(
     const fmt = (v: number) => `${Math.round(v)}°${unit}`;
     const rainFmt = (p: number) => p < 0.05 ? '–' : `${fmtNum(p)} mm`;
     const snowFmt = (s: number) => s < 0.05 ? '–' : `${fmtNum(s)} cm`;
+    // Chance of precipitation — null for observed past hours and unsupported models
+    const prob = hourly.precipProbability[idx];
+    const probStr = prob == null ? '' : `  ·  ${prob}%`;
 
     tooltip.innerHTML = `
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:4px;font-size:12px">${dayLabel}, ${hh}</div>
@@ -293,10 +317,10 @@ export function setupTimelineTooltip(
         <span style="color:var(--tooltip-text-main)">${fmt(feels[idx])}</span>
         ${hasAnyRain ? `
         <span style="color:${PRECIP_COLOR}" title="${t('tooltip.precipitation')}">${ICONS.rain}</span>
-        <span style="color:var(--tooltip-text-main)">${rainFmt(hourly.rain[idx])}</span>` : ''}
+        <span style="color:var(--tooltip-text-main)">${rainFmt(hourly.rain[idx])}${probStr}</span>` : ''}
         ${hasAnySnow ? `
         <span style="color:var(--snow-color)" title="${t('tooltip.snowfall')}">${ICONS.snow}</span>
-        <span style="color:var(--tooltip-text-main)">${snowFmt(hourly.snow[idx])}</span>` : ''}
+        <span style="color:var(--tooltip-text-main)">${snowFmt(hourly.snow[idx])}${hasAnyRain ? '' : probStr}</span>` : ''}
         <span style="color:${PRESSURE_COLOR}" title="${t('tooltip.pressure')}">${ICONS.pressure}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(press[idx])} hPa</span>
         <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>

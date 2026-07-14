@@ -52,6 +52,7 @@
   --chart-grid:     #f1f5f9;
   --chart-label:    #64748b;
   --chart-lbl-size: 16px;
+  --precip-bar-stroke: 0.75px; /* outline keeps low-probability (faint) bars visible */
 
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #e2e8f0;
@@ -131,6 +132,7 @@
   --chart-grid:     #d1d5db;
   --chart-label:    #111827;
   --chart-lbl-size: 18px;
+  --precip-bar-stroke: 1.25px;
 
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #000000;

@@ -19,7 +19,7 @@ const DAILY_VARS = [
   'daylight_duration',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,surface_pressure,cloud_cover';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover';
 
 export class WeatherNoDataError extends Error {
   constructor() {
@@ -129,10 +129,15 @@ function toHourly(h: Record<string, (number | null)[]>, start: number, len: numb
   const series = (key: string) => h[key].slice(start, start + len).map(v => v ?? 0);
   const rain    = series('rain');
   const showers = series('showers');
+  // Probability is forecast-only: null for past hours (observed), and the whole
+  // series is absent for models that don't provide it. Keep the nulls — the
+  // chart distinguishes "observed" from "unsupported" from them.
+  const prob = h['precipitation_probability'];
   return {
     temp:         series('temperature_2m'),
     apparentTemp: series('apparent_temperature'),
     precip:       series('precipitation'),
+    precipProbability: prob ? prob.slice(start, start + len) : Array(len).fill(null),
     rain:         rain.map((v, i) => v + showers[i]),
     snow:         series('snowfall'),
     pressure:     series('surface_pressure'),

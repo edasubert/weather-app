@@ -23,6 +23,7 @@ export interface HourlyData {
   temp: number[];
   apparentTemp: number[];
   precip: number[];
+  precipProbability: (number | null)[];
   rain: number[];
   snow: number[];
   pressure: number[];
