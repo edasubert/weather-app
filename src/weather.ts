@@ -139,6 +139,9 @@ export interface CompareData {
   time: string[];               // ISO local hours, shared across models
   utcOffsetSeconds: number;
   models: Record<string, CompareModelSeries>; // per selected model id
+  days: string[];               // daily dates (for sunrise/sunset alignment)
+  sunrise: string[];            // ISO local per day (model-independent)
+  sunset: string[];
 }
 
 // Hourly series for several models at one location, for the comparison table.
@@ -151,6 +154,7 @@ export async function fetchModelComparison(lat: number, lon: number, modelIds: s
   url.searchParams.set('latitude', String(lat));
   url.searchParams.set('longitude', String(lon));
   url.searchParams.set('hourly', 'temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure');
+  url.searchParams.set('daily', 'sunrise,sunset');
   url.searchParams.set('timezone', 'auto');
   url.searchParams.set('past_days', '0');
   url.searchParams.set('forecast_days', '14');
@@ -162,8 +166,12 @@ export async function fetchModelComparison(lat: number, lon: number, modelIds: s
     if (body?.error === true) throw new WeatherNoDataError();
     throw new Error(`Weather API error ${res.status}`);
   }
-  const data = await res.json().catch(() => { throw new WeatherNoDataError(); }) as { hourly?: Record<string, (number | null)[]>; utc_offset_seconds?: number };
+  const data = await res.json().catch(() => { throw new WeatherNoDataError(); }) as { hourly?: Record<string, (number | null)[]>; daily?: Record<string, string[]>; utc_offset_seconds?: number };
   const h = data.hourly ?? {};
+  const d = data.daily ?? {};
+  // Sunrise/sunset are astronomical (identical across models); take the first
+  // model's suffixed series (or unsuffixed for a single-model request).
+  const dkey = (v: string) => d[v] ?? d[`${v}_${modelIds[0]}`] ?? [];
   // A single-model request comes back unsuffixed; suffix with the id otherwise.
   const key = (v: string, id: string) => modelIds.length === 1 ? (h[`${v}_${id}`] ?? h[v] ?? []) : (h[`${v}_${id}`] ?? []);
   const models: Record<string, CompareModelSeries> = {};
@@ -181,6 +189,9 @@ export async function fetchModelComparison(lat: number, lon: number, modelIds: s
     time: (h['time'] as unknown as string[]) ?? [],
     utcOffsetSeconds: data.utc_offset_seconds ?? 0,
     models,
+    days: d['time'] ?? [],
+    sunrise: dkey('sunrise'),
+    sunset: dkey('sunset'),
   };
 }
 

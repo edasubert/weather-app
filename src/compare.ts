@@ -64,27 +64,48 @@ export function buildCompareTable(
     </th>`;
   }).join('');
 
+  // date → sunrise/sunset (HH:MM + the hour they fall in), for the time column
+  const sun: Record<string, { rise?: string; riseHr?: number; set?: string; setHr?: number }> = {};
+  data.days.forEach((day, di) => {
+    const rise = data.sunrise[di];
+    const set = data.sunset[di];
+    sun[day] = {
+      rise: rise ? rise.slice(11, 16) : undefined, riseHr: rise ? Number(rise.slice(11, 13)) : undefined,
+      set:  set  ? set.slice(11, 16)  : undefined, setHr:  set  ? Number(set.slice(11, 13))  : undefined,
+    };
+  });
+
   let lastDay = '';
   const rows: string[] = [];
   for (let i = 0; i < n; i++) {
     const iso = data.time[i] ?? '';
     const day = iso.slice(0, 10);
-    const hh = iso.slice(11, 16);
+    const hr = Number(iso.slice(11, 13));
+    // Accumulated values (precip…) are for the hour ending at the timestamp, so
+    // show the preceding hour above the bold current hour to frame the interval.
+    const prevHH = `${String((hr + 23) % 24).padStart(2, '0')}:00`;
+    const currHH = iso.slice(11, 16);
     const newDay = day !== lastDay;
     lastDay = day;
     const isNow = i === nowIdx;
-    const nowBg = isNow ? 'background:var(--hover-item);' : '';
     const dayLabel = newDay ? new Date(day + 'T12:00:00').toLocaleDateString(getLocale(), { weekday: 'short', month: 'short', day: 'numeric' }) : '';
-    const timeCell = `<th class="sticky left-0 z-10 bg-surface ${newDay ? 'border-t-2' : ''} border-r border-edge px-2 py-1 text-left whitespace-nowrap" style="${nowBg}${isNow ? 'border-left:3px solid var(--color-accent);' : ''}">
+    const s = sun[day];
+    const sunLine = [
+      s?.riseHr === hr ? `<div class="text-[10px] text-muted whitespace-nowrap">🌅 ${s!.rise}</div>` : '',
+      s?.setHr === hr ? `<div class="text-[10px] text-muted whitespace-nowrap">🌇 ${s!.set}</div>` : '',
+    ].join('');
+    const timeCell = `<th class="sticky left-0 z-10 bg-surface ${newDay ? 'border-t-2' : ''} border-r border-edge px-2 py-1 text-left whitespace-nowrap" style="${isNow ? 'border-left:3px solid var(--color-accent);' : ''}">
       ${newDay ? `<div class="text-[10px] font-semibold text-muted uppercase">${dayLabel}</div>` : ''}
-      <div class="text-xs ${isNow ? 'text-heading font-semibold' : 'text-body'}">${hh}</div>
+      <div class="text-[10px] text-muted leading-tight">${prevHH}</div>
+      <div class="text-xs font-semibold leading-tight ${isNow ? 'text-heading' : 'text-body'}">${currHH}</div>
+      ${sunLine}
     </th>`;
     const cells = models.map(id => {
       const m = data.models[id];
-      const body = params.map(p => `<div class="flex items-center gap-1 leading-tight"><span class="opacity-50 shrink-0">${CMP_PARAM_ICON[p]}</span><span class="whitespace-nowrap">${m ? fmtParam(p, m, i, unit) : '—'}</span></div>`).join('');
-      return `<td class="border-l border-edge ${newDay ? 'border-t-2' : ''} px-2 py-1 text-xs text-detail align-top" style="${nowBg}">${body}</td>`;
+      const body = params.map(p => `<div class="flex items-center gap-1 leading-tight"><span class="shrink-0">${CMP_PARAM_ICON[p]}</span><span class="whitespace-nowrap">${m ? fmtParam(p, m, i, unit) : '—'}</span></div>`).join('');
+      return `<td class="border-l border-edge ${newDay ? 'border-t-2' : ''} px-2 py-1 text-xs text-detail align-top">${body}</td>`;
     }).join('');
-    rows.push(`<tr>${timeCell}${cells}</tr>`);
+    rows.push(`<tr class="cmp-row">${timeCell}${cells}</tr>`);
   }
 
   return `

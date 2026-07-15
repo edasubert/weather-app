@@ -242,6 +242,12 @@ a:focus-visible {
 /* Keyboard-highlighted suggestion — same look as hover */
 .kb-active { background-color: var(--hover-item); }
 
+/* Model-comparison row hover: highlight the whole row (incl. sticky cells) to
+   ease reading across models. Unlayered so it beats the bg utilities; the "now"
+   row is marked by its blue edge, so no collision with the hover fill. */
+.cmp-row > * { transition: background-color 0.12s; }
+.cmp-row:hover > * { background-color: var(--hover-item); }
+
 /* ── Theme button text ────────────────────────────── */
 .subtle-text { color: var(--color-muted); transition: color 0.15s; }
 .subtle-text:hover { color: var(--color-body); }
