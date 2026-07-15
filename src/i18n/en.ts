@@ -143,7 +143,7 @@ export default {
       body: '<p><strong>Air temperature at 2 m above ground</strong> — the raw measured value, unaffected by wind or humidity.</p><p>The comparison uses the daily mean temperature as reported by the model, not the simple (high + low) ÷ 2 average.</p><p class="opacity-60 text-xs">Source: <code>temperature_2m_max/mean/min</code> — {{docs}}</p>',
     },
     apparentTemp: {
-      title: 'Feels-like temperature',
+      title: 'Apparent temperature',
       body: '<p><strong>Apparent temperature</strong> combines air temperature with wind chill and humidity to estimate how hot or cold conditions actually feel to the human body.</p><p>It uses the <a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Universal_thermal_climate_index">Universal Thermal Climate Index (UTCI)</a> model — on cold windy days it will be lower than the actual temperature; on hot humid days it will be higher.</p><p class="opacity-60 text-xs">Source: <code>apparent_temperature_max/mean/min</code> — {{docs}}</p>',
     },
     precip: {
