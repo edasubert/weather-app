@@ -373,12 +373,17 @@ function diffStr(abs: number): string {
   return `${Math.round(abs)}°C`;
 }
 
-function tempSig(abs: number): string {
-  return abs < 2 ? '' : abs < 5 ? ' 👀' : abs < 10 ? ' ⚠️' : ' 🤯';
+// Severity levels drive both the appended emoji and the tile background tint
+type SevLevel = 0 | 1 | 2 | 3;
+
+const SEV_EMOJI = ['', ' 👀', ' ⚠️', ' 🤯'] as const;
+
+function tempLevel(abs: number): SevLevel {
+  return abs < 2 ? 0 : abs < 5 ? 1 : abs < 10 ? 2 : 3;
 }
 
-function windSig(abs: number): string {
-  return abs < 5 ? '' : abs < 10 ? ' 👀' : abs < 20 ? ' ⚠️' : ' 🤯';
+function windLevel(abs: number): SevLevel {
+  return abs < 5 ? 0 : abs < 10 ? 1 : abs < 20 ? 2 : 3;
 }
 
 // ─── Wind helpers ─────────────────────────────────────────────────────────────
@@ -398,7 +403,9 @@ function coordsLabel(lat: number, lon: number): string {
 
 // ─── Comparison summaries ─────────────────────────────────────────────────────
 
-function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): string {
+interface Comp { html: string; severity: SevLevel }
+
+function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): Comp {
   const dMax  = apparent ? today.apparentTempMax  - yesterday.apparentTempMax  : today.tempMax  - yesterday.tempMax;
   const dMean = apparent ? today.apparentTempMean - yesterday.apparentTempMean : today.tempMean - yesterday.tempMean;
   const dMin  = apparent ? today.apparentTempMin  - yesterday.apparentTempMin  : today.tempMin  - yesterday.tempMin;
@@ -408,58 +415,75 @@ function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent =
   const warmerKey = apparent ? 'comp.feelsWarmer' : 'comp.warmer';
   const coolerKey = apparent ? 'comp.feelsCooler' : 'comp.cooler';
 
-  const headline = absMean < 0.5
-    ? t(sameKey)
-    : `${t(dMean > 0 ? warmerKey : coolerKey, { diff: diffStr(absMean) })}${tempSig(absMean)}`;
+  const same = absMean < 0.5;
+  const severity = same ? 0 : tempLevel(absMean);
+  const sign = same ? '±' : dMean > 0 ? '+' : '−';
+  const word = t(same ? sameKey : dMean > 0 ? warmerKey : coolerKey);
 
   const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
-  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
+  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.low')} ${fmtD(dMin)}`;
 
-  return `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
+  const html = `<span class="block">
+    <span class="text-xl font-semibold text-heading">${sign}${diffStr(absMean)}</span>
+    <span class="ml-1">${word}</span>
+    <span class="block text-[10px] opacity-50 mt-0.5">${sub}</span>
+  </span>`;
+
+  return { html, severity };
 }
 
-function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
+function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): Comp {
   const todayMm = today.rainSum + today.showersSum;
   const yestMm  = yesterday.rainSum + yesterday.showersSum;
   const ctx = isTomorrowMode ? 'tomorrow' : 'today';
-  if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
-  if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}`);
-  if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}`);
-  const diff = todayMm - yestMm;
-  if (Math.abs(diff) < 0.5) return t('comp.sameRain');
-  return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
+  const text = () => {
+    if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
+    if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}`);
+    if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}`);
+    const diff = todayMm - yestMm;
+    if (Math.abs(diff) < 0.5) return t('comp.sameRain');
+    return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
+  };
+  return { html: text(), severity: 0 };
 }
 
-function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): string {
+function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): Comp {
   const todayCm = today.snowfallSum;
   const yestCm  = yesterday.snowfallSum;
   const ctx = isTomorrowMode ? 'tomorrow' : 'today';
-  if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}`);
-  if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}`);
-  const diff = todayCm - yestCm;
-  if (Math.abs(diff) < 0.2) return t('comp.sameSnow');
-  return t(diff > 0 ? 'comp.moreSnow' : 'comp.lessSnow');
+  const text = () => {
+    if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}`);
+    if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}`);
+    const diff = todayCm - yestCm;
+    if (Math.abs(diff) < 0.2) return t('comp.sameSnow');
+    return t(diff > 0 ? 'comp.moreSnow' : 'comp.lessSnow');
+  };
+  return { html: text(), severity: 0 };
 }
 
-function windComparison(today: DailyWeather, yesterday: DailyWeather): string {
+function windComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
   const diff = today.windSpeedMax - yesterday.windSpeedMax;
   const abs = Math.abs(diff);
-  if (abs < 1) return t('comp.sameWind');
-  return t(diff > 0 ? 'comp.windier' : 'comp.calmer', { diff: Math.round(abs) }) + windSig(abs);
+  if (abs < 1) return { html: t('comp.sameWind'), severity: 0 };
+  const severity = windLevel(abs);
+  return {
+    html: t(diff > 0 ? 'comp.windier' : 'comp.calmer', { diff: Math.round(abs) }),
+    severity,
+  };
 }
 
-function pressureComparison(today: DailyWeather, yesterday: DailyWeather): string {
+function pressureComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
   const diff = today.pressureMean - yesterday.pressureMean;
   const abs = Math.abs(diff);
-  if (abs < 1) return t('comp.samePressure');
-  return t(diff > 0 ? 'comp.higherPressure' : 'comp.lowerPressure', { diff: Math.round(abs) });
+  if (abs < 1) return { html: t('comp.samePressure'), severity: 0 };
+  return { html: t(diff > 0 ? 'comp.higherPressure' : 'comp.lowerPressure', { diff: Math.round(abs) }), severity: 0 };
 }
 
-function daylightComparison(today: DailyWeather, yesterday: DailyWeather): string {
+function daylightComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
   const diff = today.daylightDuration - yesterday.daylightDuration;
   const mins = Math.round(Math.abs(diff) / 60);
-  if (mins < 1) return t('comp.sameDaylight');
-  return t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins });
+  if (mins < 1) return { html: t('comp.sameDaylight'), severity: 0 };
+  return { html: t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins }), severity: 0 };
 }
 
 // ─── Metric info (modal content) ─────────────────────────────────────────────
@@ -474,18 +498,21 @@ function getMetricInfo(id: string): { title: string; body: string } {
   };
 }
 
-// ─── Comparison row ───────────────────────────────────────────────────────────
+// ─── Comparison tile ──────────────────────────────────────────────────────────
 
 function infoBtnHTML(id: string): string {
   return `<button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>`;
 }
 
-function comparisonRowHTML(icon: string, id: string, summary: string): string {
+// Literal class strings so Tailwind's source scanner picks them up
+const SEV_BG = ['bg-surface', 'bg-sev-1', 'bg-sev-2', 'bg-sev-3'] as const;
+
+function comparisonTileHTML(icon: string, id: string, comp: Comp, wide = false): string {
   return `
-    <div class="flex items-center gap-2 text-sm text-detail">
-      <span class="w-5 shrink-0">${icon}</span>
-      <span class="flex-1">${summary}</span>
-      ${infoBtnHTML(id)}
+    <div class="relative flex flex-col gap-0.5 rounded-lg p-2 text-center ${wide ? 'col-span-6 hc:col-span-12' : 'col-span-3 hc:col-span-6'} ${SEV_BG[comp.severity]} hc:border-2 border-edge">
+      <span class="text-base leading-none">${icon}${SEV_EMOJI[comp.severity]}</span>
+      <span class="text-xs text-detail">${comp.html}</span>
+      <span class="absolute top-1.5 right-1.5">${infoBtnHTML(id)}</span>
     </div>
   `;
 }
@@ -1246,20 +1273,20 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
         <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
           <h1 class="sr-only">${compHeader}</h1>
-          <div class="flex flex-col gap-2">
-            ${cardOn('temp') ? comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary)) : ''}
-            ${cardOn('apparentTemp') ? comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true)) : ''}
+          <div class="grid grid-cols-12 gap-1.5">
+            ${cardOn('temp') ? comparisonTileHTML(ICONS.temp, 'temp', tempComparison(primary, secondary), true) : ''}
+            ${cardOn('apparentTemp') ? comparisonTileHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true), true) : ''}
             ${cardOn('precip') ? (() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
               const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
               const showRain = !hasAnySnow || hasAnyRain;
               const showSnow = hasAnySnow;
-              return (showRain ? comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
-                   + (showSnow ? comparisonRowHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
+              return (showRain ? comparisonTileHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
+                   + (showSnow ? comparisonTileHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
             })() : ''}
-            ${cardOn('wind') ? comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
-            ${cardOn('pressure') ? comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
-            ${cardOn('daylight') ? comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
+            ${cardOn('wind') ? comparisonTileHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
+            ${cardOn('pressure') ? comparisonTileHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
+            ${cardOn('daylight') ? comparisonTileHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
           </div>
         </div>
 

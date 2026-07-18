@@ -31,6 +31,10 @@
   --color-edge: #e2e8f0;           /* control borders, dividers */
   --color-edge-soft: #f1f5f9;      /* list separators */
 
+  --color-sev-1: #fef3c7;          /* comparison tile: mild change (👀) */
+  --color-sev-2: #ffedd5;          /* comparison tile: notable change (⚠️) */
+  --color-sev-3: #fee2e2;          /* comparison tile: extreme change (🤯) */
+
   --color-accent: #0ea5e9;         /* links, info hover */
   --color-selected: #0ea5e9;       /* active toggle background */
   --color-selected-text: #ffffff;
@@ -80,6 +84,10 @@
   --color-edge: #334155;
   --color-edge-soft: #334155;
 
+  --color-sev-1: rgba(146, 64, 14, 0.35);
+  --color-sev-2: rgba(154, 52, 18, 0.40);
+  --color-sev-3: rgba(153, 27, 27, 0.40);
+
   --color-accent: #38bdf8;
 
   --bg-from: #0f172a;
@@ -116,6 +124,11 @@
   --color-panel: #ffffff;
   --color-edge: #000000;
   --color-edge-soft: #000000;
+
+  /* HC is strictly black/white — severity is carried by the emoji instead */
+  --color-sev-1: #ffffff;
+  --color-sev-2: #ffffff;
+  --color-sev-3: #ffffff;
 
   --color-accent: #0369a1;
   --color-selected: #000000;
@@ -155,6 +168,10 @@
   --color-panel: #000000;
   --color-edge: #ffffff;
   --color-edge-soft: #ffffff;
+
+  --color-sev-1: #000000;
+  --color-sev-2: #000000;
+  --color-sev-3: #000000;
 
   --color-accent: #7dd3fc;
   --color-selected: #ffffff;
