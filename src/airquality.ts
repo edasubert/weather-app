@@ -1,24 +1,15 @@
-// Open-Meteo Air Quality is a separate host from the weather forecast API and has
-// no daily endpoint, so daily means are aggregated client-side from the hourly
-// series. One request covers yesterday (past_days=1) through 6 forecast days —
-// the daily comparison tiles and the scrollable severity chart share it.
+// Open-Meteo Air Quality is a separate host from the weather forecast API. We
+// fetch only the three gases with genuine hourly EAQI thresholds — the severity
+// chart plots their raw hourly concentrations and derives Y from the EAQI bands
+// in airchart.ts. One request covers yesterday (past_days=1) through 6 forecast
+// days, matching the forecast API's hour alignment.
 //
 // This whole module is best-effort: air quality *enriches* the weather view, so
 // any failure (bad status, error payload, sparse/absent data) resolves to null
 // and the dependent UI simply hides.
 
-// Daily-mean pollutant levels for one day, in the units the comparison tiles show
-// (pm25/pm10/co in µg/m³, co2 in ppm). null when the day has no reading.
-export interface AirDaily {
-  pm25: number | null;
-  pm10: number | null;
-  co:   number | null;
-  co2:  number | null;
-}
-
-// Raw hourly concentrations (µg/m³) for the three gases with genuine hourly EAQI
-// thresholds. These are the values the severity chart plots; their Y position is
-// derived from the EAQI breakpoints in airchart.ts.
+// Raw hourly concentrations (µg/m³) for the three gases. Their Y position on the
+// chart is derived from the EAQI breakpoints in airchart.ts.
 export interface AirHourly {
   no2: (number | null)[];
   o3:  (number | null)[];
@@ -26,46 +17,13 @@ export interface AirHourly {
 }
 
 export interface AirData {
-  yesterday: AirDaily;
-  today: AirDaily;
-  tomorrow: AirDaily;
   hourly: AirHourly;
   utcOffsetSeconds: number;
 }
 
-const HOURLY_VARS = [
-  'pm2_5',
-  'pm10',
-  'carbon_monoxide',
-  'carbon_dioxide',
-  'nitrogen_dioxide',
-  'ozone',
-  'sulphur_dioxide',
-].join(',');
+const HOURLY_VARS = ['nitrogen_dioxide', 'ozone', 'sulphur_dioxide'].join(',');
 
 type Hourly = Record<string, (number | null)[]>;
-
-// Mean of a 24-hour block, skipping nulls. Returns null when the day has no
-// (finite) readings at all, so the tile drops rather than showing a fake 0.
-function dayMean(series: (number | null)[] | undefined, dayIdx: number): number | null {
-  if (!series) return null;
-  let sum = 0;
-  let count = 0;
-  for (let i = dayIdx * 24; i < dayIdx * 24 + 24 && i < series.length; i++) {
-    const v = series[i];
-    if (v != null && Number.isFinite(v)) { sum += v; count++; }
-  }
-  return count ? sum / count : null;
-}
-
-function aggregateDay(h: Hourly, dayIdx: number): AirDaily {
-  return {
-    pm25: dayMean(h['pm2_5'], dayIdx),
-    pm10: dayMean(h['pm10'], dayIdx),
-    co:   dayMean(h['carbon_monoxide'], dayIdx),
-    co2:  dayMean(h['carbon_dioxide'], dayIdx),
-  };
-}
 
 // Never rejects — returns null on any failure so callers can Promise.all it
 // alongside the weather fetch without a try/catch of their own.
@@ -92,9 +50,6 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirData
     if (!h || !Array.isArray(h['time']) || h['time'].length === 0) return null;
 
     return {
-      yesterday: aggregateDay(h, 0),
-      today:     aggregateDay(h, 1),
-      tomorrow:  aggregateDay(h, 2),
       hourly: {
         no2: h['nitrogen_dioxide'] ?? [],
         o3:  h['ozone'] ?? [],
