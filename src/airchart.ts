@@ -23,6 +23,11 @@ type Pollutant = keyof typeof LINE_COLORS;
 const POLLUTANTS: Pollutant[] = ['no2', 'o3', 'so2'];
 const FORMULA: Record<Pollutant, string> = { no2: 'NO₂', o3: 'O₃', so2: 'SO₂' };
 
+export type AirChartVisibility = Partial<Record<Pollutant, boolean>>;
+// Pollutants to draw, honouring per-line toggles (default: all shown).
+const shownPollutants = (vis?: AirChartVisibility): Pollutant[] =>
+  POLLUTANTS.filter(p => vis?.[p] ?? true);
+
 const LBL_STYLE = `<style>.albl{font-size:calc(var(--chart-lbl-size)*0.66);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
 
 // EAQI hourly breakpoints (µg/m³): six [lo, hi] intervals per pollutant, one per
@@ -72,7 +77,9 @@ export function buildAirChart(
   hourly: AirHourly,
   nowHours: number | null,
   viewportWidth: number,
+  vis?: AirChartVisibility,
 ): string {
+  const shown = shownPollutants(vis);
   const nDays = dayCount(days, hourly);
   const n     = nDays * 24;
   const dayW  = timelineDayWidth(viewportWidth);
@@ -141,15 +148,15 @@ export function buildAirChart(
       })()
     : '';
 
-  const lines = POLLUTANTS
+  const lines = shown
     .map(p => `<path d="${linePath(hourly[p], BREAKS[p])}" fill="none" stroke="${LINE_COLORS[p]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`)
     .join('');
 
-  const hoverDots = POLLUTANTS
-    .map(p => `<circle class="air-dot" r="3.5" cx="0" cy="0" fill="${LINE_COLORS[p]}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>`)
+  const hoverDots = shown
+    .map(p => `<circle class="air-dot" data-p="${p}" r="3.5" cx="0" cy="0" fill="${LINE_COLORS[p]}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>`)
     .join('');
 
-  const legend = POLLUTANTS
+  const legend = shown
     .map(p => `<span class="flex items-center gap-1.5" title="${t(`tooltip.${p}`)}"><span style="display:inline-block;width:18px;height:2px;background:${LINE_COLORS[p]}"></span>${FORMULA[p]}</span>`)
     .join('');
 
@@ -195,7 +202,9 @@ export function setupAirChartTooltip(
   container: HTMLElement,
   days: TimelineDay[],
   hourly: AirHourly,
+  vis?: AirChartVisibility,
 ): void {
+  const shown     = shownPollutants(vis);
   const svg       = container.querySelector<SVGSVGElement>('#air-svg')!;
   const overlay   = container.querySelector<SVGRectElement>('#air-overlay')!;
   const hoverG    = container.querySelector<SVGGElement>('#air-hover')!;
@@ -219,7 +228,7 @@ export function setupAirChartTooltip(
 
     hoverLine.setAttribute('x1', x.toFixed(1));
     hoverLine.setAttribute('x2', x.toFixed(1));
-    POLLUTANTS.forEach((p, i) => {
+    shown.forEach((p, i) => {
       const v = hourly[p][idx];
       if (v == null || !Number.isFinite(v)) { dots[i].style.display = 'none'; return; }
       dots[i].style.display = '';
@@ -230,7 +239,7 @@ export function setupAirChartTooltip(
 
     const dayLabel = days[Math.floor(idx / 24)]?.label ?? '';
     const hh = `${String(idx % 24).padStart(2, '0')}:00`;
-    const rows = POLLUTANTS.map(p => {
+    const rows = shown.map(p => {
       const v = hourly[p][idx];
       const band = v != null && Number.isFinite(v) ? t(BAND_KEYS[bandIndex(concToBand(v, BREAKS[p]))]) : '';
       return `

@@ -67,9 +67,15 @@ export default {
     airPoor: 'Schlecht',
     airVeryPoor: 'Sehr schlecht',
     airExtremelyPoor: 'Extrem schlecht',
+    pollenLow: 'Niedrig',
+    pollenModerate: 'Mäßig',
+    pollenHigh: 'Hoch',
   },
   air: {
     chartTitle: 'Luftqualität nach Schweregrad',
+  },
+  pollen: {
+    chartTitle: 'Pollen nach Schweregrad',
   },
   card: {
     high: 'max',
@@ -110,6 +116,12 @@ export default {
     no2: 'Stickstoffdioxid (NO₂)',
     o3: 'Ozon (O₃)',
     so2: 'Schwefeldioxid (SO₂)',
+    alder: 'Erlenpollen',
+    birch: 'Birkenpollen',
+    grass: 'Gräserpollen',
+    mugwort: 'Beifußpollen',
+    olive: 'Olivenpollen',
+    ragweed: 'Ambrosiapollen',
   },
   error: {
     loading: 'Wetter wird geladen…',
@@ -144,6 +156,8 @@ export default {
     chart: 'Diagramm',
     done: 'Fertig',
     open: 'Anzeigeeinstellungen',
+    air: 'Luftqualität',
+    pollen: 'Pollen',
   },
   model: {
     label: 'Modell',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Luftqualität nach Schweregrad',
       body: '<p>Dieses Diagramm zeigt <strong>NO₂, O₃ und SO₂</strong> im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Schadstoffs (µg/m³, im Tooltip), aber ihre Höhe ist auf die Schweregrad-Stufen des <strong>Europäischen Luftqualitätsindex (EAQI)</strong> skaliert.</p><p>Die sechs Stufen — Gut, Mäßig, Ungünstig, Schlecht, Sehr schlecht, Extrem schlecht — erlauben einen direkten Vergleich aller drei Gase trotz unterschiedlicher Skalen: eine Linie in einer höheren Stufe ist die schädlichere, unabhängig von ihrem Zahlenwert.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Über den Europäischen Luftqualitätsindex ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Erle' },
+    birch: { title: 'Birke' },
+    grass: { title: 'Gräser' },
+    mugwort: { title: 'Beifuß' },
+    olive: { title: 'Olive' },
+    ragweed: { title: 'Ambrosia' },
+    airChart: { title: 'Luftqualitätsdiagramm' },
+    pollenChart: { title: 'Pollendiagramm' },
+    pollen: {
+      title: 'Pollen nach Schweregrad',
+      body: '<p>Dieses Diagramm zeigt <strong>sechs Pollenarten</strong> — Erle, Birke, Gräser, Beifuß, Olive und Ambrosia — im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Taxons (Körner/m³, im Tooltip), ihre Höhe ist jedoch auf klinische Schweregrad-Bänder skaliert.</p><p>Die Bänder — Niedrig, Mäßig (Saison) und Hoch (Höhepunkt) — folgen den klinisch relevanten Schwellenwerten der <strong>EAACI</strong>, denselben Stufen, die SILAM/CAMS für die offizielle europäische Pollenvorhersage verwendet. Pollen sind nur in Europa während der Pollensaison verfügbar.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Über Pollen und Gesundheit ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -16,12 +16,29 @@ export interface AirHourly {
   so2: (number | null)[];
 }
 
+// Raw hourly pollen counts (grains/m³) for the six CAMS taxa. Europe-only and
+// in-season — outside coverage the arrays come back empty/null and the pollen
+// chart hides. The pollen chart derives Y from EAACI clinical bands (pollenchart.ts).
+export interface PollenHourly {
+  alder:   (number | null)[];
+  birch:   (number | null)[];
+  grass:   (number | null)[];
+  mugwort: (number | null)[];
+  olive:   (number | null)[];
+  ragweed: (number | null)[];
+}
+
 export interface AirData {
   hourly: AirHourly;
+  pollen: PollenHourly;
   utcOffsetSeconds: number;
 }
 
-const HOURLY_VARS = ['nitrogen_dioxide', 'ozone', 'sulphur_dioxide'].join(',');
+const HOURLY_VARS = [
+  'nitrogen_dioxide', 'ozone', 'sulphur_dioxide',
+  'alder_pollen', 'birch_pollen', 'grass_pollen',
+  'mugwort_pollen', 'olive_pollen', 'ragweed_pollen',
+].join(',');
 
 type Hourly = Record<string, (number | null)[]>;
 
@@ -54,6 +71,14 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirData
         no2: h['nitrogen_dioxide'] ?? [],
         o3:  h['ozone'] ?? [],
         so2: h['sulphur_dioxide'] ?? [],
+      },
+      pollen: {
+        alder:   h['alder_pollen'] ?? [],
+        birch:   h['birch_pollen'] ?? [],
+        grass:   h['grass_pollen'] ?? [],
+        mugwort: h['mugwort_pollen'] ?? [],
+        olive:   h['olive_pollen'] ?? [],
+        ragweed: h['ragweed_pollen'] ?? [],
       },
       utcOffsetSeconds: data.utc_offset_seconds ?? 0,
     };

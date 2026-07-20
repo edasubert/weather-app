@@ -81,6 +81,18 @@
   --air-no2: #6366f1;   /* indigo */
   --air-o3:  #ea580c;   /* orange */
   --air-so2: #0d9488;   /* teal */
+
+  /* Pollen severity bands (EAACI): Low → Moderate → High */
+  --pollen-band-0: rgba(34, 197, 94, 0.12);   /* Low — green */
+  --pollen-band-1: rgba(234, 179, 8, 0.14);   /* Moderate — amber */
+  --pollen-band-2: rgba(239, 68, 68, 0.13);   /* High — red */
+
+  --pollen-alder:   #15803d;
+  --pollen-birch:   #84cc16;
+  --pollen-grass:   #eab308;
+  --pollen-mugwort: #a855f7;
+  --pollen-olive:   #0891b2;
+  --pollen-ragweed: #e11d48;
 }
 
 .dark {
@@ -133,6 +145,17 @@
   --air-no2: #818cf8;
   --air-o3:  #fb923c;
   --air-so2: #2dd4bf;
+
+  --pollen-band-0: rgba(34, 197, 94, 0.10);
+  --pollen-band-1: rgba(234, 179, 8, 0.10);
+  --pollen-band-2: rgba(239, 68, 68, 0.12);
+
+  --pollen-alder:   #4ade80;
+  --pollen-birch:   #a3e635;
+  --pollen-grass:   #facc15;
+  --pollen-mugwort: #c084fc;
+  --pollen-olive:   #22d3ee;
+  --pollen-ragweed: #fb7185;
 }
 
 .hc {
@@ -191,6 +214,17 @@
   --air-no2: #1d4ed8;
   --air-o3:  #b91c1c;
   --air-so2: #047857;
+
+  --pollen-band-0: transparent;
+  --pollen-band-1: transparent;
+  --pollen-band-2: transparent;
+
+  --pollen-alder:   #166534;
+  --pollen-birch:   #3f6212;
+  --pollen-grass:   #a16207;
+  --pollen-mugwort: #7e22ce;
+  --pollen-olive:   #155e75;
+  --pollen-ragweed: #be123c;
 }
 
 .hc.dark {
@@ -243,6 +277,17 @@
   --air-no2: #93c5fd;
   --air-o3:  #fca5a5;
   --air-so2: #6ee7b7;
+
+  --pollen-band-0: transparent;
+  --pollen-band-1: transparent;
+  --pollen-band-2: transparent;
+
+  --pollen-alder:   #86efac;
+  --pollen-birch:   #bef264;
+  --pollen-grass:   #fde047;
+  --pollen-mugwort: #d8b4fe;
+  --pollen-olive:   #67e8f9;
+  --pollen-ragweed: #fda4af;
 }
 
 /* ── Page background ──────────────────────────────── */

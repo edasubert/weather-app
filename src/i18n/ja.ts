@@ -67,9 +67,15 @@ export default {
     airPoor: '悪い',
     airVeryPoor: '非常に悪い',
     airExtremelyPoor: '極めて悪い',
+    pollenLow: '少ない',
+    pollenModerate: '中程度',
+    pollenHigh: '多い',
   },
   air: {
     chartTitle: '深刻度別の大気質',
+  },
+  pollen: {
+    chartTitle: '重症度別の花粉',
   },
   card: {
     high: '最高',
@@ -110,6 +116,12 @@ export default {
     no2: '二酸化窒素 (NO₂)',
     o3: 'オゾン (O₃)',
     so2: '二酸化硫黄 (SO₂)',
+    alder: 'ハンノキ花粉',
+    birch: 'カバノキ花粉',
+    grass: 'イネ科花粉',
+    mugwort: 'ヨモギ花粉',
+    olive: 'オリーブ花粉',
+    ragweed: 'ブタクサ花粉',
   },
   error: {
     loading: '天気を読み込み中…',
@@ -144,6 +156,8 @@ export default {
     chart: 'グラフ',
     done: '完了',
     open: '表示設定',
+    air: '大気質',
+    pollen: '花粉',
   },
   model: {
     label: 'モデル',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: '深刻度別の大気質',
       body: '<p>このグラフは <strong>NO₂・O₃・SO₂</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる3種類の気体を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'ハンノキ' },
+    birch: { title: 'カバノキ' },
+    grass: { title: 'イネ科' },
+    mugwort: { title: 'ヨモギ' },
+    olive: { title: 'オリーブ' },
+    ragweed: { title: 'ブタクサ' },
+    airChart: { title: '大気質グラフ' },
+    pollenChart: { title: '花粉グラフ' },
+    pollen: {
+      title: '重症度別の花粉',
+      body: '<p>このグラフは<strong>6種類の花粉</strong>（ハンノキ、カバノキ、イネ科、ヨモギ、オリーブ、ブタクサ）を時系列で表示します。各線は分類群の<strong>実際の1時間ごとの飛散数</strong>（粒/m³、ツールチップに表示）をたどりますが、高さは臨床的な重症度帯に合わせて調整されています。</p><p>各帯（少ない、中程度＝シーズン、多い＝ピーク）は<strong>EAACI</strong>の臨床的に重要な閾値に基づいており、SILAM/CAMS が公式の欧州花粉予報に用いるものと同じです。花粉データは花粉シーズン中の欧州でのみ利用できます。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">花粉と健康について ↗</a></p><p class="opacity-60 text-xs">出典: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {

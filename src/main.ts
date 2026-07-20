@@ -8,7 +8,8 @@ import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, type ChartVisibility } from './chart';
-import { buildAirChart, setupAirChartTooltip } from './airchart';
+import { buildAirChart, setupAirChartTooltip, type AirChartVisibility } from './airchart';
+import { buildPollenChart, setupPollenChartTooltip, type PollenChartVisibility } from './pollenchart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -38,7 +39,26 @@ const chartVisibility = (): ChartVisibility => ({
   cloud:        chartOn('cloud'),
   wind:         chartOn('wind'),
 });
+
+// Air-quality and pollen severity charts. Bit 0 of each group ('airChart' /
+// 'pollenChart') is the whole-chart hide toggle; the rest are per-line switches
+// (per gas / per taxon). Same APPEND-only bitmask contract as the arrays above.
+const AIR_PARAMS    = ['airChart', 'no2', 'o3', 'so2'] as const;
+const POLLEN_PARAMS = ['pollenChart', 'alder', 'birch', 'grass', 'mugwort', 'olive', 'ragweed'] as const;
+const airVis    = new Set<string>(AIR_PARAMS);
+const pollenVis = new Set<string>(POLLEN_PARAMS);
+const airOn    = (id: string) => airVis.has(id);
+const pollenOn = (id: string) => pollenVis.has(id);
+const airChartVisibility = (): AirChartVisibility =>
+  ({ no2: airVis.has('no2'), o3: airVis.has('o3'), so2: airVis.has('so2') });
+const pollenChartVisibility = (): PollenChartVisibility => ({
+  alder: pollenVis.has('alder'), birch: pollenVis.has('birch'), grass: pollenVis.has('grass'),
+  mugwort: pollenVis.has('mugwort'), olive: pollenVis.has('olive'), ragweed: pollenVis.has('ragweed'),
+});
+
 // Icon + label per settings param — reuses existing metric/tooltip i18n keys.
+// Air-quality and pollen rows are intentionally text-only (no icon), so their
+// ids are absent here and fall back to an empty icon column.
 const PARAM_ICON: Record<string, string> = {
   temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
   wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud,
@@ -626,9 +646,13 @@ async function readUrlSettings(): Promise<void> {
   if (m && MODEL_MAP.has(m)) model = m;
   const hide = p.get('hide');
   if (hide) {
-    const [c, g] = hide.split('.');
+    // Positional base36 segments: card.chart.air.pollen. Old 2-segment URLs omit
+    // the air/pollen segments, which parse to 0 → those groups stay fully shown.
+    const [c, g, a, po] = hide.split('.');
     applyHideMask(CARD_PARAMS, cardVis, parseInt(c ?? '', 36) || 0);
     applyHideMask(CHART_PARAMS, chartVis, parseInt(g ?? '', 36) || 0);
+    applyHideMask(AIR_PARAMS, airVis, parseInt(a ?? '', 36) || 0);
+    applyHideMask(POLLEN_PARAMS, pollenVis, parseInt(po ?? '', 36) || 0);
   }
   // Keep the locale load last — everything above is set synchronously,
   // so the bootstrap can apply the theme before this resolves
@@ -651,9 +675,16 @@ function settingsParams(): URLSearchParams {
   if (comparison === 'today-tomorrow') p.set('comp', 'tomorrow');
   if (getLang() !== 'en') p.set('lang', getLang());
   if (model !== DEFAULT_MODEL) p.set('model', model);
-  const cMask = maskFromVis(CARD_PARAMS, cardVis);
-  const gMask = maskFromVis(CHART_PARAMS, chartVis);
-  if (cMask || gMask) p.set('hide', `${cMask.toString(36)}.${gMask.toString(36)}`);
+  const masks = [
+    maskFromVis(CARD_PARAMS, cardVis),
+    maskFromVis(CHART_PARAMS, chartVis),
+    maskFromVis(AIR_PARAMS, airVis),
+    maskFromVis(POLLEN_PARAMS, pollenVis),
+  ];
+  // Trim trailing zero segments (min 2) so old card.chart URLs still round-trip.
+  const segs = masks.map(m => m.toString(36));
+  while (segs.length > 2 && segs[segs.length - 1] === '0') segs.pop();
+  if (masks.some(m => m)) p.set('hide', segs.join('.'));
   return p;
 }
 
@@ -894,7 +925,7 @@ function renderSettings(location: GeoResult, weather: WeatherData): void {
 function doRenderSettings(location: GeoResult, weather: WeatherData): void {
   currentView = { type: 'settings', location, weather };
 
-  const rowHTML = (scope: 'card' | 'chart', id: string, checked: boolean): string => `
+  const rowHTML = (scope: 'card' | 'chart' | 'air' | 'pollen', id: string, checked: boolean): string => `
     <label class="flex items-center gap-3 py-2.5 px-1 cursor-pointer hover-item rounded-lg">
       <input type="checkbox" class="param-check w-4 h-4 accent-sky-500" data-scope="${scope}" data-id="${id}" ${checked ? 'checked' : ''} />
       <span class="w-5 text-center shrink-0">${PARAM_ICON[id] ?? ''}</span>
@@ -917,13 +948,18 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
         <div class="flex flex-col gap-3">
           ${section('settings.cards', CARD_PARAMS.map(id => rowHTML('card', id, cardOn(id))).join(''))}
           ${section('settings.chart', CHART_PARAMS.map(id => rowHTML('chart', id, chartOn(id))).join(''))}
+          ${section('settings.air', AIR_PARAMS.map(id => rowHTML('air', id, airOn(id))).join(''))}
+          ${section('settings.pollen', POLLEN_PARAMS.map(id => rowHTML('pollen', id, pollenOn(id))).join(''))}
         </div>
       </div>
     </div>`;
 
   document.querySelectorAll<HTMLInputElement>('.param-check').forEach(cb => {
     cb.addEventListener('change', () => {
-      const set = cb.dataset.scope === 'card' ? cardVis : chartVis;
+      const set = cb.dataset.scope === 'card' ? cardVis
+                : cb.dataset.scope === 'chart' ? chartVis
+                : cb.dataset.scope === 'air' ? airVis
+                : pollenVis;
       if (cb.checked) set.add(cb.dataset.id!); else set.delete(cb.dataset.id!);
       setUrlParams(location);
     });
@@ -1299,6 +1335,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
         <div id="chart-slot"></div>
         <div id="air-chart-slot"></div>
+        <div id="pollen-chart-slot"></div>
 
         <button id="cmp-open" class="w-full mt-3 py-2.5 rounded-xl border border-edge text-body hover-btn text-sm flex items-center justify-center gap-2">${t('compare.open')} →</button>
 
@@ -1372,6 +1409,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   // days are reachable by scrolling right.
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
   const airSlot = root.querySelector<HTMLElement>('#air-chart-slot')!;
+  const pollenSlot = root.querySelector<HTMLElement>('#pollen-chart-slot')!;
   let currentDayW = 0;
   let windStop: (() => void) | null = null;
   const mountChart = (): void => {
@@ -1388,19 +1426,37 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
     windStop = vis.wind ? startWindField(container, weather.hourlyAll) : null;
 
-    // Air-quality severity chart — mounted alongside, hidden when there's no data
+    // Air-quality severity chart — hidden when toggled off or there's no data.
     const air = weather.air;
     const hasAir = !!air?.hourly && [air.hourly.no2, air.hourly.o3, air.hourly.so2].some(s => s.some(v => v != null));
-    if (hasAir) {
+    if (hasAir && airOn('airChart')) {
+      const aVis = airChartVisibility();
       airSlot.style.display = '';
-      airSlot.innerHTML = buildAirChart(timelineDays.slice(0, 7), air!.hourly, nowHours, innerWidth);
+      airSlot.innerHTML = buildAirChart(timelineDays.slice(0, 7), air!.hourly, nowHours, innerWidth, aVis);
       const airContainer = airSlot.querySelector<HTMLElement>('#air-chart-container')!;
-      setupAirChartTooltip(airContainer, timelineDays.slice(0, 7), air!.hourly);
+      setupAirChartTooltip(airContainer, timelineDays.slice(0, 7), air!.hourly, aVis);
       airContainer.querySelector<HTMLButtonElement>('.info-btn')?.addEventListener('click', () => openMetricModal('eaqi'));
       airSlot.querySelector<HTMLElement>('#air-tl-scroll')!.scrollLeft = scrollDays * currentDayW;
     } else {
       airSlot.style.display = 'none';
       airSlot.innerHTML = '';
+    }
+
+    // Pollen severity chart — Europe/in-season only; hidden when toggled off or
+    // there's no data.
+    const pollen = air?.pollen;
+    const hasPollen = !!pollen && Object.values(pollen).some(s => s.some((v: number | null) => v != null));
+    if (hasPollen && pollenOn('pollenChart')) {
+      const pVis = pollenChartVisibility();
+      pollenSlot.style.display = '';
+      pollenSlot.innerHTML = buildPollenChart(timelineDays.slice(0, 7), pollen!, nowHours, innerWidth, pVis);
+      const pollenContainer = pollenSlot.querySelector<HTMLElement>('#pollen-chart-container')!;
+      setupPollenChartTooltip(pollenContainer, timelineDays.slice(0, 7), pollen!, pVis);
+      pollenContainer.querySelector<HTMLButtonElement>('.info-btn')?.addEventListener('click', () => openMetricModal('pollen'));
+      pollenSlot.querySelector<HTMLElement>('#pollen-tl-scroll')!.scrollLeft = scrollDays * currentDayW;
+    } else {
+      pollenSlot.style.display = 'none';
+      pollenSlot.innerHTML = '';
     }
   };
   mountChart();

@@ -67,9 +67,15 @@ export default {
     airPoor: 'Mauvaise',
     airVeryPoor: 'Très mauvaise',
     airExtremelyPoor: 'Extrêmement mauvaise',
+    pollenLow: 'Faible',
+    pollenModerate: 'Modéré',
+    pollenHigh: 'Élevé',
   },
   air: {
     chartTitle: 'Qualité de l’air par gravité',
+  },
+  pollen: {
+    chartTitle: 'Pollen par gravité',
   },
   card: {
     high: 'max',
@@ -110,6 +116,12 @@ export default {
     no2: 'Dioxyde d’azote (NO₂)',
     o3: 'Ozone (O₃)',
     so2: 'Dioxyde de soufre (SO₂)',
+    alder: "Pollen d'aulne",
+    birch: 'Pollen de bouleau',
+    grass: 'Pollen de graminées',
+    mugwort: "Pollen d'armoise",
+    olive: "Pollen d'olivier",
+    ragweed: "Pollen d'ambroisie",
   },
   error: {
     loading: 'Chargement de la météo…',
@@ -144,6 +156,8 @@ export default {
     chart: 'Graphique',
     done: 'Terminé',
     open: 'Paramètres d’affichage',
+    air: "Qualité de l'air",
+    pollen: 'Pollen',
   },
   model: {
     label: 'Modèle',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Qualité de l’air par gravité',
       body: '<p>Ce graphique représente <strong>NO₂, O₃ et SO₂</strong> au fil du temps. Chaque courbe suit la <strong>concentration horaire réelle</strong> du polluant (µg/m³, dans l’infobulle), mais sa hauteur est mise à l’échelle des niveaux de gravité de l’<strong>Indice européen de la qualité de l’air (EAQI)</strong>.</p><p>Les six niveaux — Bonne, Acceptable, Moyenne, Mauvaise, Très mauvaise, Extrêmement mauvaise — permettent de comparer directement les trois gaz malgré leurs échelles différentes : une courbe située dans un niveau plus élevé est la plus nocive, quelle que soit sa valeur.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">À propos de l’Indice européen de la qualité de l’air ↗</a></p><p class="opacity-60 text-xs">Source : <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Aulne' },
+    birch: { title: 'Bouleau' },
+    grass: { title: 'Graminées' },
+    mugwort: { title: 'Armoise' },
+    olive: { title: 'Olivier' },
+    ragweed: { title: 'Ambroisie' },
+    airChart: { title: "Graphique qualité de l'air" },
+    pollenChart: { title: 'Graphique pollen' },
+    pollen: {
+      title: 'Pollen par gravité',
+      body: "<p>Ce graphique présente <strong>six types de pollen</strong> — aulne, bouleau, graminées, armoise, olivier et ambroisie — au fil du temps. Chaque ligne suit la <strong>concentration horaire réelle</strong> du taxon (grains/m³, dans l'infobulle), mais sa hauteur est ramenée à des bandes cliniques de gravité.</p><p>Les bandes — Faible, Modéré (saison) et Élevé (pic) — suivent les seuils cliniquement pertinents de l'<strong>EAACI</strong>, les mêmes niveaux que SILAM/CAMS utilise pour les prévisions polliniques officielles européennes. Le pollen n'est disponible qu'en Europe pendant la saison pollinique.</p><p><a class=\"text-sky-500 underline\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen\">À propos du pollen et de la santé ↗</a></p><p class=\"opacity-60 text-xs\">Source : <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>",
     },
   },
   wmo: {

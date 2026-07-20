@@ -67,9 +67,15 @@ export default {
     airPoor: 'Ruim',
     airVeryPoor: 'Muito ruim',
     airExtremelyPoor: 'Extremamente ruim',
+    pollenLow: 'Baixo',
+    pollenModerate: 'Moderado',
+    pollenHigh: 'Alto',
   },
   air: {
     chartTitle: 'Qualidade do ar por gravidade',
+  },
+  pollen: {
+    chartTitle: 'Pólen por gravidade',
   },
   card: {
     high: 'máx',
@@ -110,6 +116,12 @@ export default {
     no2: 'Dióxido de nitrogênio (NO₂)',
     o3: 'Ozônio (O₃)',
     so2: 'Dióxido de enxofre (SO₂)',
+    alder: 'Pólen de amieiro',
+    birch: 'Pólen de bétula',
+    grass: 'Pólen de gramíneas',
+    mugwort: 'Pólen de artemísia',
+    olive: 'Pólen de oliveira',
+    ragweed: 'Pólen de ambrósia',
   },
   error: {
     loading: 'Carregando clima…',
@@ -144,6 +156,8 @@ export default {
     chart: 'Gráfico',
     done: 'Concluído',
     open: 'Configurações de exibição',
+    air: 'Qualidade do ar',
+    pollen: 'Pólen',
   },
   model: {
     label: 'Modelo',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Qualidade do ar por gravidade',
       body: '<p>Este gráfico representa <strong>NO₂, O₃ e SO₂</strong> ao longo do tempo. Cada linha acompanha a <strong>concentração horária real</strong> do poluente (µg/m³, na dica de tela), mas sua altura é dimensionada nas faixas de gravidade do <strong>Índice Europeu de Qualidade do Ar (EAQI)</strong>.</p><p>As seis faixas — Boa, Aceitável, Moderada, Ruim, Muito ruim, Extremamente ruim — permitem comparar diretamente os três gases mesmo com escalas diferentes: uma linha em uma faixa mais alta é a mais nociva, seja qual for o seu valor.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Sobre o Índice Europeu de Qualidade do Ar ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Amieiro' },
+    birch: { title: 'Bétula' },
+    grass: { title: 'Gramíneas' },
+    mugwort: { title: 'Artemísia' },
+    olive: { title: 'Oliveira' },
+    ragweed: { title: 'Ambrósia' },
+    airChart: { title: 'Gráfico de qualidade do ar' },
+    pollenChart: { title: 'Gráfico de pólen' },
+    pollen: {
+      title: 'Pólen por gravidade',
+      body: '<p>Este gráfico mostra <strong>seis tipos de pólen</strong> — amieiro, bétula, gramíneas, artemísia, oliveira e ambrósia — ao longo do tempo. Cada linha segue a <strong>contagem horária real</strong> do táxon (grãos/m³, na dica de contexto), mas sua altura é ajustada a faixas clínicas de gravidade.</p><p>As faixas — Baixo, Moderado (temporada) e Alto (pico) — seguem os limiares clinicamente relevantes da <strong>EAACI</strong>, os mesmos níveis que o SILAM/CAMS usa na previsão oficial europeia de pólen. O pólen só está disponível na Europa durante a estação polínica.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Sobre o pólen e a saúde ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -67,9 +67,15 @@ export default {
     airPoor: 'Špatná',
     airVeryPoor: 'Velmi špatná',
     airExtremelyPoor: 'Extrémně špatná',
+    pollenLow: 'Nízká',
+    pollenModerate: 'Střední',
+    pollenHigh: 'Vysoká',
   },
   air: {
     chartTitle: 'Kvalita ovzduší podle závažnosti',
+  },
+  pollen: {
+    chartTitle: 'Pyl podle závažnosti',
   },
   card: {
     high: 'max',
@@ -110,6 +116,12 @@ export default {
     no2: 'Oxid dusičitý (NO₂)',
     o3: 'Ozon (O₃)',
     so2: 'Oxid siřičitý (SO₂)',
+    alder: 'Pyl olše',
+    birch: 'Pyl břízy',
+    grass: 'Pyl trav',
+    mugwort: 'Pyl pelyňku',
+    olive: 'Pyl olivovníku',
+    ragweed: 'Pyl ambrózie',
   },
   error: {
     loading: 'Načítám počasí…',
@@ -144,6 +156,8 @@ export default {
     chart: 'Graf',
     done: 'Hotovo',
     open: 'Nastavení zobrazení',
+    air: 'Kvalita ovzduší',
+    pollen: 'Pyl',
   },
   model: {
     label: 'Model',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Kvalita ovzduší podle závažnosti',
       body: '<p>Tento graf zobrazuje <strong>NO₂, O₃ a SO₂</strong> v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> dané látky (µg/m³, viz popisek), ale její výška je škálována na pásma závažnosti <strong>Evropského indexu kvality ovzduší (EAQI)</strong>.</p><p>Šest pásem — Dobrá, Přijatelná, Zhoršená, Špatná, Velmi špatná, Extrémně špatná — umožňuje přímé porovnání všech tří plynů, i když mají odlišné škály: čára ve vyšším pásmu je škodlivější bez ohledu na svou hodnotu.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">O Evropském indexu kvality ovzduší ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Olše' },
+    birch: { title: 'Bříza' },
+    grass: { title: 'Trávy' },
+    mugwort: { title: 'Pelyněk' },
+    olive: { title: 'Oliva' },
+    ragweed: { title: 'Ambrózie' },
+    airChart: { title: 'Graf kvality ovzduší' },
+    pollenChart: { title: 'Graf pylu' },
+    pollen: {
+      title: 'Pyl podle závažnosti',
+      body: '<p>Tento graf zobrazuje <strong>šest druhů pylu</strong> — olše, bříza, trávy, pelyněk, oliva a ambrózie — v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> daného taxonu (zrn/m³, viz popisek), ale její výška je převedena na klinická pásma závažnosti.</p><p>Pásma — Nízká, Střední (sezóna) a Vysoká (vrchol) — vycházejí z klinicky významných prahů <strong>EAACI</strong>, stejných úrovní, jaké používá SILAM/CAMS pro oficiální evropskou pylovou předpověď. Pyl je dostupný pouze v Evropě během pylové sezóny.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">O pylu a zdraví ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -67,9 +67,15 @@ export default {
     airPoor: 'Погана',
     airVeryPoor: 'Дуже погана',
     airExtremelyPoor: 'Надзвичайно погана',
+    pollenLow: 'Низький',
+    pollenModerate: 'Помірний',
+    pollenHigh: 'Високий',
   },
   air: {
     chartTitle: 'Якість повітря за рівнем небезпеки',
+  },
+  pollen: {
+    chartTitle: 'Пилок за рівнем',
   },
   card: {
     high: 'макс',
@@ -110,6 +116,12 @@ export default {
     no2: 'Діоксид азоту (NO₂)',
     o3: 'Озон (O₃)',
     so2: 'Діоксид сірки (SO₂)',
+    alder: 'Пилок вільхи',
+    birch: 'Пилок берези',
+    grass: 'Пилок злаків',
+    mugwort: 'Пилок полину',
+    olive: 'Пилок оливи',
+    ragweed: 'Пилок амброзії',
   },
   error: {
     loading: 'Завантажуємо погоду…',
@@ -144,6 +156,8 @@ export default {
     chart: 'Графік',
     done: 'Готово',
     open: 'Налаштування відображення',
+    air: 'Якість повітря',
+    pollen: 'Пилок',
   },
   model: {
     label: 'Модель',
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Якість повітря за рівнем небезпеки',
       body: '<p>Цей графік показує <strong>NO₂, O₃ та SO₂</strong> у часі. Кожна лінія відстежує <strong>реальну погодинну концентрацію</strong> забруднювача (µg/m³, у підказці), але її висоту масштабовано за рівнями небезпеки <strong>Європейського індексу якості повітря (EAQI)</strong>.</p><p>Шість рівнів — Добра, Задовільна, Помірна, Погана, Дуже погана, Надзвичайно погана — дають змогу напряму порівнювати всі три гази, попри різні шкали: лінія у вищому рівні шкідливіша незалежно від свого значення.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Про Європейський індекс якості повітря ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Вільха' },
+    birch: { title: 'Береза' },
+    grass: { title: 'Злаки' },
+    mugwort: { title: 'Полин' },
+    olive: { title: 'Олива' },
+    ragweed: { title: 'Амброзія' },
+    airChart: { title: 'Графік якості повітря' },
+    pollenChart: { title: 'Графік пилку' },
+    pollen: {
+      title: 'Пилок за рівнем',
+      body: '<p>Цей графік показує <strong>шість видів пилку</strong> — вільха, береза, злаки, полин, олива та амброзія — у часі. Кожна лінія відображає <strong>реальну погодинну концентрацію</strong> таксона (зерен/м³, у підказці), але її висота масштабована до клінічних смуг тяжкості.</p><p>Смуги — Низький, Помірний (сезон) і Високий (пік) — відповідають клінічно значущим порогам <strong>EAACI</strong>, тим самим рівням, які SILAM/CAMS використовує для офіційного європейського прогнозу пилку. Пилок доступний лише в Європі протягом сезону цвітіння.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Про пилок і здоров’я ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {

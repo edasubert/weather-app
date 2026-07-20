@@ -67,9 +67,15 @@ export default {
     airPoor: 'Poor',
     airVeryPoor: 'Very poor',
     airExtremelyPoor: 'Extremely poor',
+    pollenLow: 'Low',
+    pollenModerate: 'Moderate',
+    pollenHigh: 'High',
   },
   air: {
     chartTitle: 'Air quality by severity',
+  },
+  pollen: {
+    chartTitle: 'Pollen by severity',
   },
   card: {
     high: 'high',
@@ -110,6 +116,12 @@ export default {
     no2: 'Nitrogen dioxide (NO₂)',
     o3: 'Ozone (O₃)',
     so2: 'Sulphur dioxide (SO₂)',
+    alder: 'Alder pollen',
+    birch: 'Birch pollen',
+    grass: 'Grass pollen',
+    mugwort: 'Mugwort pollen',
+    olive: 'Olive pollen',
+    ragweed: 'Ragweed pollen',
   },
   error: {
     loading: 'Loading weather…',
@@ -142,6 +154,8 @@ export default {
     title: 'Display settings',
     cards: 'Cards',
     chart: 'Chart',
+    air: 'Air quality',
+    pollen: 'Pollen',
     done: 'Done',
     open: 'Display settings',
   },
@@ -216,6 +230,18 @@ export default {
     eaqi: {
       title: 'Air quality by severity',
       body: '<p>This chart plots <strong>NO₂, O₃ and SO₂</strong> over time. Each line follows the pollutant\'s <strong>real hourly concentration</strong> (µg/m³, shown in the tooltip), but its height is scaled onto the <strong>European Air Quality Index (EAQI)</strong> severity bands.</p><p>The six bands — Good, Fair, Moderate, Poor, Very poor, Extremely poor — let you compare all three gases directly even though their raw scales differ: a line sitting in a higher band is the more harmful one, whatever its number.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">About the European Air Quality Index ↗</a></p><p class="opacity-60 text-xs">Source: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    alder: { title: 'Alder' },
+    birch: { title: 'Birch' },
+    grass: { title: 'Grass' },
+    mugwort: { title: 'Mugwort' },
+    olive: { title: 'Olive' },
+    ragweed: { title: 'Ragweed' },
+    airChart: { title: 'Air quality chart' },
+    pollenChart: { title: 'Pollen chart' },
+    pollen: {
+      title: 'Pollen by severity',
+      body: '<p>This chart plots <strong>six pollen types</strong> — alder, birch, grass, mugwort, olive and ragweed — over time. Each line follows the taxon\'s <strong>real hourly count</strong> (grains/m³, shown in the tooltip), but its height is scaled onto clinical severity bands.</p><p>The bands — Low, Moderate (in season) and High (peak) — follow the <strong>EAACI</strong> clinically-relevant thresholds, the same levels SILAM/CAMS uses for the official European pollen forecast. Pollen is only available in Europe during the pollen season.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">About pollen and health ↗</a></p><p class="opacity-60 text-xs">Source: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
     },
   },
   wmo: {
