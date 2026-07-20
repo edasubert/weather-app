@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'About the same daylight',
     moreDaylight: '{{diff}} min more daylight',
     lessDaylight: '{{diff}} min less daylight',
+    airSame: 'About the same',
+    airMore: '{{diff}} {{unit}} more',
+    airLess: '{{diff}} {{unit}} less',
+    airGood: 'Good',
+    airFair: 'Fair',
+    airModerate: 'Moderate',
+    airPoor: 'Poor',
+    airVeryPoor: 'Very poor',
+    airExtremelyPoor: 'Extremely poor',
+  },
+  air: {
+    chartTitle: 'Air quality by severity',
   },
   card: {
     high: 'high',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Pressure',
     cloudCover: 'Total cloud cover',
     daylight: 'Daylight (sunrise – sunset)',
+    pm25: 'Fine particulate matter (PM2.5)',
+    pm10: 'Coarse particulate matter (PM10)',
+    co: 'Carbon monoxide (CO)',
+    co2: 'Carbon dioxide (CO₂)',
+    no2: 'Nitrogen dioxide (NO₂)',
+    o3: 'Ozone (O₃)',
+    so2: 'Sulphur dioxide (SO₂)',
   },
   error: {
     loading: 'Loading weather…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Daylight duration',
       body: '<p><strong>Daylight duration</strong> — the time between sunrise and sunset.</p><p>The day-to-day change is largest around the equinoxes (up to 3–4 minutes per day at mid-latitudes) and smallest around the solstices.</p><p class="opacity-60 text-xs">Source: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Fine particulate matter under 2.5 µm</strong> — soot, smoke and other particles small enough to reach deep into the lungs and bloodstream, the pollutant most closely tied to health impacts.</p><p>Shown as the daily mean in micrograms per cubic metre; the tile colour reflects the current level against air-quality health bands. Lower is better.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">About particulate matter ↗</a></p><p class="opacity-60 text-xs">Source: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Coarse particulate matter under 10 µm</strong> — dust, pollen and larger airborne particles that irritate the eyes, nose and airways.</p><p>Shown as the daily mean in micrograms per cubic metre; the tile colour reflects the current level against air-quality health bands.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">About particulate matter ↗</a></p><p class="opacity-60 text-xs">Source: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Carbon monoxide',
+      body: '<p><strong>Carbon monoxide (CO)</strong> — a colourless, odourless gas from incomplete combustion in traffic, heating and fires. At outdoor concentrations it normally stays far below harmful levels.</p><p>Shown as the daily mean in micrograms per cubic metre.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">About carbon monoxide ↗</a></p><p class="opacity-60 text-xs">Source: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Carbon dioxide',
+      body: '<p><strong>Carbon dioxide (CO₂)</strong> — the background greenhouse gas, currently around 420 ppm in clean outdoor air. There is no outdoor air-quality health band for it, so this tile is never tinted.</p><p>Shown as the daily mean in parts per million.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">About atmospheric CO₂ ↗</a></p><p class="opacity-60 text-xs">Source: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Nitrogen dioxide',
+      body: '<p><strong>Nitrogen dioxide (NO₂)</strong> — a reddish-brown gas from traffic and combustion that inflames the airways and helps form ozone and particulates.</p><p>Plotted as the real hourly concentration in micrograms per cubic metre.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">About nitrogen dioxide ↗</a></p><p class="opacity-60 text-xs">Source: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Ozone',
+      body: '<p><strong>Ground-level ozone (O₃)</strong> — a secondary pollutant formed when sunlight reacts with traffic and industrial emissions, peaking on hot sunny afternoons. It irritates the lungs and worsens asthma.</p><p>Plotted as the real hourly concentration in micrograms per cubic metre.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">About ground-level ozone ↗</a></p><p class="opacity-60 text-xs">Source: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Sulphur dioxide',
+      body: '<p><strong>Sulphur dioxide (SO₂)</strong> — a sharp-smelling gas from burning fossil fuels and industry that irritates the airways and can trigger asthma.</p><p>Plotted as the real hourly concentration in micrograms per cubic metre.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">About sulphur dioxide ↗</a></p><p class="opacity-60 text-xs">Source: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Air quality by severity',
+      body: '<p>This chart plots <strong>NO₂, O₃ and SO₂</strong> over time. Each line follows the pollutant\'s <strong>real hourly concentration</strong> (µg/m³, shown in the tooltip), but its height is scaled onto the <strong>European Air Quality Index (EAQI)</strong> severity bands.</p><p>The six bands — Good, Fair, Moderate, Poor, Very poor, Extremely poor — let you compare all three gases directly even though their raw scales differ: a line sitting in a higher band is the more harmful one, whatever its number.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">About the European Air Quality Index ↗</a></p><p class="opacity-60 text-xs">Source: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

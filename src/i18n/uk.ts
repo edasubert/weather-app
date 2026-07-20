@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'Тривалість дня майже однакова',
     moreDaylight: 'День на {{diff}} хв довший',
     lessDaylight: 'День на {{diff}} хв коротший',
+    airSame: 'Приблизно так само',
+    airMore: 'На {{diff}} {{unit}} більше',
+    airLess: 'На {{diff}} {{unit}} менше',
+    airGood: 'Добра',
+    airFair: 'Задовільна',
+    airModerate: 'Помірна',
+    airPoor: 'Погана',
+    airVeryPoor: 'Дуже погана',
+    airExtremelyPoor: 'Надзвичайно погана',
+  },
+  air: {
+    chartTitle: 'Якість повітря за рівнем небезпеки',
   },
   card: {
     high: 'макс',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Атмосферний тиск',
     cloudCover: 'Загальна хмарність',
     daylight: 'Світловий день (схід – захід сонця)',
+    pm25: 'Дрібні частинки (PM2.5)',
+    pm10: 'Грубі частинки (PM10)',
+    co: 'Монооксид вуглецю (CO)',
+    co2: 'Діоксид вуглецю (CO₂)',
+    no2: 'Діоксид азоту (NO₂)',
+    o3: 'Озон (O₃)',
+    so2: 'Діоксид сірки (SO₂)',
   },
   error: {
     loading: 'Завантажуємо погоду…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Тривалість дня',
       body: '<p><strong>Тривалість дня</strong> — час між сходом і заходом сонця.</p><p>Зміна від дня до дня найбільша поблизу рівнодень (до 3–4 хвилин на день у середніх широтах) і найменша поблизу сонцестоянь.</p><p class="opacity-60 text-xs">Джерело: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Дрібні тверді частинки менше 2,5 мкм</strong> — сажа, дим та інші частинки, достатньо малі, щоб проникати глибоко в легені та кров; забруднювач, найтісніше пов\'язаний із впливом на здоров\'я.</p><p>Показано як середньодобове значення в мікрограмах на кубічний метр; колір плитки відображає поточний рівень відповідно до санітарних діапазонів якості повітря. Чим нижче, тим краще.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Про тверді частинки ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Грубі тверді частинки менше 10 мкм</strong> — пил, пилок та більші зважені частинки, що подразнюють очі, ніс і дихальні шляхи.</p><p>Показано як середньодобове значення в мікрограмах на кубічний метр; колір плитки відображає поточний рівень відповідно до санітарних діапазонів якості повітря.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Про тверді частинки ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Монооксид вуглецю',
+      body: '<p><strong>Монооксид вуглецю (CO)</strong> — безбарвний газ без запаху, що утворюється при неповному згорянні (транспорт, опалення, пожежі). У зовнішніх концентраціях зазвичай залишається значно нижче шкідливих рівнів.</p><p>Показано як середньодобове значення в мікрограмах на кубічний метр.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">Про монооксид вуглецю ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Діоксид вуглецю',
+      body: '<p><strong>Діоксид вуглецю (CO₂)</strong> — фоновий парниковий газ, наразі близько 420 ppm у чистому зовнішньому повітрі. Для нього немає санітарного діапазону якості зовнішнього повітря, тому ця плитка ніколи не забарвлюється.</p><p>Показано як середньодобове значення в частинах на мільйон (ppm).</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">Про атмосферний CO₂ ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Діоксид азоту',
+      body: '<p><strong>Діоксид азоту (NO₂)</strong> — червонувато-бурий газ від транспорту та згоряння, який подразнює дихальні шляхи й сприяє утворенню озону та твердих частинок.</p><p>Показано як реальну погодинну концентрацію в мікрограмах на кубічний метр.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">Про діоксид азоту ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Озон',
+      body: '<p><strong>Приземний озон (O₃)</strong> — вторинний забруднювач, що утворюється, коли сонячне світло реагує з викидами транспорту та промисловості; сягає піку в спекотні сонячні пообіддя. Подразнює легені та загострює астму.</p><p>Показано як реальну погодинну концентрацію в мікрограмах на кубічний метр.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">Про приземний озон ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Діоксид сірки',
+      body: '<p><strong>Діоксид сірки (SO₂)</strong> — газ із різким запахом від спалювання викопного палива та промисловості, який подразнює дихальні шляхи й може спричиняти астму.</p><p>Показано як реальну погодинну концентрацію в мікрограмах на кубічний метр.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">Про діоксид сірки ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Якість повітря за рівнем небезпеки',
+      body: '<p>Цей графік показує <strong>NO₂, O₃ та SO₂</strong> у часі. Кожна лінія відстежує <strong>реальну погодинну концентрацію</strong> забруднювача (µg/m³, у підказці), але її висоту масштабовано за рівнями небезпеки <strong>Європейського індексу якості повітря (EAQI)</strong>.</p><p>Шість рівнів — Добра, Задовільна, Помірна, Погана, Дуже погана, Надзвичайно погана — дають змогу напряму порівнювати всі три гази, попри різні шкали: лінія у вищому рівні шкідливіша незалежно від свого значення.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Про Європейський індекс якості повітря ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

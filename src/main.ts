@@ -1,11 +1,14 @@
 import './style.css';
 import { fetchWeather, fetchModelAvailability, fetchModelComparison, WeatherNoDataError } from './weather';
 import type { TimelineDayInfo, UnusableReason, CompareData } from './weather';
+import { fetchAirQuality } from './airquality';
+import type { AirData, AirDaily } from './airquality';
 import { buildCompareTable, COMPARE_PARAMS, CMP_PARAM_ICON } from './compare';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
 import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, type ChartVisibility } from './chart';
+import { buildAirChart, setupAirChartTooltip } from './airchart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
@@ -17,8 +20,15 @@ let model = DEFAULT_MODEL;
 // Which parameters the cards and chart display. Order is the URL bitmask bit
 // order — APPEND only, never reorder, or shared `hide` URLs would change meaning.
 // `precip` covers all precipitation kinds (rain, showers, snow), matching the chart.
-const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight'] as const;
+const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight', 'pm25', 'pm10', 'co', 'co2'] as const;
 const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud', 'wind'] as const;
+
+// Air-quality subset of the card params, in display order. Each maps to an
+// AirDaily field and a fixed unit (units are pollutant-inherent, not user-set).
+const AIR_PARAMS = ['pm25', 'pm10', 'co', 'co2'] as const;
+type AirParam = typeof AIR_PARAMS[number];
+const AIR_KEY: Record<AirParam, keyof AirDaily> = { pm25: 'pm25', pm10: 'pm10', co: 'co', co2: 'co2' };
+const AIR_UNIT: Record<AirParam, string> = { pm25: 'µg/m³', pm10: 'µg/m³', co: 'µg/m³', co2: 'ppm' };
 type CardParam  = typeof CARD_PARAMS[number];
 type ChartParam = typeof CHART_PARAMS[number];
 // Default = everything shown.
@@ -38,6 +48,7 @@ const chartVisibility = (): ChartVisibility => ({
 const PARAM_ICON: Record<string, string> = {
   temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
   wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud,
+  pm25: ICONS.pm25, pm10: ICONS.pm10, co: ICONS.co, co2: ICONS.co2,
 };
 const paramLabel = (id: string): string => id === 'cloud' ? t('tooltip.cloudCover') : t(`metric.${id}.title`);
 
@@ -135,7 +146,7 @@ let chartResizeObserver: ResizeObserver | null = null;
 
 type Theme = 'auto' | 'dark' | 'light';
 type Comparison = 'yesterday-today' | 'today-tomorrow';
-type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number };
+type WeatherData = { today: DailyWeather; yesterday: DailyWeather; tomorrow: DailyWeather; todayHourly: HourlyData; yesterdayHourly: HourlyData; tomorrowHourly: HourlyData; days: TimelineDayInfo[]; hourlyAll: HourlyData; utcOffsetSeconds: number; air?: AirData | null };
 type ViewState =
   | { type: 'search' }
   | { type: 'loading' }
@@ -386,6 +397,22 @@ function windLevel(abs: number): SevLevel {
   return abs < 5 ? 0 : abs < 10 ? 1 : abs < 20 ? 2 : 3;
 }
 
+// Air-quality severity is the *absolute* pollutant level (not the day-to-day
+// change), on approximate EAQI/WHO bands. CO₂ has no outdoor health standard,
+// so it stays neutral (level 0) — its tile shows value + change only.
+function pm25Level(v: number): SevLevel {
+  return v < 20 ? 0 : v < 40 ? 1 : v < 60 ? 2 : 3;
+}
+function pm10Level(v: number): SevLevel {
+  return v < 40 ? 0 : v < 80 ? 1 : v < 120 ? 2 : 3;
+}
+function coLevel(v: number): SevLevel {
+  return v < 4000 ? 0 : v < 8000 ? 1 : v < 15000 ? 2 : 3;
+}
+const AIR_LEVEL: Record<AirParam, (v: number) => SevLevel> = {
+  pm25: pm25Level, pm10: pm10Level, co: coLevel, co2: () => 0,
+};
+
 // ─── Wind helpers ─────────────────────────────────────────────────────────────
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
@@ -486,6 +513,35 @@ function daylightComparison(today: DailyWeather, yesterday: DailyWeather): Comp 
   return { html: t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins }), severity: 0 };
 }
 
+// Qualitative level words, indexed by SevLevel. Skipped for CO₂ (no band).
+const AIR_WORD = ['comp.airGood', 'comp.airFair', 'comp.airModerate', 'comp.airPoor'] as const;
+
+// Air tile: main line is the primary day's level (value + unit + level word),
+// tinted by absolute health level; sub-line is the day-to-day change. Returns
+// null when the primary day has no reading, so the tile is dropped entirely.
+function airComparison(primary: AirDaily, secondary: AirDaily, key: AirParam): Comp | null {
+  const pv = primary[AIR_KEY[key]];
+  if (pv == null) return null;
+  const sv = secondary[AIR_KEY[key]];
+  const unit = AIR_UNIT[key];
+  const severity = AIR_LEVEL[key](pv);
+  const word = key === 'co2' ? '' : `<span class="ml-1">${t(AIR_WORD[severity])}</span>`;
+
+  let sub = '';
+  if (sv != null) {
+    const d = Math.round(pv) - Math.round(sv);
+    sub = d === 0 ? t('comp.airSame') : t(d > 0 ? 'comp.airMore' : 'comp.airLess', { diff: fmtNum(Math.abs(d)), unit });
+  }
+
+  const html = `<span class="block">
+    <span class="text-xl font-semibold text-heading">${fmtNum(Math.round(pv))}</span>
+    <span class="text-[10px] opacity-60">${unit}</span>
+    ${word}
+    ${sub ? `<span class="block text-[10px] opacity-50 mt-0.5">${sub}</span>` : ''}
+  </span>`;
+  return { html, severity };
+}
+
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
 const DOCS_HTML = `<a class="text-accent underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
@@ -521,7 +577,7 @@ function comparisonTileHTML(icon: string, id: string, comp: Comp, wide = false):
 
 // ─── Day-by-day stat table ────────────────────────────────────────────────────
 
-function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string): string {
+function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string, airA: AirDaily | null, airB: AirDaily | null): string {
   const dayHead = (d: DailyWeather, label: string) => {
     const { emoji, label: cond } = describeCode(d.weatherCode);
     const date = new Date(d.date + 'T12:00:00').toLocaleDateString(getLocale(), {
@@ -560,6 +616,10 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
   const showLiquid = !hasSnow || hasRain || hasShowers;
   const mm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} mm</span>` : `<span class="text-muted">${t('card.noRain')}</span>`;
   const cm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} cm</span>` : '<span class="text-muted">–</span>';
+  const airCell = (d: AirDaily | null, k: AirParam) => {
+    const v = d?.[AIR_KEY[k]];
+    return v == null ? '<span class="text-muted">–</span>' : `<span class="text-detail">${fmtNum(Math.round(v))} ${AIR_UNIT[k]}</span>`;
+  };
 
   return `
     <div class="rounded-2xl p-5 bg-surface hc:border-2 border-edge overflow-x-auto">
@@ -587,6 +647,10 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
           ${cardOn('daylight') && a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
             `<span class="text-detail">${a.sunrise.slice(11, 16)} – ${a.sunset.slice(11, 16)}</span>`,
             `<span class="text-detail">${b.sunrise.slice(11, 16)} – ${b.sunset.slice(11, 16)}</span>`) : ''}
+          ${AIR_PARAMS.map(k => {
+            const hasData = airA?.[AIR_KEY[k]] != null || airB?.[AIR_KEY[k]] != null;
+            return cardOn(k) && hasData ? row(icon(PARAM_ICON[k], t(`tooltip.${k}`)), airCell(airA, k), airCell(airB, k)) : '';
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -1199,6 +1263,9 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   const isTomorrow = comparison === 'today-tomorrow';
   const primary         = isTomorrow ? tomorrow   : today;
   const secondary       = isTomorrow ? today      : yesterday;
+  const air             = weather.air;
+  const airPrimary      = air ? (isTomorrow ? air.tomorrow : air.today)     : null;
+  const airSecondary    = air ? (isTomorrow ? air.today    : air.yesterday) : null;
   const primaryLabel    = isTomorrow ? t('card.tomorrow') : t('card.today');
   const secondaryLabel  = isTomorrow ? t('card.today')    : t('card.yesterday');
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
@@ -1287,13 +1354,19 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
             ${cardOn('wind') ? comparisonTileHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
             ${cardOn('pressure') ? comparisonTileHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
             ${cardOn('daylight') ? comparisonTileHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
+            ${airPrimary && airSecondary ? AIR_PARAMS.map(k => {
+              if (!cardOn(k)) return '';
+              const comp = airComparison(airPrimary, airSecondary, k);
+              return comp ? comparisonTileHTML(`<span title="${t(`tooltip.${k}`)}">${PARAM_ICON[k]}</span>`, k, comp) : '';
+            }).join('') : ''}
           </div>
         </div>
 
-        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel)}
+        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel, airSecondary, airPrimary)}
         </div>
 
         <div id="chart-slot"></div>
+        <div id="air-chart-slot"></div>
 
         <button id="cmp-open" class="w-full mt-3 py-2.5 rounded-xl border border-edge text-body hover-btn text-sm flex items-center justify-center gap-2">${t('compare.open')} →</button>
 
@@ -1351,19 +1424,22 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   document.getElementById('modal-close')!.addEventListener('click', closeModal);
   document.getElementById('modal-backdrop')!.addEventListener('click', closeModal);
 
+  const openMetricModal = (metric: string): void => {
+    const info = getMetricInfo(metric);
+    modalTitle.textContent = info.title;
+    modalBody.innerHTML = info.body;
+    modal.classList.remove('hidden');
+  };
+
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const info = getMetricInfo(btn.dataset.metric!);
-      modalTitle.textContent = info.title;
-      modalBody.innerHTML = info.body;
-      modal.classList.remove('hidden');
-    });
+    btn.addEventListener('click', () => openMetricModal(btn.dataset.metric!));
   });
 
   // The chart renders 1:1 at the slot's measured width and re-renders on
   // resize. The viewport shows the two compared days; the remaining forecast
   // days are reachable by scrolling right.
   const chartSlot = root.querySelector<HTMLElement>('#chart-slot')!;
+  const airSlot = root.querySelector<HTMLElement>('#air-chart-slot')!;
   let currentDayW = 0;
   let windStop: (() => void) | null = null;
   const mountChart = (): void => {
@@ -1379,6 +1455,21 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     currentDayW = timelineDayWidth(innerWidth);
     chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
     windStop = vis.wind ? startWindField(container, weather.hourlyAll) : null;
+
+    // Air-quality severity chart — mounted alongside, hidden when there's no data
+    const air = weather.air;
+    const hasAir = !!air?.hourly && [air.hourly.no2, air.hourly.o3, air.hourly.so2].some(s => s.some(v => v != null));
+    if (hasAir) {
+      airSlot.style.display = '';
+      airSlot.innerHTML = buildAirChart(timelineDays.slice(0, 7), air!.hourly, nowHours, innerWidth);
+      const airContainer = airSlot.querySelector<HTMLElement>('#air-chart-container')!;
+      setupAirChartTooltip(airContainer, timelineDays.slice(0, 7), air!.hourly);
+      airContainer.querySelector<HTMLButtonElement>('.info-btn')?.addEventListener('click', () => openMetricModal('eaqi'));
+      airSlot.querySelector<HTMLElement>('#air-tl-scroll')!.scrollLeft = scrollDays * currentDayW;
+    } else {
+      airSlot.style.display = 'none';
+      airSlot.innerHTML = '';
+    }
   };
   mountChart();
 
@@ -1437,8 +1528,13 @@ function doRenderNoDataError(location: GeoResult, reason: UnusableReason): void 
 async function loadWeather(location: GeoResult): Promise<void> {
   renderLoading(t('error.loadingFor', { name: location.name }));
   try {
-    const weather = await fetchWeather(location.latitude, location.longitude, model);
-    renderWeather(location, weather);
+    // Air quality is best-effort (never rejects) and enriches, so it can't fail
+    // the load; fetch it alongside the weather rather than serially after it.
+    const [weather, air] = await Promise.all([
+      fetchWeather(location.latitude, location.longitude, model),
+      fetchAirQuality(location.latitude, location.longitude),
+    ]);
+    renderWeather(location, { ...weather, air });
   } catch (err) {
     if (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError')) {
       renderNoDataError(location, (err as WeatherNoDataError).reason ?? 'no_coverage');
@@ -1462,8 +1558,11 @@ async function handleGeolocate(): Promise<void> {
       latitude,
       longitude,
     };
-    const weather = await fetchWeather(latitude, longitude, model);
-    renderWeather(location, weather);
+    const [weather, air] = await Promise.all([
+      fetchWeather(latitude, longitude, model),
+      fetchAirQuality(latitude, longitude),
+    ]);
+    renderWeather(location, { ...weather, air });
   } catch (err) {
     if (location && (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError'))) {
       renderNoDataError(location, (err as WeatherNoDataError).reason ?? 'no_coverage');

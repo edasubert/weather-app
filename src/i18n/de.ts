@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'Etwa gleich viel Tageslicht',
     moreDaylight: '{{diff}} min mehr Tageslicht',
     lessDaylight: '{{diff}} min weniger Tageslicht',
+    airSame: 'Etwa gleich',
+    airMore: '{{diff}} {{unit}} mehr',
+    airLess: '{{diff}} {{unit}} weniger',
+    airGood: 'Gut',
+    airFair: 'Mäßig',
+    airModerate: 'Ungünstig',
+    airPoor: 'Schlecht',
+    airVeryPoor: 'Sehr schlecht',
+    airExtremelyPoor: 'Extrem schlecht',
+  },
+  air: {
+    chartTitle: 'Luftqualität nach Schweregrad',
   },
   card: {
     high: 'max',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Luftdruck',
     cloudCover: 'Gesamtbewölkung',
     daylight: 'Tageslicht (Sonnenaufgang – Sonnenuntergang)',
+    pm25: 'Feinstaub (PM2.5)',
+    pm10: 'Grobstaub (PM10)',
+    co: 'Kohlenmonoxid (CO)',
+    co2: 'Kohlendioxid (CO₂)',
+    no2: 'Stickstoffdioxid (NO₂)',
+    o3: 'Ozon (O₃)',
+    so2: 'Schwefeldioxid (SO₂)',
   },
   error: {
     loading: 'Wetter wird geladen…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Tageslichtdauer',
       body: '<p><strong>Tageslichtdauer</strong> — die Zeit zwischen Sonnenaufgang und Sonnenuntergang.</p><p>Die Änderung von Tag zu Tag ist um die Tagundnachtgleichen am größten (bis zu 3–4 Minuten pro Tag in mittleren Breiten) und um die Sonnenwenden am kleinsten.</p><p class="opacity-60 text-xs">Quelle: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Feinstaub unter 2,5 µm</strong> — Ruß, Rauch und andere Partikel, klein genug, um tief in Lunge und Blutbahn vorzudringen; der Schadstoff mit dem engsten Bezug zu Gesundheitsfolgen.</p><p>Angezeigt als Tagesmittel in Mikrogramm pro Kubikmeter; die Kachelfarbe spiegelt den aktuellen Wert anhand von Luftqualitäts-Gesundheitsstufen wider. Niedriger ist besser.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Über Feinstaub ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Grobstaub unter 10 µm</strong> — Staub, Pollen und größere Schwebeteilchen, die Augen, Nase und Atemwege reizen.</p><p>Angezeigt als Tagesmittel in Mikrogramm pro Kubikmeter; die Kachelfarbe spiegelt den aktuellen Wert anhand von Luftqualitäts-Gesundheitsstufen wider.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Über Feinstaub ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Kohlenmonoxid',
+      body: '<p><strong>Kohlenmonoxid (CO)</strong> — ein farb- und geruchloses Gas aus unvollständiger Verbrennung in Verkehr, Heizungen und Feuern. In Außenluftkonzentrationen bleibt es normalerweise weit unter schädlichen Werten.</p><p>Angezeigt als Tagesmittel in Mikrogramm pro Kubikmeter.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">Über Kohlenmonoxid ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Kohlendioxid',
+      body: '<p><strong>Kohlendioxid (CO₂)</strong> — das Hintergrund-Treibhausgas, derzeit etwa 420 ppm in sauberer Außenluft. Es gibt dafür keine Gesundheitsstufe für die Außenluftqualität, daher wird diese Kachel nie eingefärbt.</p><p>Angezeigt als Tagesmittel in Teilen pro Million (ppm).</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">Über atmosphärisches CO₂ ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Stickstoffdioxid',
+      body: '<p><strong>Stickstoffdioxid (NO₂)</strong> — ein rotbraunes Gas aus Verkehr und Verbrennung, das die Atemwege reizt und zur Bildung von Ozon und Feinstaub beiträgt.</p><p>Dargestellt als tatsächliche stündliche Konzentration in Mikrogramm pro Kubikmeter.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">Über Stickstoffdioxid ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Ozon',
+      body: '<p><strong>Bodennahes Ozon (O₃)</strong> — ein sekundärer Schadstoff, der entsteht, wenn Sonnenlicht mit Emissionen aus Verkehr und Industrie reagiert; er erreicht an heißen, sonnigen Nachmittagen seinen Höhepunkt. Es reizt die Lunge und verschlimmert Asthma.</p><p>Dargestellt als tatsächliche stündliche Konzentration in Mikrogramm pro Kubikmeter.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">Über bodennahes Ozon ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Schwefeldioxid',
+      body: '<p><strong>Schwefeldioxid (SO₂)</strong> — ein stechend riechendes Gas aus der Verbrennung fossiler Brennstoffe und der Industrie, das die Atemwege reizt und Asthma auslösen kann.</p><p>Dargestellt als tatsächliche stündliche Konzentration in Mikrogramm pro Kubikmeter.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">Über Schwefeldioxid ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Luftqualität nach Schweregrad',
+      body: '<p>Dieses Diagramm zeigt <strong>NO₂, O₃ und SO₂</strong> im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Schadstoffs (µg/m³, im Tooltip), aber ihre Höhe ist auf die Schweregrad-Stufen des <strong>Europäischen Luftqualitätsindex (EAQI)</strong> skaliert.</p><p>Die sechs Stufen — Gut, Mäßig, Ungünstig, Schlecht, Sehr schlecht, Extrem schlecht — erlauben einen direkten Vergleich aller drei Gase trotz unterschiedlicher Skalen: eine Linie in einer höheren Stufe ist die schädlichere, unabhängig von ihrem Zahlenwert.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Über den Europäischen Luftqualitätsindex ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

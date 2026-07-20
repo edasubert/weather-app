@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'Přibližně stejná délka dne',
     moreDaylight: 'Den o {{diff}} min delší',
     lessDaylight: 'Den o {{diff}} min kratší',
+    airSame: 'Přibližně stejně',
+    airMore: 'O {{diff}} {{unit}} více',
+    airLess: 'O {{diff}} {{unit}} méně',
+    airGood: 'Dobrá',
+    airFair: 'Přijatelná',
+    airModerate: 'Zhoršená',
+    airPoor: 'Špatná',
+    airVeryPoor: 'Velmi špatná',
+    airExtremelyPoor: 'Extrémně špatná',
+  },
+  air: {
+    chartTitle: 'Kvalita ovzduší podle závažnosti',
   },
   card: {
     high: 'max',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Tlak vzduchu',
     cloudCover: 'Celková oblačnost',
     daylight: 'Denní světlo (východ – západ slunce)',
+    pm25: 'Jemné částice (PM2.5)',
+    pm10: 'Hrubé částice (PM10)',
+    co: 'Oxid uhelnatý (CO)',
+    co2: 'Oxid uhličitý (CO₂)',
+    no2: 'Oxid dusičitý (NO₂)',
+    o3: 'Ozon (O₃)',
+    so2: 'Oxid siřičitý (SO₂)',
   },
   error: {
     loading: 'Načítám počasí…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Délka dne',
       body: '<p><strong>Délka dne</strong> — doba mezi východem a západem slunce.</p><p>Změna ze dne na den je největší kolem rovnodennosti (ve středních zeměpisných šířkách až 3–4 minuty za den) a nejmenší kolem slunovratu.</p><p class="opacity-60 text-xs">Zdroj: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Jemné prachové částice pod 2,5 µm</strong> — saze, kouř a další částice dostatečně malé na to, aby pronikly hluboko do plic a krevního řečiště; znečišťující látka nejúžeji spojená s dopady na zdraví.</p><p>Zobrazeno jako denní průměr v mikrogramech na krychlový metr; barva dlaždice odráží aktuální úroveň podle zdravotních pásem kvality ovzduší. Nižší je lepší.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">O prachových částicích ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Hrubé prachové částice pod 10 µm</strong> — prach, pyl a větší částice v ovzduší, které dráždí oči, nos a dýchací cesty.</p><p>Zobrazeno jako denní průměr v mikrogramech na krychlový metr; barva dlaždice odráží aktuální úroveň podle zdravotních pásem kvality ovzduší.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">O prachových částicích ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Oxid uhelnatý',
+      body: '<p><strong>Oxid uhelnatý (CO)</strong> — bezbarvý plyn bez zápachu vznikající při nedokonalém spalování v dopravě, vytápění a při požárech. Ve venkovních koncentracích zůstává obvykle hluboko pod škodlivými hodnotami.</p><p>Zobrazeno jako denní průměr v mikrogramech na krychlový metr.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">O oxidu uhelnatém ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Oxid uhličitý',
+      body: '<p><strong>Oxid uhličitý (CO₂)</strong> — základní skleníkový plyn, v čistém venkovním vzduchu aktuálně kolem 420 ppm. Nemá žádné zdravotní pásmo kvality venkovního ovzduší, proto se tato dlaždice nikdy nebarví.</p><p>Zobrazeno jako denní průměr v částicích na milion (ppm).</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">O atmosférickém CO₂ ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Oxid dusičitý',
+      body: '<p><strong>Oxid dusičitý (NO₂)</strong> — červenohnědý plyn z dopravy a spalování, který dráždí dýchací cesty a podílí se na tvorbě ozonu a prachových částic.</p><p>Vykresleno jako skutečná hodinová koncentrace v mikrogramech na krychlový metr.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">O oxidu dusičitém ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Ozon',
+      body: '<p><strong>Přízemní ozon (O₃)</strong> — sekundární znečišťující látka vznikající reakcí slunečního světla s emisemi z dopravy a průmyslu; vrcholí za horkých slunečných odpolední. Dráždí plíce a zhoršuje astma.</p><p>Vykresleno jako skutečná hodinová koncentrace v mikrogramech na krychlový metr.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">O přízemním ozonu ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Oxid siřičitý',
+      body: '<p><strong>Oxid siřičitý (SO₂)</strong> — štiplavě páchnoucí plyn ze spalování fosilních paliv a z průmyslu, který dráždí dýchací cesty a může vyvolat astma.</p><p>Vykresleno jako skutečná hodinová koncentrace v mikrogramech na krychlový metr.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">O oxidu siřičitém ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Kvalita ovzduší podle závažnosti',
+      body: '<p>Tento graf zobrazuje <strong>NO₂, O₃ a SO₂</strong> v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> dané látky (µg/m³, viz popisek), ale její výška je škálována na pásma závažnosti <strong>Evropského indexu kvality ovzduší (EAQI)</strong>.</p><p>Šest pásem — Dobrá, Přijatelná, Zhoršená, Špatná, Velmi špatná, Extrémně špatná — umožňuje přímé porovnání všech tří plynů, i když mají odlišné škály: čára ve vyšším pásmu je škodlivější bez ohledu na svou hodnotu.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">O Evropském indexu kvality ovzduší ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

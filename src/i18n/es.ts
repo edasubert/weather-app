@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'Duración del día similar',
     moreDaylight: '{{diff}} min más de luz de día',
     lessDaylight: '{{diff}} min menos de luz de día',
+    airSame: 'Aproximadamente igual',
+    airMore: '{{diff}} {{unit}} más',
+    airLess: '{{diff}} {{unit}} menos',
+    airGood: 'Buena',
+    airFair: 'Aceptable',
+    airModerate: 'Moderada',
+    airPoor: 'Mala',
+    airVeryPoor: 'Muy mala',
+    airExtremelyPoor: 'Extremadamente mala',
+  },
+  air: {
+    chartTitle: 'Calidad del aire por gravedad',
   },
   card: {
     high: 'máx',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Presión',
     cloudCover: 'Nubosidad total',
     daylight: 'Luz de día (amanecer – atardecer)',
+    pm25: 'Partículas finas (PM2.5)',
+    pm10: 'Partículas gruesas (PM10)',
+    co: 'Monóxido de carbono (CO)',
+    co2: 'Dióxido de carbono (CO₂)',
+    no2: 'Dióxido de nitrógeno (NO₂)',
+    o3: 'Ozono (O₃)',
+    so2: 'Dióxido de azufre (SO₂)',
   },
   error: {
     loading: 'Cargando clima…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Duración del día',
       body: '<p><strong>Duración del día</strong>: el tiempo entre el amanecer y el atardecer.</p><p>El cambio de un día a otro es mayor cerca de los equinoccios (hasta 3–4 minutos por día en latitudes medias) y menor cerca de los solsticios.</p><p class="opacity-60 text-xs">Fuente: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Partículas finas menores de 2,5 µm</strong> — hollín, humo y otras partículas lo bastante pequeñas para llegar a lo profundo de los pulmones y el torrente sanguíneo; el contaminante más ligado a los efectos en la salud.</p><p>Se muestra como media diaria en microgramos por metro cúbico; el color de la tarjeta refleja el nivel actual según los umbrales sanitarios de calidad del aire. Cuanto más bajo, mejor.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Sobre las partículas ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Partículas gruesas menores de 10 µm</strong> — polvo, polen y partículas mayores en suspensión que irritan los ojos, la nariz y las vías respiratorias.</p><p>Se muestra como media diaria en microgramos por metro cúbico; el color de la tarjeta refleja el nivel actual según los umbrales sanitarios de calidad del aire.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">Sobre las partículas ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Monóxido de carbono',
+      body: '<p><strong>Monóxido de carbono (CO)</strong> — un gas incoloro e inodoro procedente de la combustión incompleta del tráfico, la calefacción y los incendios. En concentraciones al aire libre suele mantenerse muy por debajo de niveles nocivos.</p><p>Se muestra como media diaria en microgramos por metro cúbico.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">Sobre el monóxido de carbono ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Dióxido de carbono',
+      body: '<p><strong>Dióxido de carbono (CO₂)</strong> — el gas de efecto invernadero de fondo, actualmente en torno a 420 ppm en aire exterior limpio. No tiene un umbral sanitario de calidad del aire exterior, por lo que esta tarjeta nunca se tiñe.</p><p>Se muestra como media diaria en partes por millón (ppm).</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">Sobre el CO₂ atmosférico ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Dióxido de nitrógeno',
+      body: '<p><strong>Dióxido de nitrógeno (NO₂)</strong> — un gas de color pardo rojizo procedente del tráfico y la combustión que inflama las vías respiratorias y contribuye a formar ozono y partículas.</p><p>Se representa como la concentración horaria real en microgramos por metro cúbico.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">Sobre el dióxido de nitrógeno ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Ozono',
+      body: '<p><strong>Ozono troposférico (O₃)</strong> — un contaminante secundario que se forma cuando la luz solar reacciona con las emisiones del tráfico y la industria, y alcanza su máximo en las tardes calurosas y soleadas. Irrita los pulmones y agrava el asma.</p><p>Se representa como la concentración horaria real en microgramos por metro cúbico.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">Sobre el ozono troposférico ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Dióxido de azufre',
+      body: '<p><strong>Dióxido de azufre (SO₂)</strong> — un gas de olor acre procedente de la quema de combustibles fósiles y la industria que irrita las vías respiratorias y puede desencadenar asma.</p><p>Se representa como la concentración horaria real en microgramos por metro cúbico.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">Sobre el dióxido de azufre ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Calidad del aire por gravedad',
+      body: '<p>Este gráfico representa <strong>NO₂, O₃ y SO₂</strong> a lo largo del tiempo. Cada línea sigue la <strong>concentración horaria real</strong> del contaminante (µg/m³, en la información emergente), pero su altura se escala sobre las bandas de gravedad del <strong>Índice Europeo de Calidad del Aire (EAQI)</strong>.</p><p>Las seis bandas —Buena, Aceptable, Moderada, Mala, Muy mala, Extremadamente mala— permiten comparar directamente los tres gases aunque sus escalas difieran: una línea situada en una banda más alta es la más perjudicial, sea cual sea su valor.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Sobre el Índice Europeo de Calidad del Aire ↗</a></p><p class="opacity-60 text-xs">Fuente: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

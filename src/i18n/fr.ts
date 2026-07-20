@@ -58,6 +58,18 @@ export default {
     sameDaylight: 'Durée du jour similaire',
     moreDaylight: '{{diff}} min de jour en plus',
     lessDaylight: '{{diff}} min de jour en moins',
+    airSame: 'À peu près identique',
+    airMore: '{{diff}} {{unit}} de plus',
+    airLess: '{{diff}} {{unit}} de moins',
+    airGood: 'Bonne',
+    airFair: 'Acceptable',
+    airModerate: 'Moyenne',
+    airPoor: 'Mauvaise',
+    airVeryPoor: 'Très mauvaise',
+    airExtremelyPoor: 'Extrêmement mauvaise',
+  },
+  air: {
+    chartTitle: 'Qualité de l’air par gravité',
   },
   card: {
     high: 'max',
@@ -91,6 +103,13 @@ export default {
     pressure: 'Pression',
     cloudCover: 'Nébulosité totale',
     daylight: 'Lumière du jour (lever – coucher du soleil)',
+    pm25: 'Particules fines (PM2.5)',
+    pm10: 'Particules grossières (PM10)',
+    co: 'Monoxyde de carbone (CO)',
+    co2: 'Dioxyde de carbone (CO₂)',
+    no2: 'Dioxyde d’azote (NO₂)',
+    o3: 'Ozone (O₃)',
+    so2: 'Dioxyde de soufre (SO₂)',
   },
   error: {
     loading: 'Chargement de la météo…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: 'Durée du jour',
       body: '<p><strong>Durée du jour</strong> — le temps entre le lever et le coucher du soleil.</p><p>La variation d\'un jour à l\'autre est maximale autour des équinoxes (jusqu\'à 3–4 minutes par jour aux latitudes moyennes) et minimale autour des solstices.</p><p class="opacity-60 text-xs">Source : <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>Particules fines de moins de 2,5 µm</strong> — suie, fumée et autres particules assez petites pour pénétrer profondément dans les poumons et la circulation sanguine ; le polluant le plus étroitement lié aux effets sur la santé.</p><p>Affiché en moyenne journalière, en microgrammes par mètre cube ; la couleur de la tuile reflète le niveau actuel selon les seuils sanitaires de qualité de l\'air. Plus c\'est bas, mieux c\'est.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">À propos des particules ↗</a></p><p class="opacity-60 text-xs">Source : <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>Particules grossières de moins de 10 µm</strong> — poussières, pollen et particules en suspension plus grosses qui irritent les yeux, le nez et les voies respiratoires.</p><p>Affiché en moyenne journalière, en microgrammes par mètre cube ; la couleur de la tuile reflète le niveau actuel selon les seuils sanitaires de qualité de l\'air.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">À propos des particules ↗</a></p><p class="opacity-60 text-xs">Source : <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: 'Monoxyde de carbone',
+      body: '<p><strong>Monoxyde de carbone (CO)</strong> — un gaz incolore et inodore issu de la combustion incomplète (trafic, chauffage, incendies). Aux concentrations extérieures, il reste généralement bien en dessous des niveaux nocifs.</p><p>Affiché en moyenne journalière, en microgrammes par mètre cube.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">À propos du monoxyde de carbone ↗</a></p><p class="opacity-60 text-xs">Source : <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: 'Dioxyde de carbone',
+      body: '<p><strong>Dioxyde de carbone (CO₂)</strong> — le gaz à effet de serre de fond, actuellement autour de 420 ppm dans l\'air extérieur propre. Il n\'a pas de seuil sanitaire de qualité de l\'air extérieur, cette tuile n\'est donc jamais colorée.</p><p>Affiché en moyenne journalière, en parties par million (ppm).</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">À propos du CO₂ atmosphérique ↗</a></p><p class="opacity-60 text-xs">Source : <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: 'Dioxyde d’azote',
+      body: '<p><strong>Dioxyde d’azote (NO₂)</strong> — un gaz brun-rouge issu du trafic et de la combustion qui enflamme les voies respiratoires et contribue à la formation d’ozone et de particules.</p><p>Tracé selon la concentration horaire réelle en microgrammes par mètre cube.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">À propos du dioxyde d’azote ↗</a></p><p class="opacity-60 text-xs">Source : <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'Ozone',
+      body: '<p><strong>Ozone troposphérique (O₃)</strong> — un polluant secondaire formé lorsque la lumière du soleil réagit avec les émissions du trafic et de l’industrie ; il culmine lors des après-midi chauds et ensoleillés. Il irrite les poumons et aggrave l’asthme.</p><p>Tracé selon la concentration horaire réelle en microgrammes par mètre cube.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">À propos de l’ozone troposphérique ↗</a></p><p class="opacity-60 text-xs">Source : <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: 'Dioxyde de soufre',
+      body: '<p><strong>Dioxyde de soufre (SO₂)</strong> — un gaz à l’odeur âcre issu de la combustion des énergies fossiles et de l’industrie, qui irrite les voies respiratoires et peut déclencher de l’asthme.</p><p>Tracé selon la concentration horaire réelle en microgrammes par mètre cube.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">À propos du dioxyde de soufre ↗</a></p><p class="opacity-60 text-xs">Source : <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: 'Qualité de l’air par gravité',
+      body: '<p>Ce graphique représente <strong>NO₂, O₃ et SO₂</strong> au fil du temps. Chaque courbe suit la <strong>concentration horaire réelle</strong> du polluant (µg/m³, dans l’infobulle), mais sa hauteur est mise à l’échelle des niveaux de gravité de l’<strong>Indice européen de la qualité de l’air (EAQI)</strong>.</p><p>Les six niveaux — Bonne, Acceptable, Moyenne, Mauvaise, Très mauvaise, Extrêmement mauvaise — permettent de comparer directement les trois gaz malgré leurs échelles différentes : une courbe située dans un niveau plus élevé est la plus nocive, quelle que soit sa valeur.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">À propos de l’Indice européen de la qualité de l’air ↗</a></p><p class="opacity-60 text-xs">Source : <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

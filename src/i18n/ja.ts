@@ -58,6 +58,18 @@ export default {
     sameDaylight: '昼の長さはほぼ同じ',
     moreDaylight: '昼が{{diff}}分長い',
     lessDaylight: '昼が{{diff}}分短い',
+    airSame: 'ほぼ同じ',
+    airMore: '{{diff}} {{unit}} 多い',
+    airLess: '{{diff}} {{unit}} 少ない',
+    airGood: '良好',
+    airFair: 'やや良',
+    airModerate: 'やや悪',
+    airPoor: '悪い',
+    airVeryPoor: '非常に悪い',
+    airExtremelyPoor: '極めて悪い',
+  },
+  air: {
+    chartTitle: '深刻度別の大気質',
   },
   card: {
     high: '最高',
@@ -91,6 +103,13 @@ export default {
     pressure: '気圧',
     cloudCover: '総雲量',
     daylight: '日照時間（日の出〜日の入り）',
+    pm25: '微小粒子状物質（PM2.5）',
+    pm10: '粗大粒子状物質（PM10）',
+    co: '一酸化炭素（CO）',
+    co2: '二酸化炭素（CO₂）',
+    no2: '二酸化窒素 (NO₂)',
+    o3: 'オゾン (O₃)',
+    so2: '二酸化硫黄 (SO₂)',
   },
   error: {
     loading: '天気を読み込み中…',
@@ -165,6 +184,38 @@ export default {
     daylight: {
       title: '昼の長さ',
       body: '<p><strong>昼の長さ</strong> — 日の出から日の入りまでの時間です。</p><p>日ごとの変化は春分・秋分の頃に最も大きく（中緯度では1日あたり3〜4分）、夏至・冬至の頃に最も小さくなります。</p><p class="opacity-60 text-xs">ソース: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',
+    },
+    pm25: {
+      title: 'PM2.5',
+      body: '<p><strong>2.5µm以下の微小粒子状物質</strong> — すす、煙など、肺の奥や血流にまで達するほど小さい粒子で、健康影響と最も密接に結びついた汚染物質です。</p><p>1立方メートルあたりのマイクログラムで日平均として表示され、タイルの色は大気質の健康区分に照らした現在のレベルを反映します。低いほど良好です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">粒子状物質について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>pm2_5</code> — {{docs}}</p>',
+    },
+    pm10: {
+      title: 'PM10',
+      body: '<p><strong>10µm以下の粗大粒子状物質</strong> — 目・鼻・気道を刺激する、ほこり、花粉などの比較的大きな浮遊粒子です。</p><p>1立方メートルあたりのマイクログラムで日平均として表示され、タイルの色は大気質の健康区分に照らした現在のレベルを反映します。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Particulates">粒子状物質について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>pm10</code> — {{docs}}</p>',
+    },
+    co: {
+      title: '一酸化炭素',
+      body: '<p><strong>一酸化炭素（CO）</strong> — 交通、暖房、火災などの不完全燃焼から生じる無色無臭の気体です。屋外濃度では通常、有害なレベルをはるかに下回ります。</p><p>1立方メートルあたりのマイクログラムで日平均として表示されます。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_monoxide">一酸化炭素について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>carbon_monoxide</code> — {{docs}}</p>',
+    },
+    co2: {
+      title: '二酸化炭素',
+      body: '<p><strong>二酸化炭素（CO₂）</strong> — 背景となる温室効果ガスで、清浄な屋外大気では現在およそ420 ppmです。屋外大気質の健康区分は存在しないため、このタイルには色が付きません。</p><p>百万分率（ppm）で日平均として表示されます。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere">大気中のCO₂について ↗</a></p><p class="opacity-60 text-xs">ソース: <code>carbon_dioxide</code> — {{docs}}</p>',
+    },
+    no2: {
+      title: '二酸化窒素',
+      body: '<p><strong>二酸化窒素 (NO₂)</strong> — 交通や燃焼から生じる赤褐色の気体で、気道を刺激し、オゾンや微粒子の生成にも関与します。</p><p>実際の1時間ごとの濃度をマイクログラム毎立方メートルで表示します。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Nitrogen_dioxide">二酸化窒素について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> — {{docs}}</p>',
+    },
+    o3: {
+      title: 'オゾン',
+      body: '<p><strong>地表オゾン (O₃)</strong> — 日光が交通や産業の排出物と反応して生じる二次汚染物質で、暑く晴れた午後にピークを迎えます。肺を刺激し、ぜんそくを悪化させます。</p><p>実際の1時間ごとの濃度をマイクログラム毎立方メートルで表示します。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Ground-level_ozone">地表オゾンについて ↗</a></p><p class="opacity-60 text-xs">出典: <code>ozone</code> — {{docs}}</p>',
+    },
+    so2: {
+      title: '二酸化硫黄',
+      body: '<p><strong>二酸化硫黄 (SO₂)</strong> — 化石燃料の燃焼や産業から生じる刺激臭のある気体で、気道を刺激し、ぜんそくを引き起こすことがあります。</p><p>実際の1時間ごとの濃度をマイクログラム毎立方メートルで表示します。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Sulfur_dioxide">二酸化硫黄について ↗</a></p><p class="opacity-60 text-xs">出典: <code>sulphur_dioxide</code> — {{docs}}</p>',
+    },
+    eaqi: {
+      title: '深刻度別の大気質',
+      body: '<p>このグラフは <strong>NO₂・O₃・SO₂</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる3種類の気体を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
     },
   },
   wmo: {

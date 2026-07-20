@@ -68,6 +68,19 @@
 
   --snow-color: #000000;
   --night-shade: rgba(15, 23, 42, 0.06);
+
+  /* Air-quality severity chart — 6 EAQI band-zone tints (faint EEA palette:
+     Good → Extremely poor) and 3 distinct pollutant line colors. */
+  --eaqi-band-0: rgba(80, 240, 230, 0.14);   /* Good — cyan */
+  --eaqi-band-1: rgba(80, 204, 170, 0.14);   /* Fair — teal */
+  --eaqi-band-2: rgba(240, 224, 80, 0.16);   /* Moderate — yellow */
+  --eaqi-band-3: rgba(255, 80, 80, 0.13);    /* Poor — red */
+  --eaqi-band-4: rgba(150, 0, 50, 0.13);     /* Very poor — maroon */
+  --eaqi-band-5: rgba(125, 40, 160, 0.15);   /* Extremely poor — purple */
+
+  --air-no2: #6366f1;   /* indigo */
+  --air-o3:  #ea580c;   /* orange */
+  --air-so2: #0d9488;   /* teal */
 }
 
 .dark {
@@ -109,6 +122,17 @@
 
   --snow-color: #ffffff;
   --night-shade: rgba(0, 0, 0, 0.28);
+
+  --eaqi-band-0: rgba(80, 240, 230, 0.10);
+  --eaqi-band-1: rgba(80, 204, 170, 0.10);
+  --eaqi-band-2: rgba(240, 224, 80, 0.10);
+  --eaqi-band-3: rgba(255, 80, 80, 0.12);
+  --eaqi-band-4: rgba(190, 40, 90, 0.16);
+  --eaqi-band-5: rgba(160, 80, 200, 0.16);
+
+  --air-no2: #818cf8;
+  --air-o3:  #fb923c;
+  --air-so2: #2dd4bf;
 }
 
 .hc {
@@ -155,6 +179,18 @@
   --hover-line: #000000;
   --dot-bg:     #ffffff;
   --night-shade: rgba(0, 0, 0, 0.08);
+
+  /* HC carries severity via the separators + labels, not fills */
+  --eaqi-band-0: transparent;
+  --eaqi-band-1: transparent;
+  --eaqi-band-2: transparent;
+  --eaqi-band-3: transparent;
+  --eaqi-band-4: transparent;
+  --eaqi-band-5: transparent;
+
+  --air-no2: #1d4ed8;
+  --air-o3:  #b91c1c;
+  --air-so2: #047857;
 }
 
 .hc.dark {
@@ -196,6 +232,17 @@
   --hover-line: #ffffff;
   --dot-bg:     #000000;
   --night-shade: rgba(255, 255, 255, 0.10);
+
+  --eaqi-band-0: transparent;
+  --eaqi-band-1: transparent;
+  --eaqi-band-2: transparent;
+  --eaqi-band-3: transparent;
+  --eaqi-band-4: transparent;
+  --eaqi-band-5: transparent;
+
+  --air-no2: #93c5fd;
+  --air-o3:  #fca5a5;
+  --air-so2: #6ee7b7;
 }
 
 /* ── Page background ──────────────────────────────── */
@@ -221,13 +268,13 @@ a:focus-visible {
 }
 
 /* ── Timeline scrollbar ───────────────────────────── */
-#tl-scroll {
+#tl-scroll, #air-tl-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--color-edge) transparent;
 }
-#tl-scroll::-webkit-scrollbar { height: 8px; }
-#tl-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
-#tl-scroll::-webkit-scrollbar-track { background: transparent; }
+#tl-scroll::-webkit-scrollbar, #air-tl-scroll::-webkit-scrollbar { height: 8px; }
+#tl-scroll::-webkit-scrollbar-thumb, #air-tl-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
+#tl-scroll::-webkit-scrollbar-track, #air-tl-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ── View transitions ─────────────────────────────── */
 /* Keep the cross-fade short: clicks landing mid-transition can be dropped
