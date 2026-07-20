@@ -2,14 +2,17 @@ import type { AirHourly } from './airquality';
 import { timelineDayWidth, type TimelineDay } from './chart';
 import { t } from './i18n';
 
-// Severity timeline for the three gases with hourly EAQI thresholds (NO₂, O₃,
-// SO₂). Structurally a slimmer sibling of chart.ts's weather timeline: same
-// time→x mapping, scroll container, now-marker, day labels and night shading,
-// but a fixed 0–6 severity Y domain and no canvas/wind/dual-axis machinery.
+// Severity timeline for the pollutants with hourly EAQI thresholds (NO₂, O₃,
+// SO₂, PM2.5, PM10). Structurally a slimmer sibling of chart.ts's weather
+// timeline: same time→x mapping, scroll container, now-marker, day labels and
+// night shading, but a fixed 0–6 severity Y domain and no canvas/wind/dual-axis
+// machinery.
 //
 // Each line traces the pollutant's real hourly concentration (µg/m³); its Y is
 // the concentration remapped through the EAQI breakpoints (concToBand), so the
-// curve keeps its true shape while its height reads as a severity band.
+// curve keeps its true shape while its height reads as a severity band. (EAQI
+// PM bands are formally 24-h means; we band raw hourly PM for parity with the
+// gases, so a short spike may read one band high.)
 
 const PL = 88; // left gutter holds the band labels ("Extremely poor" is the longest)
 const PR = 16;
@@ -18,10 +21,18 @@ const H  = 220;
 const PB = 30; // day-label row
 const CH = H - PT - PB;
 
-const LINE_COLORS = { no2: 'var(--air-no2)', o3: 'var(--air-o3)', so2: 'var(--air-so2)' } as const;
+// d3 schemeObservable10 (first five), hardcoded and theme-independent like the
+// weather chart's line colours — five clearly distinguishable categorical hues.
+const LINE_COLORS = {
+  no2:  '#4269d0', // blue
+  o3:   '#efb118', // amber
+  so2:  '#ff725c', // red
+  pm25: '#6cc5b0', // teal
+  pm10: '#3ca951', // green
+} as const;
 type Pollutant = keyof typeof LINE_COLORS;
-const POLLUTANTS: Pollutant[] = ['no2', 'o3', 'so2'];
-const FORMULA: Record<Pollutant, string> = { no2: 'NO₂', o3: 'O₃', so2: 'SO₂' };
+const POLLUTANTS: Pollutant[] = ['no2', 'o3', 'so2', 'pm25', 'pm10'];
+const FORMULA: Record<Pollutant, string> = { no2: 'NO₂', o3: 'O₃', so2: 'SO₂', pm25: 'PM2.5', pm10: 'PM10' };
 
 export type AirChartVisibility = Partial<Record<Pollutant, boolean>>;
 // Pollutants to draw, honouring per-line toggles (default: all shown).
@@ -33,9 +44,11 @@ const LBL_STYLE = `<style>.albl{font-size:calc(var(--chart-lbl-size)*0.66);fill:
 // EAQI hourly breakpoints (µg/m³): six [lo, hi] intervals per pollutant, one per
 // band Good(0)…Extremely poor(5). The top band's hi pegs the open-ended worst band.
 const BREAKS: Record<Pollutant, [number, number][]> = {
-  no2: [[0, 40], [40, 90], [90, 120], [120, 230], [230, 340], [340, 1000]],
-  o3:  [[0, 50], [50, 100], [100, 130], [130, 240], [240, 380], [380, 800]],
-  so2: [[0, 100], [100, 200], [200, 350], [350, 500], [500, 750], [750, 1250]],
+  no2:  [[0, 40], [40, 90], [90, 120], [120, 230], [230, 340], [340, 1000]],
+  o3:   [[0, 50], [50, 100], [100, 130], [130, 240], [240, 380], [380, 800]],
+  so2:  [[0, 100], [100, 200], [200, 350], [350, 500], [500, 750], [750, 1250]],
+  pm25: [[0, 10], [10, 20], [20, 25], [25, 50], [50, 75], [75, 800]],
+  pm10: [[0, 20], [20, 40], [40, 50], [50, 100], [100, 150], [150, 1200]],
 };
 
 // The six band words, indexed by band 0..5. comp.airGood..airPoor already exist;

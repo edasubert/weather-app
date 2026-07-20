@@ -229,7 +229,7 @@ export default {
     },
     eaqi: {
       title: '深刻度別の大気質',
-      body: '<p>このグラフは <strong>NO₂・O₃・SO₂</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる3種類の気体を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> — {{docs}}</p>',
+      body: '<p>このグラフは <strong>NO₂・O₃・SO₂・PM2.5・PM10</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる5種類の物質を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'ハンノキ' },
     birch: { title: 'カバノキ' },

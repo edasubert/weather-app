@@ -43,14 +43,15 @@ const chartVisibility = (): ChartVisibility => ({
 // Air-quality and pollen severity charts. Bit 0 of each group ('airChart' /
 // 'pollenChart') is the whole-chart hide toggle; the rest are per-line switches
 // (per gas / per taxon). Same APPEND-only bitmask contract as the arrays above.
-const AIR_PARAMS    = ['airChart', 'no2', 'o3', 'so2'] as const;
+const AIR_PARAMS    = ['airChart', 'no2', 'o3', 'so2', 'pm25', 'pm10'] as const;
 const POLLEN_PARAMS = ['pollenChart', 'alder', 'birch', 'grass', 'mugwort', 'olive', 'ragweed'] as const;
 const airVis    = new Set<string>(AIR_PARAMS);
 const pollenVis = new Set<string>(POLLEN_PARAMS);
 const airOn    = (id: string) => airVis.has(id);
 const pollenOn = (id: string) => pollenVis.has(id);
 const airChartVisibility = (): AirChartVisibility =>
-  ({ no2: airVis.has('no2'), o3: airVis.has('o3'), so2: airVis.has('so2') });
+  ({ no2: airVis.has('no2'), o3: airVis.has('o3'), so2: airVis.has('so2'),
+     pm25: airVis.has('pm25'), pm10: airVis.has('pm10') });
 const pollenChartVisibility = (): PollenChartVisibility => ({
   alder: pollenVis.has('alder'), birch: pollenVis.has('birch'), grass: pollenVis.has('grass'),
   mugwort: pollenVis.has('mugwort'), olive: pollenVis.has('olive'), ragweed: pollenVis.has('ragweed'),
@@ -1428,7 +1429,7 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
     // Air-quality severity chart — hidden when toggled off or there's no data.
     const air = weather.air;
-    const hasAir = !!air?.hourly && [air.hourly.no2, air.hourly.o3, air.hourly.so2].some(s => s.some(v => v != null));
+    const hasAir = !!air?.hourly && [air.hourly.no2, air.hourly.o3, air.hourly.so2, air.hourly.pm25, air.hourly.pm10].some(s => s.some(v => v != null));
     if (hasAir && airOn('airChart')) {
       const aVis = airChartVisibility();
       airSlot.style.display = '';

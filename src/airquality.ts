@@ -11,9 +11,11 @@
 // Raw hourly concentrations (µg/m³) for the three gases. Their Y position on the
 // chart is derived from the EAQI breakpoints in airchart.ts.
 export interface AirHourly {
-  no2: (number | null)[];
-  o3:  (number | null)[];
-  so2: (number | null)[];
+  no2:  (number | null)[];
+  o3:   (number | null)[];
+  so2:  (number | null)[];
+  pm25: (number | null)[];
+  pm10: (number | null)[];
 }
 
 // Raw hourly pollen counts (grains/m³) for the six CAMS taxa. Europe-only and
@@ -35,7 +37,7 @@ export interface AirData {
 }
 
 const HOURLY_VARS = [
-  'nitrogen_dioxide', 'ozone', 'sulphur_dioxide',
+  'nitrogen_dioxide', 'ozone', 'sulphur_dioxide', 'pm2_5', 'pm10',
   'alder_pollen', 'birch_pollen', 'grass_pollen',
   'mugwort_pollen', 'olive_pollen', 'ragweed_pollen',
 ].join(',');
@@ -68,9 +70,11 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirData
 
     return {
       hourly: {
-        no2: h['nitrogen_dioxide'] ?? [],
-        o3:  h['ozone'] ?? [],
-        so2: h['sulphur_dioxide'] ?? [],
+        no2:  h['nitrogen_dioxide'] ?? [],
+        o3:   h['ozone'] ?? [],
+        so2:  h['sulphur_dioxide'] ?? [],
+        pm25: h['pm2_5'] ?? [],
+        pm10: h['pm10'] ?? [],
       },
       pollen: {
         alder:   h['alder_pollen'] ?? [],
