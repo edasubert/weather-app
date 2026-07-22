@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Baixo',
     pollenModerate: 'Moderado',
     pollenHigh: 'Alto',
+    uvLow: 'Baixo',
+    uvModerate: 'Moderado',
+    uvHigh: 'Alto',
+    uvVeryHigh: 'Muito alto',
+    uvExtreme: 'Extremo',
   },
   air: {
     chartTitle: 'Qualidade do ar por gravidade',
@@ -122,6 +127,7 @@ export default {
     mugwort: 'Pólen de artemísia',
     olive: 'Pólen de oliveira',
     ragweed: 'Pólen de ambrósia',
+    uv: 'Índice UV',
   },
   error: {
     loading: 'Carregando clima…',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Qualidade do ar por gravidade',
-      body: '<p>Este gráfico representa <strong>NO₂, O₃, SO₂, PM2.5 e PM10</strong> ao longo do tempo. Cada linha acompanha a <strong>concentração horária real</strong> do poluente (µg/m³, na dica de tela), mas sua altura é dimensionada nas faixas de gravidade do <strong>Índice Europeu de Qualidade do Ar (EAQI)</strong>.</p><p>As seis faixas — Boa, Aceitável, Moderada, Ruim, Muito ruim, Extremamente ruim — permitem comparar diretamente os cinco poluentes mesmo com escalas diferentes: uma linha em uma faixa mais alta é a mais nociva, seja qual for o seu valor.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Sobre o Índice Europeu de Qualidade do Ar ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>Este gráfico representa <strong>NO₂, O₃, SO₂, PM2.5 e PM10</strong> ao longo do tempo. Cada linha acompanha a <strong>concentração horária real</strong> do poluente (µg/m³, na dica de tela), mas sua altura é dimensionada nas faixas de gravidade do <strong>Índice Europeu de Qualidade do Ar (EAQI)</strong>.</p><p>As seis faixas — Boa, Aceitável, Moderada, Ruim, Muito ruim, Extremamente ruim — permitem comparar diretamente os cinco poluentes mesmo com escalas diferentes: uma linha em uma faixa mais alta é a mais nociva, seja qual for o seu valor.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Sobre o Índice Europeu de Qualidade do Ar ↗</a></p><p class="opacity-60 text-xs">Fonte: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Amieiro' },
     birch: { title: 'Bétula' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Gráfico de pólen' },
     pollen: {
       title: 'Pólen por gravidade',
-      body: '<p>Este gráfico mostra <strong>seis tipos de pólen</strong> — amieiro, bétula, gramíneas, artemísia, oliveira e ambrósia — ao longo do tempo. Cada linha segue a <strong>contagem horária real</strong> do táxon (grãos/m³, na dica de contexto), mas sua altura é ajustada a faixas clínicas de gravidade.</p><p>As faixas — Baixo, Moderado (temporada) e Alto (pico) — seguem os limiares clinicamente relevantes da <strong>EAACI</strong>, os mesmos níveis que o SILAM/CAMS usa na previsão oficial europeia de pólen. O pólen só está disponível na Europa durante a estação polínica.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Sobre o pólen e a saúde ↗</a></p><p class="opacity-60 text-xs">Fonte: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>Este gráfico mostra <strong>seis tipos de pólen</strong> — amieiro, bétula, gramíneas, artemísia, oliveira e ambrósia — ao longo do tempo. Cada linha segue a <strong>contagem horária real</strong> do táxon (grãos/m³, na dica de contexto), mas sua altura é ajustada a faixas clínicas de gravidade.</p><p>As faixas — Baixo, Moderado (temporada) e Alto (pico) — seguem os limiares clinicamente relevantes da <strong>EAACI</strong>, os mesmos níveis que o SILAM/CAMS usa na previsão oficial europeia de pólen. O pólen só está disponível na Europa durante a estação polínica.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Sobre o pólen e a saúde ↗</a></p><p class="opacity-60 text-xs">Fonte: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'Índice UV',
+      body: '<p><strong>O índice UV (escala OMS/OMM)</strong> mede a intensidade da radiação ultravioleta solar. O cartão mostra o <strong>pico do dia</strong> (por volta do meio-dia) e a sua categoria.</p><p>Níveis: Baixo (0–2), Moderado (3–5), Alto (6–7), Muito alto (8–10), Extremo (11+). A partir de Alto, a pele desprotegida queima depressa — procure sombra e use proteção solar.</p><p class="opacity-60 text-xs">Fonte: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -21,6 +21,13 @@ const SNOW_COLOR     = 'var(--snow-color)'; // black (light) / white (dark)
 const PRESSURE_COLOR = '#a78bfa';         // violet
 const CLOUD_COLOR    = 'var(--chart-label)'; // adapts to theme
 
+// UV index — WHO/WMO category colours (hardcoded, theme-independent) for the
+// hourly strip beneath the plot: Low / Moderate / High / Very high / Extreme.
+const UV_LANE_H = 12;
+const UV_COLORS = ['#4eb400', '#f7e400', '#f85900', '#d8001d', '#6b49c8'] as const;
+export const UV_CAT_KEYS = ['comp.uvLow', 'comp.uvModerate', 'comp.uvHigh', 'comp.uvVeryHigh', 'comp.uvExtreme'] as const;
+export const uvCategory = (uv: number): number => uv < 3 ? 0 : uv < 6 ? 1 : uv < 8 ? 2 : uv < 11 ? 3 : 4;
+
 const LBL_STYLE = `<style>.lbl{font-size:calc(var(--chart-lbl-size)*0.75);fill:var(--chart-label);font-family:ui-sans-serif,system-ui,sans-serif}</style>`;
 
 export interface TimelineDay {
@@ -37,8 +44,9 @@ export interface ChartVisibility {
   pressure: boolean;
   cloud: boolean;
   wind: boolean;     // wind lane: direction arrows + speed particles
+  uv: boolean;       // UV strip: per-hour WHO category colour band under the plot
 }
-const ALL_VISIBLE: ChartVisibility = { temp: true, apparentTemp: true, precip: true, pressure: true, cloud: true, wind: true };
+const ALL_VISIBLE: ChartVisibility = { temp: true, apparentTemp: true, precip: true, pressure: true, cloud: true, wind: true, uv: true };
 
 // 8-point compass for the direction a wind blows *from* (Open-Meteo convention).
 const COMPASS8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
@@ -112,9 +120,19 @@ export function buildTimeline(
   // Wind lane sits directly below the plot body; the x axis shifts down by its
   // height, so the total SVG height H grows only when wind is enabled.
   const windLaneH = vis.wind ? WIND_LANE_H : 0;
-  const H = TL_H + windLaneH;
-  const laneTop = TL_CH;
+  // UV strip sits directly under the plot; the wind lane and x-axis shift below it.
+  const hasUV = hourly.uvIndex.some(v => v != null && v > 0);
+  const uvLaneH = vis.uv && hasUV ? UV_LANE_H : 0;
+  const H = TL_H + windLaneH + uvLaneH;
+  const uvLaneTop = TL_CH;
+  const laneTop = TL_CH + uvLaneH;
   const laneMid = laneTop + windLaneH / 2;
+  // Hover cursor + overlay span the plot plus the UV strip and wind lane, so
+  // hovering any of them scrubs the tooltip (which includes wind and UV).
+  const hoverBottom = PT + TL_CH + uvLaneH + windLaneH;
+  const uvStrip = uvLaneH
+    ? hourly.uvIndex.map((uv, i) => uv == null ? '' : `<rect x="${xH(i).toFixed(1)}" y="${uvLaneTop.toFixed(1)}" width="${(slotW + 0.5).toFixed(1)}" height="${UV_LANE_H}" fill="${UV_COLORS[uvCategory(uv)]}"/>`).join('')
+    : '';
   const windArrows: string[] = [];
   if (vis.wind) {
     const step = Math.max(1, Math.round(22 / slotW)); // ~1 arrow per 22px
@@ -218,7 +236,7 @@ export function buildTimeline(
     ? (() => {
         const x = xH(nowHours);
         return `
-          <line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${(PT + TL_CH).toFixed(1)}" stroke="var(--color-accent)" stroke-width="1.5" opacity="0.9"/>
+          <line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${hoverBottom.toFixed(1)}" stroke="var(--color-accent)" stroke-width="1.5" opacity="0.9"/>
           <path d="M${(x - 4).toFixed(1)},${PT} L${(x + 4).toFixed(1)},${PT} L${x.toFixed(1)},${PT + 6} Z" fill="var(--color-accent)"/>
         `;
       })()
@@ -245,22 +263,23 @@ export function buildTimeline(
             ${vis.temp ? `<path d="${linePath(temps, minT, maxT)}" fill="none" stroke="${TEMP_COLOR}"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
             ${vis.apparentTemp ? `<path d="${linePath(feels, minT, maxT)}" fill="none" stroke="${FEELS_COLOR}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
             ${nowMarker}
+            ${uvStrip}
             ${windLane}
             ${hrTicks.join('')}
             ${dayLabels.join('')}
             <g id="chart-hover" style="display:none">
-              <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${PT + TL_CH}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
+              <line id="hover-line" x1="0" y1="${PT}" x2="0" y2="${hoverBottom}" style="stroke:var(--hover-line);stroke-width:1;stroke-dasharray:3 3"/>
               ${vis.temp ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${TEMP_COLOR}"     stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
               ${vis.apparentTemp ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${FEELS_COLOR}"    stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
               ${vis.pressure ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
             </g>
-            <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${TL_CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
+            <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${hoverBottom - PT}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
           ${vis.wind ? `<canvas id="wind-canvas" style="position:absolute;left:0;top:${laneTop}px;width:${w}px;height:${windLaneH}px;pointer-events:none"></canvas>` : ''}
           </div>
         </div>
         <div style="position:absolute;top:0;left:0;width:${PL}px;height:${H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">
-          <svg viewBox="0 0 ${PL} ${H}" width="${PL}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.temp || vis.apparentTemp ? leftLabels.join('') : ''}</svg>
+          <svg viewBox="0 0 ${PL} ${H}" width="${PL}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.temp || vis.apparentTemp ? leftLabels.join('') : ''}${uvLaneH ? `<text x="${(PL - 5).toFixed(1)}" y="${(uvLaneTop + UV_LANE_H / 2 + 3).toFixed(1)}" text-anchor="end" class="lbl" style="font-size:9px">UV</text>` : ''}</svg>
         </div>
         <div style="position:absolute;top:0;right:0;width:${PR}px;height:${H}px;pointer-events:none;background:linear-gradient(to left, var(--color-surface) 70%, transparent)">
           <svg viewBox="0 0 ${PR} ${H}" width="${PR}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${vis.pressure ? rightLabels.join('') : ''}</svg>
@@ -296,6 +315,10 @@ export function buildTimeline(
         <span class="flex items-center gap-1.5">
           <span style="color:var(--chart-label)">↑</span><span title="${t('tooltip.wind')}">${ICONS.wind}</span>
         </span>` : ''}
+        ${vis.uv && hasUV ? `
+        <span class="flex items-center gap-1.5">
+          <span style="display:inline-block;width:18px;height:8px;border-radius:2px;background:linear-gradient(to right,#4eb400,#f7e400,#f85900,#d8001d,#6b49c8)"></span><span title="${t('tooltip.uv')}">${ICONS.uv}</span>
+        </span>` : ''}
       </div>
     </div>
   `;
@@ -325,6 +348,7 @@ export function setupTimelineTooltip(
   const press = hourly.pressure;
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
   const hasAnySnow = hourly.snow.some(v => v > 0.05);
+  const hasUV = hourly.uvIndex.some(v => v != null && v > 0);
 
   // Order and membership must match the rendered .hover-dot circles (temp, feels,
   // pressure — each present only when visible) so dots[i] lines up with its series.
@@ -358,6 +382,7 @@ export function setupTimelineTooltip(
     // Chance of precipitation — null for observed past hours and unsupported models
     const prob = hourly.precipProbability[idx];
     const probStr = prob == null ? '' : `  ·  ${prob}%`;
+    const uvNow = hourly.uvIndex[idx]; // null/undefined beyond the CAMS UV horizon
 
     tooltip.innerHTML = `
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:4px;font-size:12px">${dayLabel}, ${hh}</div>
@@ -383,6 +408,9 @@ export function setupTimelineTooltip(
         ${vis.wind ? `
         <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.wind')}">${ICONS.wind}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(hourly.windSpeed[idx])} km/h <span style="display:inline-block;transform:rotate(${(hourly.windDirection[idx] + 180).toFixed(0)}deg)">↑</span> ${compass(hourly.windDirection[idx])}</span>` : ''}
+        ${vis.uv && hasUV && uvNow != null ? `
+        <span style="color:var(--tooltip-text-sub)" title="${t('tooltip.uv')}">${ICONS.uv}</span>
+        <span style="color:var(--tooltip-text-main)">${Math.round(uvNow)} · ${t(UV_CAT_KEYS[uvCategory(uvNow)])}</span>` : ''}
       </div>
     `;
 

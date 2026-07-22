@@ -233,6 +233,8 @@ export async function fetchWeather(
   if (nDays < 3)   throw new WeatherNoDataError('no_tomorrow');
   const days = allDays.slice(0, nDays);
 
+  const hourlyAll = toHourly(hourlyRaw, 0, nDays * 24);
+
   return {
     yesterday: parseDay(data, 0, avgPressure(yHourly)),
     today:     parseDay(data, 1, avgPressure(tHourly)),
@@ -241,7 +243,7 @@ export async function fetchWeather(
     todayHourly:     tHourly,
     tomorrowHourly:  tmHourly,
     days,
-    hourlyAll: toHourly(hourlyRaw, 0, nDays * 24),
+    hourlyAll,
     utcOffsetSeconds: (data.utc_offset_seconds as number | undefined) ?? 0,
   };
 }
@@ -299,6 +301,9 @@ function toHourly(h: Record<string, (number | null)[]>, start: number, len: numb
     cloud:        series('cloud_cover'),
     windSpeed:    series('wind_speed_10m'),
     windDirection: series('wind_direction_10m'),
+    // UV is model-independent and comes from the CAMS air-quality request; it's
+    // merged into this series in main.ts. Left empty here.
+    uvIndex:      [],
   };
 }
 

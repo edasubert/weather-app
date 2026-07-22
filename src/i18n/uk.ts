@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Низький',
     pollenModerate: 'Помірний',
     pollenHigh: 'Високий',
+    uvLow: 'Низький',
+    uvModerate: 'Помірний',
+    uvHigh: 'Високий',
+    uvVeryHigh: 'Дуже високий',
+    uvExtreme: 'Екстремальний',
   },
   air: {
     chartTitle: 'Якість повітря за рівнем небезпеки',
@@ -122,6 +127,7 @@ export default {
     mugwort: 'Пилок полину',
     olive: 'Пилок оливи',
     ragweed: 'Пилок амброзії',
+    uv: 'УФ-індекс',
   },
   error: {
     loading: 'Завантажуємо погоду…',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Якість повітря за рівнем небезпеки',
-      body: '<p>Цей графік показує <strong>NO₂, O₃, SO₂, PM2.5 та PM10</strong> у часі. Кожна лінія відстежує <strong>реальну погодинну концентрацію</strong> забруднювача (µg/m³, у підказці), але її висоту масштабовано за рівнями небезпеки <strong>Європейського індексу якості повітря (EAQI)</strong>.</p><p>Шість рівнів — Добра, Задовільна, Помірна, Погана, Дуже погана, Надзвичайно погана — дають змогу напряму порівнювати всі п’ять забруднювачів, попри різні шкали: лінія у вищому рівні шкідливіша незалежно від свого значення.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Про Європейський індекс якості повітря ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>Цей графік показує <strong>NO₂, O₃, SO₂, PM2.5 та PM10</strong> у часі. Кожна лінія відстежує <strong>реальну погодинну концентрацію</strong> забруднювача (µg/m³, у підказці), але її висоту масштабовано за рівнями небезпеки <strong>Європейського індексу якості повітря (EAQI)</strong>.</p><p>Шість рівнів — Добра, Задовільна, Помірна, Погана, Дуже погана, Надзвичайно погана — дають змогу напряму порівнювати всі п’ять забруднювачів, попри різні шкали: лінія у вищому рівні шкідливіша незалежно від свого значення.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Про Європейський індекс якості повітря ↗</a></p><p class="opacity-60 text-xs">Джерело: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Вільха' },
     birch: { title: 'Береза' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Графік пилку' },
     pollen: {
       title: 'Пилок за рівнем',
-      body: '<p>Цей графік показує <strong>шість видів пилку</strong> — вільха, береза, злаки, полин, олива та амброзія — у часі. Кожна лінія відображає <strong>реальну погодинну концентрацію</strong> таксона (зерен/м³, у підказці), але її висота масштабована до клінічних смуг тяжкості.</p><p>Смуги — Низький, Помірний (сезон) і Високий (пік) — відповідають клінічно значущим порогам <strong>EAACI</strong>, тим самим рівням, які SILAM/CAMS використовує для офіційного європейського прогнозу пилку. Пилок доступний лише в Європі протягом сезону цвітіння.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Про пилок і здоров’я ↗</a></p><p class="opacity-60 text-xs">Джерело: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>Цей графік показує <strong>шість видів пилку</strong> — вільха, береза, злаки, полин, олива та амброзія — у часі. Кожна лінія відображає <strong>реальну погодинну концентрацію</strong> таксона (зерен/м³, у підказці), але її висота масштабована до клінічних смуг тяжкості.</p><p>Смуги — Низький, Помірний (сезон) і Високий (пік) — відповідають клінічно значущим порогам <strong>EAACI</strong>, тим самим рівням, які SILAM/CAMS використовує для офіційного європейського прогнозу пилку. Пилок доступний лише в Європі протягом сезону цвітіння.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Про пилок і здоров’я ↗</a></p><p class="opacity-60 text-xs">Джерело: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'УФ-індекс',
+      body: '<p><strong>УФ-індекс (шкала ВООЗ/ВМО)</strong> показує силу ультрафіолетового випромінювання сонця. Картка показує <strong>денний максимум</strong> (близько полудня) та його категорію.</p><p>Рівні: Низький (0–2), Помірний (3–5), Високий (6–7), Дуже високий (8–10), Екстремальний (11+). Від рівня «Високий» незахищена шкіра швидко обгорає — шукайте тінь і захищайтеся від сонця.</p><p class="opacity-60 text-xs">Джерело: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

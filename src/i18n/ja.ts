@@ -70,6 +70,11 @@ export default {
     pollenLow: '少ない',
     pollenModerate: '中程度',
     pollenHigh: '多い',
+    uvLow: '弱い',
+    uvModerate: '中程度',
+    uvHigh: '強い',
+    uvVeryHigh: '非常に強い',
+    uvExtreme: '極端に強い',
   },
   air: {
     chartTitle: '深刻度別の大気質',
@@ -122,6 +127,7 @@ export default {
     mugwort: 'ヨモギ花粉',
     olive: 'オリーブ花粉',
     ragweed: 'ブタクサ花粉',
+    uv: 'UVインデックス',
   },
   error: {
     loading: '天気を読み込み中…',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: '深刻度別の大気質',
-      body: '<p>このグラフは <strong>NO₂・O₃・SO₂・PM2.5・PM10</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる5種類の物質を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>このグラフは <strong>NO₂・O₃・SO₂・PM2.5・PM10</strong> の時間推移を示します。各線はその物質の<strong>実際の1時間ごとの濃度</strong>（µg/m³、ツールチップに表示）をたどりますが、高さは<strong>欧州大気質指数 (EAQI)</strong> の深刻度バンドに合わせて拡大縮小されています。</p><p>6つのバンド（良好・やや良・やや悪・悪い・非常に悪い・極めて悪い）により、尺度が異なる5種類の物質を直接比較できます。より高いバンドにある線ほど、数値にかかわらず有害です。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">欧州大気質指数について ↗</a></p><p class="opacity-60 text-xs">出典: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'ハンノキ' },
     birch: { title: 'カバノキ' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: '花粉グラフ' },
     pollen: {
       title: '重症度別の花粉',
-      body: '<p>このグラフは<strong>6種類の花粉</strong>（ハンノキ、カバノキ、イネ科、ヨモギ、オリーブ、ブタクサ）を時系列で表示します。各線は分類群の<strong>実際の1時間ごとの飛散数</strong>（粒/m³、ツールチップに表示）をたどりますが、高さは臨床的な重症度帯に合わせて調整されています。</p><p>各帯（少ない、中程度＝シーズン、多い＝ピーク）は<strong>EAACI</strong>の臨床的に重要な閾値に基づいており、SILAM/CAMS が公式の欧州花粉予報に用いるものと同じです。花粉データは花粉シーズン中の欧州でのみ利用できます。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">花粉と健康について ↗</a></p><p class="opacity-60 text-xs">出典: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>このグラフは<strong>6種類の花粉</strong>（ハンノキ、カバノキ、イネ科、ヨモギ、オリーブ、ブタクサ）を時系列で表示します。各線は分類群の<strong>実際の1時間ごとの飛散数</strong>（粒/m³、ツールチップに表示）をたどりますが、高さは臨床的な重症度帯に合わせて調整されています。</p><p>各帯（少ない、中程度＝シーズン、多い＝ピーク）は<strong>EAACI</strong>の臨床的に重要な閾値に基づいており、SILAM/CAMS が公式の欧州花粉予報に用いるものと同じです。花粉データは花粉シーズン中の欧州でのみ利用できます。</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">花粉と健康について ↗</a></p><p class="opacity-60 text-xs">出典: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'UVインデックス',
+      body: '<p><strong>UVインデックス（WHO/WMO基準）</strong>は太陽からの紫外線の強さを表します。カードには<strong>その日の最大値</strong>（正午ごろ）とカテゴリを表示します。</p><p>区分: 弱い(0–2)、中程度(3–5)、強い(6–7)、非常に強い(8–10)、極端に強い(11+)。強い以上では無防備な肌はすぐに日焼けします。日陰に入り、日焼け対策をしてください。</p><p class="opacity-60 text-xs">出典: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

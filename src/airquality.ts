@@ -1,8 +1,10 @@
-// Open-Meteo Air Quality is a separate host from the weather forecast API. We
-// fetch only the three gases with genuine hourly EAQI thresholds — the severity
-// chart plots their raw hourly concentrations and derives Y from the EAQI bands
-// in airchart.ts. One request covers yesterday (past_days=1) through 6 forecast
-// days, matching the forecast API's hour alignment.
+// Open-Meteo Air Quality (CAMS — the Copernicus Atmosphere Monitoring Service) is
+// a separate host from the weather forecast API. One request covers yesterday
+// (past_days=1) through 6 forecast days and carries the gases + PM (severity
+// chart), the pollen taxa (pollen chart), and the UV index (timeline strip) — all
+// from the same CAMS source, aligned to the forecast API's hour grid. UV lives
+// here rather than on the forecast API because the app pins a `models=` on the
+// latter, under which uv_index returns all-null.
 //
 // This whole module is best-effort: air quality *enriches* the weather view, so
 // any failure (bad status, error payload, sparse/absent data) resolves to null
@@ -33,6 +35,10 @@ export interface PollenHourly {
 export interface AirData {
   hourly: AirHourly;
   pollen: PollenHourly;
+  // Hourly UV index (WHO/WMO scale), model-independent CAMS value. Merged into
+  // the weather timeline's hourly series (the UV strip). Nulls beyond the CAMS
+  // horizon stay null so those hours render no strip.
+  uv: (number | null)[];
   utcOffsetSeconds: number;
 }
 
@@ -40,6 +46,7 @@ const HOURLY_VARS = [
   'nitrogen_dioxide', 'ozone', 'sulphur_dioxide', 'pm2_5', 'pm10',
   'alder_pollen', 'birch_pollen', 'grass_pollen',
   'mugwort_pollen', 'olive_pollen', 'ragweed_pollen',
+  'uv_index',
 ].join(',');
 
 type Hourly = Record<string, (number | null)[]>;
@@ -55,6 +62,11 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirData
     url.searchParams.set('timezone', 'auto');
     url.searchParams.set('past_days', '1');
     url.searchParams.set('forecast_days', '6');
+    // Route each location to the best CAMS model: the higher-resolution European
+    // regional domain where covered (0.1°, and the only one with pollen), falling
+    // back to CAMS global (0.4°) elsewhere. This is Open-Meteo's default, set
+    // explicitly so the Europe→regional / rest→global behaviour is guaranteed.
+    url.searchParams.set('domains', 'auto');
 
     const res = await fetch(url.toString());
     if (!res.ok) return null;
@@ -84,6 +96,7 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirData
         olive:   h['olive_pollen'] ?? [],
         ragweed: h['ragweed_pollen'] ?? [],
       },
+      uv: h['uv_index'] ?? [],
       utcOffsetSeconds: data.utc_offset_seconds ?? 0,
     };
   } catch {

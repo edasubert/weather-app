@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Low',
     pollenModerate: 'Moderate',
     pollenHigh: 'High',
+    uvLow: 'Low',
+    uvModerate: 'Moderate',
+    uvHigh: 'High',
+    uvVeryHigh: 'Very high',
+    uvExtreme: 'Extreme',
   },
   air: {
     chartTitle: 'Air quality by severity',
@@ -116,6 +121,7 @@ export default {
     no2: 'Nitrogen dioxide (NO₂)',
     o3: 'Ozone (O₃)',
     so2: 'Sulphur dioxide (SO₂)',
+    uv: 'UV index',
     alder: 'Alder pollen',
     birch: 'Birch pollen',
     grass: 'Grass pollen',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Air quality by severity',
-      body: '<p>This chart plots <strong>NO₂, O₃, SO₂, PM2.5 and PM10</strong> over time. Each line follows the pollutant\'s <strong>real hourly concentration</strong> (µg/m³, shown in the tooltip), but its height is scaled onto the <strong>European Air Quality Index (EAQI)</strong> severity bands.</p><p>The six bands — Good, Fair, Moderate, Poor, Very poor, Extremely poor — let you compare all five pollutants directly even though their raw scales differ: a line sitting in a higher band is the more harmful one, whatever its number.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">About the European Air Quality Index ↗</a></p><p class="opacity-60 text-xs">Source: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>This chart plots <strong>NO₂, O₃, SO₂, PM2.5 and PM10</strong> over time. Each line follows the pollutant\'s <strong>real hourly concentration</strong> (µg/m³, shown in the tooltip), but its height is scaled onto the <strong>European Air Quality Index (EAQI)</strong> severity bands.</p><p>The six bands — Good, Fair, Moderate, Poor, Very poor, Extremely poor — let you compare all five pollutants directly even though their raw scales differ: a line sitting in a higher band is the more harmful one, whatever its number.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">About the European Air Quality Index ↗</a></p><p class="opacity-60 text-xs">Source: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Alder' },
     birch: { title: 'Birch' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Pollen chart' },
     pollen: {
       title: 'Pollen by severity',
-      body: '<p>This chart plots <strong>six pollen types</strong> — alder, birch, grass, mugwort, olive and ragweed — over time. Each line follows the taxon\'s <strong>real hourly count</strong> (grains/m³, shown in the tooltip), but its height is scaled onto clinical severity bands.</p><p>The bands — Low, Moderate (in season) and High (peak) — follow the <strong>EAACI</strong> clinically-relevant thresholds, the same levels SILAM/CAMS uses for the official European pollen forecast. Pollen is only available in Europe during the pollen season.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">About pollen and health ↗</a></p><p class="opacity-60 text-xs">Source: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>This chart plots <strong>six pollen types</strong> — alder, birch, grass, mugwort, olive and ragweed — over time. Each line follows the taxon\'s <strong>real hourly count</strong> (grains/m³, shown in the tooltip), but its height is scaled onto clinical severity bands.</p><p>The bands — Low, Moderate (in season) and High (peak) — follow the <strong>EAACI</strong> clinically-relevant thresholds, the same levels SILAM/CAMS uses for the official European pollen forecast. Pollen is only available in Europe during the pollen season.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">About pollen and health ↗</a></p><p class="opacity-60 text-xs">Source: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'UV index',
+      body: '<p><strong>The UV index (WHO/WMO scale)</strong> rates the strength of the sun\'s ultraviolet radiation. The card shows the <strong>day\'s peak</strong> (around midday) and its category.</p><p>Bands: Low (0–2), Moderate (3–5), High (6–7), Very high (8–10), Extreme (11+). From High upward, unprotected skin can burn quickly — seek shade and use sun protection.</p><p class="opacity-60 text-xs">Source: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

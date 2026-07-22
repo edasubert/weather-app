@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Niedrig',
     pollenModerate: 'Mäßig',
     pollenHigh: 'Hoch',
+    uvLow: 'Niedrig',
+    uvModerate: 'Mäßig',
+    uvHigh: 'Hoch',
+    uvVeryHigh: 'Sehr hoch',
+    uvExtreme: 'Extrem',
   },
   air: {
     chartTitle: 'Luftqualität nach Schweregrad',
@@ -116,6 +121,7 @@ export default {
     no2: 'Stickstoffdioxid (NO₂)',
     o3: 'Ozon (O₃)',
     so2: 'Schwefeldioxid (SO₂)',
+    uv: 'UV-Index',
     alder: 'Erlenpollen',
     birch: 'Birkenpollen',
     grass: 'Gräserpollen',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Luftqualität nach Schweregrad',
-      body: '<p>Dieses Diagramm zeigt <strong>NO₂, O₃, SO₂, PM2.5 und PM10</strong> im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Schadstoffs (µg/m³, im Tooltip), aber ihre Höhe ist auf die Schweregrad-Stufen des <strong>Europäischen Luftqualitätsindex (EAQI)</strong> skaliert.</p><p>Die sechs Stufen — Gut, Mäßig, Ungünstig, Schlecht, Sehr schlecht, Extrem schlecht — erlauben einen direkten Vergleich aller fünf Schadstoffe trotz unterschiedlicher Skalen: eine Linie in einer höheren Stufe ist die schädlichere, unabhängig von ihrem Zahlenwert.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Über den Europäischen Luftqualitätsindex ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>Dieses Diagramm zeigt <strong>NO₂, O₃, SO₂, PM2.5 und PM10</strong> im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Schadstoffs (µg/m³, im Tooltip), aber ihre Höhe ist auf die Schweregrad-Stufen des <strong>Europäischen Luftqualitätsindex (EAQI)</strong> skaliert.</p><p>Die sechs Stufen — Gut, Mäßig, Ungünstig, Schlecht, Sehr schlecht, Extrem schlecht — erlauben einen direkten Vergleich aller fünf Schadstoffe trotz unterschiedlicher Skalen: eine Linie in einer höheren Stufe ist die schädlichere, unabhängig von ihrem Zahlenwert.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">Über den Europäischen Luftqualitätsindex ↗</a></p><p class="opacity-60 text-xs">Quelle: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Erle' },
     birch: { title: 'Birke' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Pollendiagramm' },
     pollen: {
       title: 'Pollen nach Schweregrad',
-      body: '<p>Dieses Diagramm zeigt <strong>sechs Pollenarten</strong> — Erle, Birke, Gräser, Beifuß, Olive und Ambrosia — im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Taxons (Körner/m³, im Tooltip), ihre Höhe ist jedoch auf klinische Schweregrad-Bänder skaliert.</p><p>Die Bänder — Niedrig, Mäßig (Saison) und Hoch (Höhepunkt) — folgen den klinisch relevanten Schwellenwerten der <strong>EAACI</strong>, denselben Stufen, die SILAM/CAMS für die offizielle europäische Pollenvorhersage verwendet. Pollen sind nur in Europa während der Pollensaison verfügbar.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Über Pollen und Gesundheit ↗</a></p><p class="opacity-60 text-xs">Quelle: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>Dieses Diagramm zeigt <strong>sechs Pollenarten</strong> — Erle, Birke, Gräser, Beifuß, Olive und Ambrosia — im Zeitverlauf. Jede Linie folgt der <strong>tatsächlichen stündlichen Konzentration</strong> des Taxons (Körner/m³, im Tooltip), ihre Höhe ist jedoch auf klinische Schweregrad-Bänder skaliert.</p><p>Die Bänder — Niedrig, Mäßig (Saison) und Hoch (Höhepunkt) — folgen den klinisch relevanten Schwellenwerten der <strong>EAACI</strong>, denselben Stufen, die SILAM/CAMS für die offizielle europäische Pollenvorhersage verwendet. Pollen sind nur in Europa während der Pollensaison verfügbar.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">Über Pollen und Gesundheit ↗</a></p><p class="opacity-60 text-xs">Quelle: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'UV-Index',
+      body: '<p><strong>Der UV-Index (WHO/WMO-Skala)</strong> bewertet die Stärke der ultravioletten Sonnenstrahlung. Die Karte zeigt das <strong>Tagesmaximum</strong> (um die Mittagszeit) und seine Kategorie.</p><p>Stufen: Niedrig (0–2), Mäßig (3–5), Hoch (6–7), Sehr hoch (8–10), Extrem (11+). Ab Hoch verbrennt ungeschützte Haut schnell — Schatten suchen und Sonnenschutz verwenden.</p><p class="opacity-60 text-xs">Quelle: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Faible',
     pollenModerate: 'Modéré',
     pollenHigh: 'Élevé',
+    uvLow: 'Faible',
+    uvModerate: 'Modéré',
+    uvHigh: 'Élevé',
+    uvVeryHigh: 'Très élevé',
+    uvExtreme: 'Extrême',
   },
   air: {
     chartTitle: 'Qualité de l’air par gravité',
@@ -122,6 +127,7 @@ export default {
     mugwort: "Pollen d'armoise",
     olive: "Pollen d'olivier",
     ragweed: "Pollen d'ambroisie",
+    uv: 'Indice UV',
   },
   error: {
     loading: 'Chargement de la météo…',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Qualité de l’air par gravité',
-      body: '<p>Ce graphique représente <strong>NO₂, O₃, SO₂, PM2.5 et PM10</strong> au fil du temps. Chaque courbe suit la <strong>concentration horaire réelle</strong> du polluant (µg/m³, dans l’infobulle), mais sa hauteur est mise à l’échelle des niveaux de gravité de l’<strong>Indice européen de la qualité de l’air (EAQI)</strong>.</p><p>Les six niveaux — Bonne, Acceptable, Moyenne, Mauvaise, Très mauvaise, Extrêmement mauvaise — permettent de comparer directement les cinq polluants malgré leurs échelles différentes : une courbe située dans un niveau plus élevé est la plus nocive, quelle que soit sa valeur.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">À propos de l’Indice européen de la qualité de l’air ↗</a></p><p class="opacity-60 text-xs">Source : <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>Ce graphique représente <strong>NO₂, O₃, SO₂, PM2.5 et PM10</strong> au fil du temps. Chaque courbe suit la <strong>concentration horaire réelle</strong> du polluant (µg/m³, dans l’infobulle), mais sa hauteur est mise à l’échelle des niveaux de gravité de l’<strong>Indice européen de la qualité de l’air (EAQI)</strong>.</p><p>Les six niveaux — Bonne, Acceptable, Moyenne, Mauvaise, Très mauvaise, Extrêmement mauvaise — permettent de comparer directement les cinq polluants malgré leurs échelles différentes : une courbe située dans un niveau plus élevé est la plus nocive, quelle que soit sa valeur.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">À propos de l’Indice européen de la qualité de l’air ↗</a></p><p class="opacity-60 text-xs">Source : CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Aulne' },
     birch: { title: 'Bouleau' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Graphique pollen' },
     pollen: {
       title: 'Pollen par gravité',
-      body: "<p>Ce graphique présente <strong>six types de pollen</strong> — aulne, bouleau, graminées, armoise, olivier et ambroisie — au fil du temps. Chaque ligne suit la <strong>concentration horaire réelle</strong> du taxon (grains/m³, dans l'infobulle), mais sa hauteur est ramenée à des bandes cliniques de gravité.</p><p>Les bandes — Faible, Modéré (saison) et Élevé (pic) — suivent les seuils cliniquement pertinents de l'<strong>EAACI</strong>, les mêmes niveaux que SILAM/CAMS utilise pour les prévisions polliniques officielles européennes. Le pollen n'est disponible qu'en Europe pendant la saison pollinique.</p><p><a class=\"text-sky-500 underline\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen\">À propos du pollen et de la santé ↗</a></p><p class=\"opacity-60 text-xs\">Source : <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>",
+      body: "<p>Ce graphique présente <strong>six types de pollen</strong> — aulne, bouleau, graminées, armoise, olivier et ambroisie — au fil du temps. Chaque ligne suit la <strong>concentration horaire réelle</strong> du taxon (grains/m³, dans l'infobulle), mais sa hauteur est ramenée à des bandes cliniques de gravité.</p><p>Les bandes — Faible, Modéré (saison) et Élevé (pic) — suivent les seuils cliniquement pertinents de l'<strong>EAACI</strong>, les mêmes niveaux que SILAM/CAMS utilise pour les prévisions polliniques officielles européennes. Le pollen n'est disponible qu'en Europe pendant la saison pollinique.</p><p><a class=\"text-sky-500 underline\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen\">À propos du pollen et de la santé ↗</a></p><p class=\"opacity-60 text-xs\">Source : CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>",
+    },
+    uv: {
+      title: 'Indice UV',
+      body: '<p><strong>L\'indice UV (échelle OMS/OMM)</strong> mesure l\'intensité du rayonnement ultraviolet solaire. La carte affiche le <strong>pic de la journée</strong> (vers midi) et sa catégorie.</p><p>Niveaux : Faible (0–2), Modéré (3–5), Élevé (6–7), Très élevé (8–10), Extrême (11+). À partir d\'Élevé, la peau non protégée brûle vite — cherchez l\'ombre et protégez-vous du soleil.</p><p class="opacity-60 text-xs">Source : CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {

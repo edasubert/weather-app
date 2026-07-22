@@ -8,6 +8,7 @@ export const ICONS = {
   pressure: '🗜️',
   cloud:    '☁️',
   daylight: '🌅',
+  uv:       '☀️',
 } as const;
 
 // Next to a concrete apparent-temperature value the icon reflects it;

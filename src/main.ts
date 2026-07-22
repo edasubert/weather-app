@@ -7,7 +7,7 @@ import { buildCompareTable, COMPARE_PARAMS, CMP_PARAM_ICON } from './compare';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
 import { describeCode } from './wmo';
-import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, type ChartVisibility } from './chart';
+import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, uvCategory, UV_CAT_KEYS, type ChartVisibility } from './chart';
 import { buildAirChart, setupAirChartTooltip, type AirChartVisibility } from './airchart';
 import { buildPollenChart, setupPollenChartTooltip, type PollenChartVisibility } from './pollenchart';
 import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
@@ -21,8 +21,8 @@ let model = DEFAULT_MODEL;
 // Which parameters the cards and chart display. Order is the URL bitmask bit
 // order — APPEND only, never reorder, or shared `hide` URLs would change meaning.
 // `precip` covers all precipitation kinds (rain, showers, snow), matching the chart.
-const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight'] as const;
-const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud', 'wind'] as const;
+const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight', 'uv'] as const;
+const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud', 'wind', 'uv'] as const;
 
 type CardParam  = typeof CARD_PARAMS[number];
 type ChartParam = typeof CHART_PARAMS[number];
@@ -38,6 +38,7 @@ const chartVisibility = (): ChartVisibility => ({
   pressure:     chartOn('pressure'),
   cloud:        chartOn('cloud'),
   wind:         chartOn('wind'),
+  uv:           chartOn('uv'),
 });
 
 // Air-quality and pollen severity charts. Bit 0 of each group ('airChart' /
@@ -62,7 +63,7 @@ const pollenChartVisibility = (): PollenChartVisibility => ({
 // ids are absent here and fall back to an empty icon column.
 const PARAM_ICON: Record<string, string> = {
   temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
-  wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud,
+  wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud, uv: ICONS.uv,
 };
 const paramLabel = (id: string): string => id === 'cloud' ? t('tooltip.cloudCover') : t(`metric.${id}.title`);
 
@@ -401,7 +402,6 @@ function diffStr(abs: number): string {
 // Severity levels drive both the appended emoji and the tile background tint
 type SevLevel = 0 | 1 | 2 | 3;
 
-const SEV_EMOJI = ['', ' 👀', ' ⚠️', ' 🤯'] as const;
 
 function tempLevel(abs: number): SevLevel {
   return abs < 2 ? 0 : abs < 5 ? 1 : abs < 10 ? 2 : 3;
@@ -446,13 +446,10 @@ function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent =
   const word = t(same ? sameKey : dMean > 0 ? warmerKey : coolerKey);
 
   const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
-  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.low')} ${fmtD(dMin)}`;
+  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
 
-  const html = `<span class="block">
-    <span class="text-xl font-semibold text-heading">${sign}${diffStr(absMean)}</span>
-    <span class="ml-1">${word}</span>
-    <span class="block text-[10px] opacity-50 mt-0.5">${sub}</span>
-  </span>`;
+  const headline = same ? word.charAt(0).toUpperCase() + word.slice(1) : `${sign}${diffStr(absMean)} ${word}`;
+  const html = `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
 
   return { html, severity };
 }
@@ -511,6 +508,29 @@ function daylightComparison(today: DailyWeather, yesterday: DailyWeather): Comp 
   return { html: t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins }), severity: 0 };
 }
 
+// UV tile: the primary day's peak UV (from the CAMS hourly series) + its WHO/WMO
+// category, tinted by category (Low/Moderate→calm, High→2, Very high/Extreme→3),
+// with the day-to-day change as a signed sub-line. Null primary → no tile.
+function uvComparison(primary: number | null, secondary: number | null): Comp | null {
+  if (primary == null) return null;
+  const peak = Math.round(primary);
+  const cat = uvCategory(primary);
+  const severity = Math.min(cat, 3) as SevLevel;
+  let sub = '';
+  if (secondary != null) {
+    const d = peak - Math.round(secondary);
+    sub = d === 0 ? '±0' : d > 0 ? `▲ ${d}` : `▼ ${-d}`;
+  }
+  const html = `${peak} · ${t(UV_CAT_KEYS[cat])}${sub ? ` <span class="opacity-50">${sub}</span>` : ''}`;
+  return { html, severity };
+}
+
+// Peak-of-day UV from the CAMS hourly series (yesterday=0, today=1, tomorrow=2).
+function uvPeakForDay(air: AirData | null | undefined, dayIdx: number): number | null {
+  const vals = (air?.uv ?? []).slice(dayIdx * 24, dayIdx * 24 + 24).filter((v): v is number => v != null);
+  return vals.length ? Math.max(...vals) : null;
+}
+
 // ─── Metric info (modal content) ─────────────────────────────────────────────
 
 const DOCS_HTML = `<a class="text-accent underline" target="_blank" rel="noopener noreferrer" href="https://open-meteo.com/en/docs">Open-Meteo API docs ↗</a>`;
@@ -529,15 +549,13 @@ function infoBtnHTML(id: string): string {
   return `<button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>`;
 }
 
-// Literal class strings so Tailwind's source scanner picks them up
-const SEV_BG = ['bg-surface', 'bg-sev-1', 'bg-sev-2', 'bg-sev-3'] as const;
-
-function comparisonTileHTML(icon: string, id: string, comp: Comp, wide = false): string {
+// One compact row per metric: icon · comparison sentence · info button.
+function comparisonRowHTML(icon: string, id: string, comp: Comp): string {
   return `
-    <div class="relative flex flex-col gap-0.5 rounded-lg p-2 text-center ${wide ? 'col-span-6 hc:col-span-12' : 'col-span-3 hc:col-span-6'} ${SEV_BG[comp.severity]} hc:border-2 border-edge">
-      <span class="text-base leading-none">${icon}${SEV_EMOJI[comp.severity]}</span>
-      <span class="text-xs text-detail">${comp.html}</span>
-      <span class="absolute top-1.5 right-1.5">${infoBtnHTML(id)}</span>
+    <div class="flex items-center gap-2 text-sm text-detail">
+      <span class="w-5 shrink-0 text-center">${icon}</span>
+      <span class="flex-1">${comp.html}</span>
+      ${infoBtnHTML(id)}
     </div>
   `;
 }
@@ -546,7 +564,7 @@ function comparisonTileHTML(icon: string, id: string, comp: Comp, wide = false):
 
 // ─── Day-by-day stat table ────────────────────────────────────────────────────
 
-function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string): string {
+function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string, uvA: number | null, uvB: number | null): string {
   const dayHead = (d: DailyWeather, label: string) => {
     const { emoji, label: cond } = describeCode(d.weatherCode);
     const date = new Date(d.date + 'T12:00:00').toLocaleDateString(getLocale(), {
@@ -585,6 +603,9 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
   const showLiquid = !hasSnow || hasRain || hasShowers;
   const mm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} mm</span>` : `<span class="text-muted">${t('card.noRain')}</span>`;
   const cm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} cm</span>` : '<span class="text-muted">–</span>';
+  const uvCell = (v: number | null) => v == null
+    ? '<span class="text-muted">–</span>'
+    : `<span class="text-detail">${Math.round(v)} · ${t(UV_CAT_KEYS[uvCategory(v)])}</span>`;
 
   return `
     <div class="rounded-2xl p-5 bg-surface hc:border-2 border-edge overflow-x-auto">
@@ -612,6 +633,7 @@ function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB:
           ${cardOn('daylight') && a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
             `<span class="text-detail">${a.sunrise.slice(11, 16)} – ${a.sunset.slice(11, 16)}</span>`,
             `<span class="text-detail">${b.sunrise.slice(11, 16)} – ${b.sunset.slice(11, 16)}</span>`) : ''}
+          ${cardOn('uv') && (uvA != null || uvB != null) ? row(icon(ICONS.uv, t('tooltip.uv')), uvCell(uvA), uvCell(uvB)) : ''}
         </tbody>
       </table>
     </div>
@@ -1242,6 +1264,8 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   const secondary       = isTomorrow ? today      : yesterday;
   const primaryLabel    = isTomorrow ? t('card.tomorrow') : t('card.today');
   const secondaryLabel  = isTomorrow ? t('card.today')    : t('card.yesterday');
+  const uvPrimaryPeak   = uvPeakForDay(weather.air, isTomorrow ? 2 : 1);
+  const uvSecondaryPeak = uvPeakForDay(weather.air, isTomorrow ? 1 : 0);
   const locationLabel = [location.name, location.admin1, location.country].filter(Boolean).join(', ');
   const compHeader = isTomorrow ? t('comp.headerTodayTomorrow') : t('comp.headerYesterdayToday');
   // Position of "now" on the timeline, in the location's timezone
@@ -1314,24 +1338,28 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
         <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
           <h1 class="sr-only">${compHeader}</h1>
-          <div class="grid grid-cols-12 gap-1.5">
-            ${cardOn('temp') ? comparisonTileHTML(ICONS.temp, 'temp', tempComparison(primary, secondary), true) : ''}
-            ${cardOn('apparentTemp') ? comparisonTileHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true), true) : ''}
+          <div class="flex flex-col gap-2">
+            ${cardOn('temp') ? comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary)) : ''}
+            ${cardOn('apparentTemp') ? comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true)) : ''}
             ${cardOn('precip') ? (() => {
               const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
               const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
               const showRain = !hasAnySnow || hasAnyRain;
               const showSnow = hasAnySnow;
-              return (showRain ? comparisonTileHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
-                   + (showSnow ? comparisonTileHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
+              return (showRain ? comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
+                   + (showSnow ? comparisonRowHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
             })() : ''}
-            ${cardOn('wind') ? comparisonTileHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
-            ${cardOn('pressure') ? comparisonTileHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
-            ${cardOn('daylight') ? comparisonTileHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
+            ${cardOn('wind') ? comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
+            ${cardOn('pressure') ? comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
+            ${cardOn('daylight') ? comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
+            ${cardOn('uv') ? (() => {
+              const c = uvComparison(uvPrimaryPeak, uvSecondaryPeak);
+              return c ? comparisonRowHTML(`<span title="${t('tooltip.uv')}">${ICONS.uv}</span>`, 'uv', c) : '';
+            })() : ''}
           </div>
         </div>
 
-        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel)}
+        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel, uvSecondaryPeak, uvPrimaryPeak)}
         </div>
 
         <div id="chart-slot"></div>
@@ -1523,6 +1551,7 @@ async function loadWeather(location: GeoResult): Promise<void> {
       fetchWeather(location.latitude, location.longitude, model),
       fetchAirQuality(location.latitude, location.longitude),
     ]);
+    if (air?.uv) weather.hourlyAll.uvIndex = air.uv;
     renderWeather(location, { ...weather, air });
   } catch (err) {
     if (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError')) {
@@ -1551,6 +1580,7 @@ async function handleGeolocate(): Promise<void> {
       fetchWeather(latitude, longitude, model),
       fetchAirQuality(latitude, longitude),
     ]);
+    if (air?.uv) weather.hourlyAll.uvIndex = air.uv;
     renderWeather(location, { ...weather, air });
   } catch (err) {
     if (location && (err instanceof WeatherNoDataError || (err instanceof Error && err.name === 'WeatherNoDataError'))) {

@@ -30,6 +30,7 @@ export interface HourlyData {
   cloud: number[];
   windSpeed: number[];
   windDirection: number[];
+  uvIndex: (number | null)[]; // from CAMS (air-quality); null past its ~7-day horizon
 }
 
 export interface GeoResult {

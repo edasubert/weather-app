@@ -70,6 +70,11 @@ export default {
     pollenLow: 'Nízká',
     pollenModerate: 'Střední',
     pollenHigh: 'Vysoká',
+    uvLow: 'Nízký',
+    uvModerate: 'Střední',
+    uvHigh: 'Vysoký',
+    uvVeryHigh: 'Velmi vysoký',
+    uvExtreme: 'Extrémní',
   },
   air: {
     chartTitle: 'Kvalita ovzduší podle závažnosti',
@@ -116,6 +121,7 @@ export default {
     no2: 'Oxid dusičitý (NO₂)',
     o3: 'Ozon (O₃)',
     so2: 'Oxid siřičitý (SO₂)',
+    uv: 'UV index',
     alder: 'Pyl olše',
     birch: 'Pyl břízy',
     grass: 'Pyl trav',
@@ -229,7 +235,7 @@ export default {
     },
     eaqi: {
       title: 'Kvalita ovzduší podle závažnosti',
-      body: '<p>Tento graf zobrazuje <strong>NO₂, O₃, SO₂, PM2.5 a PM10</strong> v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> dané látky (µg/m³, viz popisek), ale její výška je škálována na pásma závažnosti <strong>Evropského indexu kvality ovzduší (EAQI)</strong>.</p><p>Šest pásem — Dobrá, Přijatelná, Zhoršená, Špatná, Velmi špatná, Extrémně špatná — umožňuje přímé porovnání všech pěti látek, i když mají odlišné škály: čára ve vyšším pásmu je škodlivější bez ohledu na svou hodnotu.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">O Evropském indexu kvality ovzduší ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
+      body: '<p>Tento graf zobrazuje <strong>NO₂, O₃, SO₂, PM2.5 a PM10</strong> v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> dané látky (µg/m³, viz popisek), ale její výška je škálována na pásma závažnosti <strong>Evropského indexu kvality ovzduší (EAQI)</strong>.</p><p>Šest pásem — Dobrá, Přijatelná, Zhoršená, Špatná, Velmi špatná, Extrémně špatná — umožňuje přímé porovnání všech pěti látek, i když mají odlišné škály: čára ve vyšším pásmu je škodlivější bez ohledu na svou hodnotu.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://www.eea.europa.eu/themes/air/air-quality-index">O Evropském indexu kvality ovzduší ↗</a></p><p class="opacity-60 text-xs">Zdroj: CAMS (Copernicus) · <code>nitrogen_dioxide</code> / <code>ozone</code> / <code>sulphur_dioxide</code> / <code>pm2_5</code> / <code>pm10</code> — {{docs}}</p>',
     },
     alder: { title: 'Olše' },
     birch: { title: 'Bříza' },
@@ -241,7 +247,11 @@ export default {
     pollenChart: { title: 'Graf pylu' },
     pollen: {
       title: 'Pyl podle závažnosti',
-      body: '<p>Tento graf zobrazuje <strong>šest druhů pylu</strong> — olše, bříza, trávy, pelyněk, oliva a ambrózie — v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> daného taxonu (zrn/m³, viz popisek), ale její výška je převedena na klinická pásma závažnosti.</p><p>Pásma — Nízká, Střední (sezóna) a Vysoká (vrchol) — vycházejí z klinicky významných prahů <strong>EAACI</strong>, stejných úrovní, jaké používá SILAM/CAMS pro oficiální evropskou pylovou předpověď. Pyl je dostupný pouze v Evropě během pylové sezóny.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">O pylu a zdraví ↗</a></p><p class="opacity-60 text-xs">Zdroj: <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+      body: '<p>Tento graf zobrazuje <strong>šest druhů pylu</strong> — olše, bříza, trávy, pelyněk, oliva a ambrózie — v čase. Každá čára sleduje <strong>skutečnou hodinovou koncentraci</strong> daného taxonu (zrn/m³, viz popisek), ale její výška je převedena na klinická pásma závažnosti.</p><p>Pásma — Nízká, Střední (sezóna) a Vysoká (vrchol) — vycházejí z klinicky významných prahů <strong>EAACI</strong>, stejných úrovní, jaké používá SILAM/CAMS pro oficiální evropskou pylovou předpověď. Pyl je dostupný pouze v Evropě během pylové sezóny.</p><p><a class="text-sky-500 underline" target="_blank" rel="noopener noreferrer" href="https://climate-adapt.eea.europa.eu/en/observatory/topics/health-impacts/pollen">O pylu a zdraví ↗</a></p><p class="opacity-60 text-xs">Zdroj: CAMS (Copernicus) · <code>alder_pollen</code> … <code>ragweed_pollen</code> — {{docs}}</p>',
+    },
+    uv: {
+      title: 'UV index',
+      body: '<p><strong>UV index (stupnice WHO/WMO)</strong> udává sílu ultrafialového záření slunce. Karta ukazuje <strong>denní maximum</strong> (kolem poledne) a jeho kategorii.</p><p>Pásma: Nízký (0–2), Střední (3–5), Vysoký (6–7), Velmi vysoký (8–10), Extrémní (11+). Od stupně Vysoký se nechráněná pokožka rychle spálí — vyhledejte stín a chraňte se před sluncem.</p><p class="opacity-60 text-xs">Zdroj: CAMS (Copernicus) · <code>uv_index</code> — {{docs}}</p>',
     },
   },
   wmo: {
