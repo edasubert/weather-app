@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: 'Nastavení zobrazení',
-    cards: 'Karty',
+    cards: 'Porovnání',
     chart: 'Graf',
     done: 'Hotovo',
     open: 'Nastavení zobrazení',

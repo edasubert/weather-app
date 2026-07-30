@@ -58,6 +58,10 @@
   --chart-lbl-size: 16px;
   --precip-bar-stroke: 0.75px; /* outline keeps low-probability (faint) bars visible */
 
+  --comp-bar-pos:  #0ea5e9;
+  --comp-bar-neg:  #94a3b8;
+  --comp-bar-text: #ffffff;
+
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #e2e8f0;
   --tooltip-text-main: #1e293b;
@@ -119,6 +123,9 @@
 
   --chart-grid:  #1e293b;
   --chart-label: #94a3b8;
+
+  --comp-bar-pos: #38bdf8;
+  --comp-bar-neg: #64748b;
 
   --tooltip-bg:        #0f172a;
   --tooltip-border:    #334155;
@@ -186,6 +193,9 @@
   --chart-lbl-size: 18px;
   --precip-bar-stroke: 1.25px;
 
+  --comp-bar-pos: #0369a1;
+  --comp-bar-neg: #475569;
+
   --tooltip-bg:        #ffffff;
   --tooltip-border:    #000000;
   --tooltip-text-main: #000000;
@@ -246,6 +256,10 @@
   --chart-grid:  #374151;
   --chart-label: #f9fafb;
 
+  --comp-bar-pos:  #7dd3fc;
+  --comp-bar-neg:  #cbd5e1;
+  --comp-bar-text: #000000;
+
   --tooltip-bg:        #000000;
   --tooltip-border:    #ffffff;
   --tooltip-text-main: #ffffff;
@@ -304,6 +318,14 @@ a:focus-visible {
 #tl-scroll::-webkit-scrollbar, #air-tl-scroll::-webkit-scrollbar { height: 8px; }
 #tl-scroll::-webkit-scrollbar-thumb, #air-tl-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
 #tl-scroll::-webkit-scrollbar-track, #air-tl-scroll::-webkit-scrollbar-track { background: transparent; }
+
+#comp-chart-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge) transparent;
+}
+#comp-chart-scroll::-webkit-scrollbar { height: 8px; }
+#comp-chart-scroll::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 4px; }
+#comp-chart-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ── View transitions ─────────────────────────────── */
 /* Keep the cross-fade short: clicks landing mid-transition can be dropped

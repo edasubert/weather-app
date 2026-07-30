@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: '表示設定',
-    cards: 'カード',
+    cards: '比較',
     chart: 'グラフ',
     done: '完了',
     open: '表示設定',

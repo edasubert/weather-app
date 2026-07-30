@@ -15,9 +15,10 @@ import { t } from './i18n';
 const PL = 88; // left gutter for band labels
 const PR = 16;
 const PT = 8;
-const H  = 200;
+const ARROW_SPACE = 16; // extra SVG height at bottom reserved for the scroll-hint arrow
+const H  = 200 + ARROW_SPACE;
 const PB = 30; // day-label row
-const CH = H - PT - PB;
+const CH = H - PT - PB - ARROW_SPACE; // chart area unchanged by ARROW_SPACE
 const NBANDS = 3;
 
 const LINE_COLORS = {
@@ -156,7 +157,7 @@ export function buildPollenChart(
   for (let d = 0; d < nDays; d++) {
     const x = xH(d * 24);
     if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${(PT + CH).toFixed(1)}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
-    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(H - 10).toFixed(1)}" text-anchor="middle" class="plbl" style="font-weight:600">${days[d].label}</text>`);
+    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(H - ARROW_SPACE - 10).toFixed(1)}" text-anchor="middle" class="plbl" style="font-weight:600">${days[d].label}</text>`);
   }
 
   const nowMarker = nowHours !== null && nowHours >= 0 && nowHours <= n
@@ -203,6 +204,7 @@ export function buildPollenChart(
             </g>
             <rect id="pollen-overlay" x="${PL}" y="${PT}" width="${cw.toFixed(1)}" height="${CH}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
+          <svg width="140" height="14" aria-hidden="true" style="position:absolute;bottom:2px;left:96px;opacity:0.35"><path d="M0,7 L133,7 M126,3 L133,7 L126,11" stroke="var(--chart-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
           </div>
         </div>
         <div style="position:absolute;top:0;left:0;width:${PL}px;height:${H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 86%, transparent)">

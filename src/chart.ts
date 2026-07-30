@@ -24,6 +24,7 @@ const CLOUD_COLOR    = 'var(--chart-label)'; // adapts to theme
 // UV index — WHO/WMO category colours (hardcoded, theme-independent) for the
 // hourly strip beneath the plot: Low / Moderate / High / Very high / Extreme.
 const UV_LANE_H = 12;
+const ARROW_SPACE = 16; // extra SVG height at bottom reserved for the scroll-hint arrow
 const UV_COLORS = ['#4eb400', '#f7e400', '#f85900', '#d8001d', '#6b49c8'] as const;
 export const UV_CAT_KEYS = ['comp.uvLow', 'comp.uvModerate', 'comp.uvHigh', 'comp.uvVeryHigh', 'comp.uvExtreme'] as const;
 export const uvCategory = (uv: number): number => uv < 3 ? 0 : uv < 6 ? 1 : uv < 8 ? 2 : uv < 11 ? 3 : 4;
@@ -123,7 +124,7 @@ export function buildTimeline(
   // UV strip sits directly under the plot; the wind lane and x-axis shift below it.
   const hasUV = hourly.uvIndex.some(v => v != null && v > 0);
   const uvLaneH = vis.uv && hasUV ? UV_LANE_H : 0;
-  const H = TL_H + windLaneH + uvLaneH;
+  const H = TL_H + windLaneH + uvLaneH + ARROW_SPACE;
   const uvLaneTop = TL_CH;
   const laneTop = TL_CH + uvLaneH;
   const laneMid = laneTop + windLaneH / 2;
@@ -225,10 +226,10 @@ export function buildTimeline(
   const hrTicks: string[] = [];
   for (let d = 0; d < nDays; d++) {
     const x = xH(d * 24);
-    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${H - 18}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
-    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(H - 6).toFixed(1)}" text-anchor="middle" class="lbl" style="font-weight:600">${days[d].label}</text>`);
+    if (d > 0) dayLines.push(`<line x1="${x.toFixed(1)}" y1="${PT}" x2="${x.toFixed(1)}" y2="${H - ARROW_SPACE - 18}" stroke="var(--chart-label)" stroke-width="1" opacity="0.2"/>`);
+    dayLabels.push(`<text x="${(x + dayW / 2).toFixed(1)}" y="${(H - ARROW_SPACE - 6).toFixed(1)}" text-anchor="middle" class="lbl" style="font-weight:600">${days[d].label}</text>`);
     for (const hr of showHrAll ? [6, 12, 18] : [12]) {
-      hrTicks.push(`<text x="${xH(d * 24 + hr).toFixed(1)}" y="${(H - 24).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.55">${String(hr).padStart(2, '0')}</text>`);
+      hrTicks.push(`<text x="${xH(d * 24 + hr).toFixed(1)}" y="${(H - ARROW_SPACE - 24).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:9px;opacity:0.55">${String(hr).padStart(2, '0')}</text>`);
     }
   }
 
@@ -276,6 +277,7 @@ export function buildTimeline(
             <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${hoverBottom - PT}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
           </svg>
           ${vis.wind ? `<canvas id="wind-canvas" style="position:absolute;left:0;top:${laneTop}px;width:${w}px;height:${windLaneH}px;pointer-events:none"></canvas>` : ''}
+          <svg width="140" height="14" aria-hidden="true" style="position:absolute;bottom:2px;left:60px;opacity:0.35"><path d="M0,7 L133,7 M126,3 L133,7 L126,11" stroke="var(--chart-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
           </div>
         </div>
         <div style="position:absolute;top:0;left:0;width:${PL}px;height:${H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 70%, transparent)">

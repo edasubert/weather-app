@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: 'Display settings',
-    cards: 'Cards',
+    cards: 'Comparison',
     chart: 'Chart',
     air: 'Air quality',
     pollen: 'Pollen',

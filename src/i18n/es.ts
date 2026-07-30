@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: 'Ajustes de visualización',
-    cards: 'Tarjetas',
+    cards: 'Comparación',
     chart: 'Gráfico',
     done: 'Listo',
     open: 'Ajustes de visualización',

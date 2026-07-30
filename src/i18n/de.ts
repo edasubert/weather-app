@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: 'Anzeigeeinstellungen',
-    cards: 'Karten',
+    cards: 'Vergleich',
     chart: 'Diagramm',
     done: 'Fertig',
     open: 'Anzeigeeinstellungen',

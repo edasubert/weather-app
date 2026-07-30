@@ -158,7 +158,7 @@ export default {
   },
   settings: {
     title: 'Paramètres d’affichage',
-    cards: 'Cartes',
+    cards: 'Comparaison',
     chart: 'Graphique',
     done: 'Terminé',
     open: 'Paramètres d’affichage',

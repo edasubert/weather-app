@@ -6,11 +6,10 @@ import type { AirData } from './airquality';
 import { buildCompareTable, COMPARE_PARAMS, CMP_PARAM_ICON } from './compare';
 import { WEATHER_MODELS, MODEL_MAP, findModel, DEFAULT_MODEL } from './models';
 import { searchCity } from './geocoding';
-import { describeCode } from './wmo';
-import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, uvCategory, UV_CAT_KEYS, type ChartVisibility } from './chart';
+import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, type ChartVisibility } from './chart';
 import { buildAirChart, setupAirChartTooltip, type AirChartVisibility } from './airchart';
 import { buildPollenChart, setupPollenChartTooltip, type PollenChartVisibility } from './pollenchart';
-import { t, setLang, getLang, getLocale, fmtNum, LANGS, type Lang } from './i18n';
+import { t, setLang, getLang, getLocale, LANGS, type Lang } from './i18n';
 import { ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
@@ -65,7 +64,10 @@ const PARAM_ICON: Record<string, string> = {
   temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
   wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud, uv: ICONS.uv,
 };
-const paramLabel = (id: string): string => id === 'cloud' ? t('tooltip.cloudCover') : t(`metric.${id}.title`);
+const paramLabel = (id: string): string =>
+  id === 'cloud'   ? t('tooltip.cloudCover') :
+  id === 'showers' ? t('tooltip.showers') :
+  t(`metric.${id}.title`);
 
 // ─── Model comparison state ("app in the app") ────────────────────────────────
 let cmpModels: string[] = [];
@@ -156,6 +158,7 @@ function modelMenuHTML(openUp = false, hasLocation = false): string {
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let suggestions: GeoResult[] = [];
 let chartResizeObserver: ResizeObserver | null = null;
+let compScrollObserver: ResizeObserver | null = null;
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -387,142 +390,143 @@ function applyTheme(): void {
   });
 }
 
-// ─── Temperature helpers ──────────────────────────────────────────────────────
 
-function tempStr(c: number): string {
-  if (unit === 'F') return `${Math.round(c * 9 / 5 + 32)}°F`;
-  return `${Math.round(c)}°C`;
+// ─── Comparison bar chart ─────────────────────────────────────────────────────
+
+interface CompBarMetric {
+  id: string;
+  emoji: string;
+  primaryVal: number;
+  secondaryVal: number;
+  primaryLabel: string;
+  secondaryLabel: string;
+  unit: string;
+  diffLabel?: string;
+  primaryMin?: number;
+  primaryMax?: number;
+  secondaryMin?: number;
+  secondaryMax?: number;
+  scaleMin?: number; // override gMin for the error-bar y-axis (shared scale across metrics)
+  scaleMax?: number; // override gMax for the error-bar y-axis
 }
 
-function diffStr(abs: number): string {
-  if (unit === 'F') return `${Math.round(abs * 9 / 5)}°F`;
-  return `${Math.round(abs)}°C`;
+function buildComparisonChart(
+  metrics: CompBarMetric[],
+  primaryDayLabel: string,
+  secondaryDayLabel: string,
+): string {
+  if (metrics.length === 0) return '';
+
+  const COL_W  = 56;
+  const H      = 192;
+  const BOTTOM = 148;
+  const MAX_H  = 90;
+  const BAR_W  = 12;
+  const GAP    = 4;
+  const svgW   = metrics.length * COL_W;
+
+  const parts: string[] = [
+    `<line x1="0" y1="${BOTTOM}" x2="${svgW}" y2="${BOTTOM}" stroke="var(--chart-grid)" stroke-width="1"/>`,
+  ];
+
+  for (let i = 0; i < metrics.length; i++) {
+    const { id, emoji, primaryVal, secondaryVal, primaryLabel, secondaryLabel,
+            unit: mUnit, diffLabel, primaryMin, primaryMax, secondaryMin, secondaryMax,
+            scaleMin, scaleMax } = metrics[i];
+    const cx  = i * COL_W + COL_W / 2;
+
+    const secXL = cx - GAP / 2 - BAR_W;  // left edge of secondary bar
+    const secXR = cx - GAP / 2;           // right edge of secondary bar
+    const secCX = cx - 8;                 // centre of secondary bar
+    const priXL = cx + GAP / 2;           // left edge of primary bar
+    const priXR = cx + GAP / 2 + BAR_W;  // right edge of primary bar
+    const priCX = cx + 8;                 // centre of primary bar
+
+    let maxH: number;
+
+    if (primaryMin !== undefined && primaryMax !== undefined &&
+        secondaryMin !== undefined && secondaryMax !== undefined) {
+      // ── Error-bar mode (temperature metrics) ──────────────────────────
+      const gMin = scaleMin ?? Math.min(primaryMin, secondaryMin);
+      const gMax = scaleMax ?? Math.max(primaryMax, secondaryMax);
+      // Scale from 0 when all values are positive; fall back to gMin otherwise
+      const scaleBase = Math.min(gMin, 0);
+      const scY = (v: number) =>
+        gMax > scaleBase ? BOTTOM - ((v - scaleBase) / (gMax - scaleBase)) * MAX_H : BOTTOM - MAX_H / 2;
+
+      for (const [cL, cR, cX, dMin, dMean, dMax, col] of [
+        [secXL, secXR, secCX, secondaryMin, secondaryVal, secondaryMax, 'var(--comp-bar-neg)'],
+        [priXL, priXR, priCX, primaryMin,   primaryVal,   primaryMax,   'var(--comp-bar-pos)'],
+      ] as [number, number, number, number, number, number, string][]) {
+        const yMin  = scY(dMin);
+        const yMax  = scY(dMax);
+        const yMean = scY(dMean);
+        parts.push(
+          // stem
+          `<line x1="${cX}" y1="${yMax.toFixed(1)}" x2="${cX}" y2="${yMin.toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+          // top cap
+          `<line x1="${cL}" y1="${yMax.toFixed(1)}" x2="${cR}" y2="${yMax.toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+          // bottom cap
+          `<line x1="${cL}" y1="${yMin.toFixed(1)}" x2="${cR}" y2="${yMin.toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+          // mean tick (bold)
+          `<line x1="${cL}" y1="${yMean.toFixed(1)}" x2="${cR}" y2="${yMean.toFixed(1)}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`,
+        );
+      }
+      maxH = MAX_H;
+
+    } else {
+      // ── Regular bar mode ───────────────────────────────────────────────
+      const ref  = Math.max(Math.abs(primaryVal), Math.abs(secondaryVal));
+      const priH = ref > 0 ? Math.max(primaryVal   !== 0 ? 3 : 0, (Math.abs(primaryVal)   / ref) * MAX_H) : 0;
+      const secH = ref > 0 ? Math.max(secondaryVal !== 0 ? 3 : 0, (Math.abs(secondaryVal) / ref) * MAX_H) : 0;
+
+      // Fill opacity scales with relative diff: large diff → full opacity, near-zero → 0.20.
+      // Stroke stays full opacity so bar outlines are always visible.
+      const relDiff = ref > 0 ? Math.abs(primaryVal - secondaryVal) / ref : 0;
+      const fo = Math.min(1, Math.max(0.2, relDiff / 0.3)).toFixed(2);
+
+      if (secH >= 1) parts.push(`<rect x="${secXL.toFixed(1)}" y="${(BOTTOM - secH).toFixed(1)}" width="${BAR_W}" height="${secH.toFixed(1)}" rx="3" fill="var(--comp-bar-neg)" stroke="var(--comp-bar-neg)" stroke-width="1"/>`);
+      if (priH >= 1) parts.push(`<rect x="${priXL.toFixed(1)}" y="${(BOTTOM - priH).toFixed(1)}" width="${BAR_W}" height="${priH.toFixed(1)}" rx="3" fill="var(--comp-bar-pos)" fill-opacity="${fo}" stroke="var(--comp-bar-pos)" stroke-width="1"/>`);
+      maxH = Math.max(priH, secH);
+    }
+
+    // Diff label between bar tops and emoji; emoji gap shrinks when no diff label
+    const emojiGap = diffLabel ? 24 : 15;
+    if (diffLabel) {
+      parts.push(`<text x="${cx}" y="${(BOTTOM - maxH - 8).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--chart-label)">${diffLabel}</text>`);
+    }
+    parts.push(`<text x="${cx}" y="${(BOTTOM - maxH - emojiGap).toFixed(1)}" text-anchor="middle" font-size="16" role="img" aria-label="${paramLabel(id)}"><title>${paramLabel(id)}</title>${emoji}</text>`);
+
+    // Value labels below bars
+    parts.push(
+      `<text x="${secCX}" y="${BOTTOM + 12}" text-anchor="middle" font-size="8" fill="var(--chart-label)">${secondaryLabel}</text>`,
+      `<text x="${priCX}" y="${BOTTOM + 12}" text-anchor="middle" font-size="8" fill="var(--comp-bar-pos)">${primaryLabel}</text>`,
+    );
+    if (mUnit) {
+      parts.push(`<text x="${cx}" y="${BOTTOM + 25}" text-anchor="middle" font-size="9" fill="var(--chart-label)">${mUnit}</text>`);
+    }
+  }
+
+  // Scroll hint arrow drawn inside the SVG — below value labels (max y=BOTTOM+25=173),
+  // above the scrollbar which lives outside the SVG. Span 25%–75% of chart width.
+  const aY  = H - 9;
+  const aX1 = 16;
+  const aX2 = 156;
+  parts.push(
+    `<path id="comp-scroll-hint" d="M${aX1.toFixed(1)},${aY} L${aX2.toFixed(1)},${aY} M${(aX2 - 7).toFixed(1)},${(aY - 4).toFixed(1)} L${aX2.toFixed(1)},${aY} L${(aX2 - 7).toFixed(1)},${(aY + 4).toFixed(1)}" stroke="var(--chart-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.35" aria-hidden="true"/>`,
+  );
+
+  const legend = `<div style="display:flex;justify-content:center;gap:16px;padding:4px 0 2px;font-size:11px;color:var(--chart-label);" aria-hidden="true"><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-neg);flex-shrink:0;"></div><span>${secondaryDayLabel}</span></div><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-pos);flex-shrink:0;"></div><span>${primaryDayLabel}</span></div></div>`;
+
+  return `<div><div class="overflow-x-auto" id="comp-chart-scroll"><svg width="${svgW}" height="${H}" aria-hidden="true">${parts.join('')}</svg></div>${legend}</div>`;
 }
 
-// Severity levels drive both the appended emoji and the tile background tint
-type SevLevel = 0 | 1 | 2 | 3;
-
-
-function tempLevel(abs: number): SevLevel {
-  return abs < 2 ? 0 : abs < 5 ? 1 : abs < 10 ? 2 : 3;
-}
-
-function windLevel(abs: number): SevLevel {
-  return abs < 5 ? 0 : abs < 10 ? 1 : abs < 20 ? 2 : 3;
-}
-
-// ─── Wind helpers ─────────────────────────────────────────────────────────────
-
-const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
-
-function windDirLabel(degrees: number): string {
-  return COMPASS[Math.round(degrees / 45) % 8];
-}
 
 // Label for geolocated positions — no reverse-geocoding service is used,
 // so the coordinates themselves serve as the location name
 function coordsLabel(lat: number, lon: number): string {
   const fmt = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? pos : neg}`;
   return `${fmt(lat, 'N', 'S')}, ${fmt(lon, 'E', 'W')}`;
-}
-
-// ─── Comparison summaries ─────────────────────────────────────────────────────
-
-interface Comp { html: string; severity: SevLevel }
-
-function tempComparison(today: DailyWeather, yesterday: DailyWeather, apparent = false): Comp {
-  const dMax  = apparent ? today.apparentTempMax  - yesterday.apparentTempMax  : today.tempMax  - yesterday.tempMax;
-  const dMean = apparent ? today.apparentTempMean - yesterday.apparentTempMean : today.tempMean - yesterday.tempMean;
-  const dMin  = apparent ? today.apparentTempMin  - yesterday.apparentTempMin  : today.tempMin  - yesterday.tempMin;
-  const absMean = Math.abs(dMean);
-
-  const sameKey   = apparent ? 'comp.feelsSame'   : 'comp.sameTemp';
-  const warmerKey = apparent ? 'comp.feelsWarmer' : 'comp.warmer';
-  const coolerKey = apparent ? 'comp.feelsCooler' : 'comp.cooler';
-
-  const same = absMean < 0.5;
-  const severity = same ? 0 : tempLevel(absMean);
-  const sign = same ? '±' : dMean > 0 ? '+' : '−';
-  const word = t(same ? sameKey : dMean > 0 ? warmerKey : coolerKey);
-
-  const fmtD = (d: number) => (d >= 0 ? '+' : '−') + diffStr(Math.abs(d));
-  const sub = `${t('card.high')} ${fmtD(dMax)} · ${t('card.avg')} ${fmtD(dMean)} · ${t('card.low')} ${fmtD(dMin)}`;
-
-  const headline = same ? word.charAt(0).toUpperCase() + word.slice(1) : `${sign}${diffStr(absMean)} ${word}`;
-  const html = `${headline}<span class="block text-xs opacity-50 mt-0.5">${sub}</span>`;
-
-  return { html, severity };
-}
-
-function precipComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): Comp {
-  const todayMm = today.rainSum + today.showersSum;
-  const yestMm  = yesterday.rainSum + yesterday.showersSum;
-  const ctx = isTomorrowMode ? 'tomorrow' : 'today';
-  const text = () => {
-    if (todayMm < 0.1 && yestMm < 0.1) return t('comp.noRain');
-    if (yestMm >= 0.1 && todayMm < 0.1) return t(`comp.noRain_${ctx}`);
-    if (yestMm < 0.1 && todayMm >= 0.1) return t(`comp.rainExpected_${ctx}`);
-    const diff = todayMm - yestMm;
-    if (Math.abs(diff) < 0.5) return t('comp.sameRain');
-    return t(diff > 0 ? 'comp.moreRain' : 'comp.lessRain');
-  };
-  return { html: text(), severity: 0 };
-}
-
-function snowComparison(today: DailyWeather, yesterday: DailyWeather, isTomorrowMode = false): Comp {
-  const todayCm = today.snowfallSum;
-  const yestCm  = yesterday.snowfallSum;
-  const ctx = isTomorrowMode ? 'tomorrow' : 'today';
-  const text = () => {
-    if (yestCm >= 0.1 && todayCm < 0.1) return t(`comp.noSnow_${ctx}`);
-    if (yestCm < 0.1 && todayCm >= 0.1) return t(`comp.snowExpected_${ctx}`);
-    const diff = todayCm - yestCm;
-    if (Math.abs(diff) < 0.2) return t('comp.sameSnow');
-    return t(diff > 0 ? 'comp.moreSnow' : 'comp.lessSnow');
-  };
-  return { html: text(), severity: 0 };
-}
-
-function windComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
-  const diff = today.windSpeedMax - yesterday.windSpeedMax;
-  const abs = Math.abs(diff);
-  if (abs < 1) return { html: t('comp.sameWind'), severity: 0 };
-  const severity = windLevel(abs);
-  return {
-    html: t(diff > 0 ? 'comp.windier' : 'comp.calmer', { diff: Math.round(abs) }),
-    severity,
-  };
-}
-
-function pressureComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
-  const diff = today.pressureMean - yesterday.pressureMean;
-  const abs = Math.abs(diff);
-  if (abs < 1) return { html: t('comp.samePressure'), severity: 0 };
-  return { html: t(diff > 0 ? 'comp.higherPressure' : 'comp.lowerPressure', { diff: Math.round(abs) }), severity: 0 };
-}
-
-function daylightComparison(today: DailyWeather, yesterday: DailyWeather): Comp {
-  const diff = today.daylightDuration - yesterday.daylightDuration;
-  const mins = Math.round(Math.abs(diff) / 60);
-  if (mins < 1) return { html: t('comp.sameDaylight'), severity: 0 };
-  return { html: t(diff > 0 ? 'comp.moreDaylight' : 'comp.lessDaylight', { diff: mins }), severity: 0 };
-}
-
-// UV tile: the primary day's peak UV (from the CAMS hourly series) + its WHO/WMO
-// category, tinted by category (Low/Moderate→calm, High→2, Very high/Extreme→3),
-// with the day-to-day change as a signed sub-line. Null primary → no tile.
-function uvComparison(primary: number | null, secondary: number | null): Comp | null {
-  if (primary == null) return null;
-  const peak = Math.round(primary);
-  const cat = uvCategory(primary);
-  const severity = Math.min(cat, 3) as SevLevel;
-  let sub = '';
-  if (secondary != null) {
-    const d = peak - Math.round(secondary);
-    sub = d === 0 ? '±0' : d > 0 ? `▲ ${d}` : `▼ ${-d}`;
-  }
-  const html = `${peak} · ${t(UV_CAT_KEYS[cat])}${sub ? ` <span class="opacity-50">${sub}</span>` : ''}`;
-  return { html, severity };
 }
 
 // Peak-of-day UV from the CAMS hourly series (yesterday=0, today=1, tomorrow=2).
@@ -541,103 +545,6 @@ function getMetricInfo(id: string): { title: string; body: string } {
     title: t(`metric.${id}.title`),
     body:  t(`metric.${id}.body`, { docs: DOCS_HTML }),
   };
-}
-
-// ─── Comparison tile ──────────────────────────────────────────────────────────
-
-function infoBtnHTML(id: string): string {
-  return `<button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="${id}">i</button>`;
-}
-
-// One compact row per metric: icon · comparison sentence · info button.
-function comparisonRowHTML(icon: string, id: string, comp: Comp): string {
-  return `
-    <div class="flex items-center gap-2 text-sm text-detail">
-      <span class="w-5 shrink-0 text-center">${icon}</span>
-      <span class="flex-1">${comp.html}</span>
-      ${infoBtnHTML(id)}
-    </div>
-  `;
-}
-
-// ─── Card HTML ────────────────────────────────────────────────────────────────
-
-// ─── Day-by-day stat table ────────────────────────────────────────────────────
-
-function statTableHTML(a: DailyWeather, b: DailyWeather, labelA: string, labelB: string, uvA: number | null, uvB: number | null): string {
-  const dayHead = (d: DailyWeather, label: string) => {
-    const { emoji, label: cond } = describeCode(d.weatherCode);
-    const date = new Date(d.date + 'T12:00:00').toLocaleDateString(getLocale(), {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-    return `
-      <th class="text-left font-normal align-top pb-2 pl-3 w-[38%]">
-        <div class="text-xs font-semibold uppercase tracking-wider text-muted">${label}</div>
-        <div class="text-xs text-muted">${date}</div>
-        <div class="text-3xl my-1.5">${emoji}</div>
-        <div class="font-medium text-body text-sm leading-tight">${cond}</div>
-      </th>
-    `;
-  };
-
-  // temperature with feels-like in parentheses
-  const temp2 = (v: number, feels: number, strong = false) => {
-    const feelsPart = cardOn('apparentTemp')
-      ? ` <span class="text-xs text-muted whitespace-nowrap" title="${t('tooltip.apparentTemp')}">(${feelsIcon(feels)} ${tempStr(feels)})</span>`
-      : '';
-    return `<span class="${strong ? 'text-base font-semibold text-heading' : 'text-detail'}">${tempStr(v)}</span>${feelsPart}`;
-  };
-
-  const row = (labelHTML: string, cellA: string, cellB: string) => `
-    <tr>
-      <td class="text-xs text-muted py-1 pr-2 whitespace-nowrap">${labelHTML}</td>
-      <td class="py-1 pl-3 text-sm">${cellA}</td>
-      <td class="py-1 pl-3 text-sm">${cellB}</td>
-    </tr>
-  `;
-  const icon = (key: string, tip: string) => `<span title="${tip}">${key}</span>`;
-
-  const hasRain    = a.rainSum > 0.1     || b.rainSum > 0.1;
-  const hasShowers = a.showersSum > 0.1  || b.showersSum > 0.1;
-  const hasSnow    = a.snowfallSum > 0.1 || b.snowfallSum > 0.1;
-  const showLiquid = !hasSnow || hasRain || hasShowers;
-  const mm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} mm</span>` : `<span class="text-muted">${t('card.noRain')}</span>`;
-  const cm = (v: number) => v > 0.1 ? `<span class="text-detail">${fmtNum(v)} cm</span>` : '<span class="text-muted">–</span>';
-  const uvCell = (v: number | null) => v == null
-    ? '<span class="text-muted">–</span>'
-    : `<span class="text-detail">${Math.round(v)} · ${t(UV_CAT_KEYS[uvCategory(v)])}</span>`;
-
-  return `
-    <div class="rounded-2xl p-5 bg-surface hc:border-2 border-edge overflow-x-auto">
-      <table class="w-full">
-        <thead>
-          <tr>
-            <th></th>
-            ${dayHead(a, labelA)}
-            ${dayHead(b, labelB)}
-          </tr>
-        </thead>
-        <tbody>
-          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.high')}`, temp2(a.tempMax, a.apparentTempMax), temp2(b.tempMax, b.apparentTempMax)) : ''}
-          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.avg')}`,  temp2(a.tempMean, a.apparentTempMean, true), temp2(b.tempMean, b.apparentTempMean, true)) : ''}
-          ${cardOn('temp') ? row(`${icon(ICONS.temp, t('tooltip.temperature'))} ${t('card.low')}`,  temp2(a.tempMin, a.apparentTempMin), temp2(b.tempMin, b.apparentTempMin)) : ''}
-          ${cardOn('precip') && showLiquid ? row(icon(ICONS.rain, t('tooltip.precipitation')), mm(a.rainSum), mm(b.rainSum)) : ''}
-          ${cardOn('precip') && hasShowers ? row(icon(ICONS.showers, t('tooltip.showers')), mm(a.showersSum), mm(b.showersSum)) : ''}
-          ${cardOn('precip') && hasSnow ? row(icon(ICONS.snow, t('tooltip.snowfall')), cm(a.snowfallSum), cm(b.snowfallSum)) : ''}
-          ${cardOn('wind') ? row(icon(ICONS.wind, t('tooltip.wind')),
-            `<span class="text-detail">${Math.round(a.windSpeedMax)} km/h ${windDirLabel(a.windDirection)}</span>`,
-            `<span class="text-detail">${Math.round(b.windSpeedMax)} km/h ${windDirLabel(b.windDirection)}</span>`) : ''}
-          ${cardOn('pressure') ? row(icon(ICONS.pressure, t('tooltip.pressure')),
-            `<span class="text-detail">${Math.round(a.pressureMean)} hPa</span>`,
-            `<span class="text-detail">${Math.round(b.pressureMean)} hPa</span>`) : ''}
-          ${cardOn('daylight') && a.sunrise && b.sunrise ? row(icon(ICONS.daylight, t('tooltip.daylight')),
-            `<span class="text-detail">${a.sunrise.slice(11, 16)} – ${a.sunset.slice(11, 16)}</span>`,
-            `<span class="text-detail">${b.sunrise.slice(11, 16)} – ${b.sunset.slice(11, 16)}</span>`) : ''}
-          ${cardOn('uv') && (uvA != null || uvB != null) ? row(icon(ICONS.uv, t('tooltip.uv')), uvCell(uvA), uvCell(uvB)) : ''}
-        </tbody>
-      </table>
-    </div>
-  `;
 }
 
 // ─── URL state ────────────────────────────────────────────────────────────────
@@ -1283,6 +1190,112 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     sunset: d.sunset,
   }));
 
+  const compMetrics: CompBarMetric[] = [];
+  {
+    const fmtT  = (v: number) => String(unit === 'F' ? Math.round(v * 9 / 5 + 32) : Math.round(v));
+    const fmtMm = (v: number) => v.toFixed(1);
+    const fmtN  = (v: number) => String(Math.round(v));
+    const tUnit = unit === 'F' ? '°F' : '°C';
+    const sign  = (d: number) => d >= 0 ? '+' : '−';
+    // Returns a formatted diff label, or undefined when the relative difference is below 2%
+    // or the numeric part rounds to zero (avoids "+0 km/h", "−0" etc.)
+    const mkDiff = (diff: number, ref: number, formatted: string): string | undefined => {
+      if (ref <= 0 || Math.abs(diff) / ref < 0.02) return undefined;
+      if (parseFloat(formatted) === 0) return undefined;
+      return sign(diff) + formatted;
+    };
+
+    // Shared y-axis scale for temp + apparentTemp so they're visually comparable
+    const bothTemps = cardOn('temp') && cardOn('apparentTemp');
+    const sharedTempMin = bothTemps ? Math.min(
+      primary.tempMin, primary.apparentTempMin, secondary.tempMin, secondary.apparentTempMin,
+    ) : undefined;
+    const sharedTempMax = bothTemps ? Math.max(
+      primary.tempMax, primary.apparentTempMax, secondary.tempMax, secondary.apparentTempMax,
+    ) : undefined;
+
+    if (cardOn('temp')) {
+      const pV = primary.tempMean, sV = secondary.tempMean;
+      const diff = pV - sV, ref = Math.max(Math.abs(pV), Math.abs(sV));
+      const dNum = unit === 'F' ? String(Math.round(Math.abs(diff) * 9 / 5)) : String(Math.round(Math.abs(diff)));
+      compMetrics.push({ id: 'temp', emoji: ICONS.temp,
+        primaryVal: pV, secondaryVal: sV,
+        primaryLabel: fmtT(pV), secondaryLabel: fmtT(sV), unit: tUnit,
+        diffLabel: mkDiff(diff, ref, dNum + tUnit),
+        primaryMin: primary.tempMin,     primaryMax: primary.tempMax,
+        secondaryMin: secondary.tempMin, secondaryMax: secondary.tempMax,
+        scaleMin: sharedTempMin, scaleMax: sharedTempMax });
+    }
+    if (cardOn('apparentTemp')) {
+      const pV = primary.apparentTempMean, sV = secondary.apparentTempMean;
+      const diff = pV - sV, ref = Math.max(Math.abs(pV), Math.abs(sV));
+      const dNum = unit === 'F' ? String(Math.round(Math.abs(diff) * 9 / 5)) : String(Math.round(Math.abs(diff)));
+      compMetrics.push({ id: 'apparentTemp', emoji: feelsIcon(primary.apparentTempMax),
+        primaryVal: pV, secondaryVal: sV,
+        primaryLabel: fmtT(pV), secondaryLabel: fmtT(sV), unit: tUnit,
+        diffLabel: mkDiff(diff, ref, dNum + tUnit),
+        primaryMin: primary.apparentTempMin,     primaryMax: primary.apparentTempMax,
+        secondaryMin: secondary.apparentTempMin, secondaryMax: secondary.apparentTempMax,
+        scaleMin: sharedTempMin, scaleMax: sharedTempMax });
+    }
+    if (cardOn('precip')) {
+      const hasRain    = primary.rainSum > 0.1     || secondary.rainSum > 0.1;
+      const hasShowers = primary.showersSum > 0.1  || secondary.showersSum > 0.1;
+      const hasSnow    = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
+      const showLiquid = !hasSnow || hasRain || hasShowers;
+      if (showLiquid) {
+        const pR = primary.rainSum, sR = secondary.rainSum;
+        const dR = pR - sR;
+        compMetrics.push({ id: 'precip', emoji: ICONS.rain,
+          primaryVal: pR, secondaryVal: sR, primaryLabel: fmtMm(pR), secondaryLabel: fmtMm(sR), unit: 'mm',
+          diffLabel: mkDiff(dR, Math.max(pR, sR), Math.abs(dR).toFixed(1) + ' mm') });
+      }
+      if (hasShowers) {
+        const pS = primary.showersSum, sS = secondary.showersSum;
+        const dS = pS - sS;
+        compMetrics.push({ id: 'showers', emoji: ICONS.showers,
+          primaryVal: pS, secondaryVal: sS, primaryLabel: fmtMm(pS), secondaryLabel: fmtMm(sS), unit: 'mm',
+          diffLabel: mkDiff(dS, Math.max(pS, sS), Math.abs(dS).toFixed(1) + ' mm') });
+      }
+      if (hasSnow) {
+        const pSn = primary.snowfallSum, sSn = secondary.snowfallSum;
+        const dSn = pSn - sSn;
+        compMetrics.push({ id: 'snow', emoji: ICONS.snow,
+          primaryVal: pSn, secondaryVal: sSn, primaryLabel: fmtMm(pSn), secondaryLabel: fmtMm(sSn), unit: 'cm',
+          diffLabel: mkDiff(dSn, Math.max(pSn, sSn), Math.abs(dSn).toFixed(1) + ' cm') });
+      }
+    }
+    if (cardOn('wind')) {
+      const pV = primary.windSpeedMax, sV = secondary.windSpeedMax;
+      const dW = pV - sV;
+      compMetrics.push({ id: 'wind', emoji: ICONS.wind,
+        primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'km/h',
+        diffLabel: mkDiff(dW, Math.max(pV, sV), fmtN(Math.abs(dW)) + ' km/h') });
+    }
+    if (cardOn('pressure')) {
+      const pV = primary.pressureMean, sV = secondary.pressureMean;
+      const dP = pV - sV;
+      compMetrics.push({ id: 'pressure', emoji: ICONS.pressure,
+        primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'hPa',
+        diffLabel: mkDiff(dP, Math.max(pV, sV), fmtN(Math.abs(dP)) + ' hPa') });
+    }
+    if (cardOn('daylight')) {
+      const pD = primary.daylightDuration / 60, sD = secondary.daylightDuration / 60;
+      const dL = pD - sD;
+      compMetrics.push({ id: 'daylight', emoji: ICONS.daylight,
+        primaryVal: pD, secondaryVal: sD, primaryLabel: fmtN(pD), secondaryLabel: fmtN(sD), unit: 'min',
+        diffLabel: mkDiff(dL, Math.max(pD, sD), fmtN(Math.abs(dL)) + ' min') });
+    }
+    if (cardOn('uv') && uvPrimaryPeak != null) {
+      const sUV = uvSecondaryPeak ?? 0;
+      const dU = uvPrimaryPeak - sUV;
+      compMetrics.push({ id: 'uv', emoji: ICONS.uv,
+        primaryVal: uvPrimaryPeak, secondaryVal: sUV,
+        primaryLabel: fmtN(uvPrimaryPeak), secondaryLabel: fmtN(sUV), unit: '',
+        diffLabel: mkDiff(dU, Math.max(uvPrimaryPeak, sUV), fmtN(Math.abs(dU))) });
+    }
+  }
+
   root.innerHTML = `
     <div class="min-h-screen p-4 sm:p-8">
       <div class="max-w-lg wide:max-w-4xl mx-auto">
@@ -1335,31 +1348,9 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
           }).join('')}
         </div>
 
-        <div class="flex flex-col gap-3 mb-3 wide:grid wide:grid-cols-2 wide:items-start">
-        <div class="rounded-2xl p-4 bg-panel hc:border-2 border-edge">
+        <div class="rounded-2xl p-4 bg-surface hc:border-2 border-edge overflow-hidden mb-3">
           <h1 class="sr-only">${compHeader}</h1>
-          <div class="flex flex-col gap-2">
-            ${cardOn('temp') ? comparisonRowHTML(ICONS.temp, 'temp', tempComparison(primary, secondary)) : ''}
-            ${cardOn('apparentTemp') ? comparisonRowHTML(`<span title="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>`, 'apparentTemp', tempComparison(primary, secondary, true)) : ''}
-            ${cardOn('precip') ? (() => {
-              const hasAnySnow = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
-              const hasAnyRain = (primary.rainSum + primary.showersSum) > 0.1 || (secondary.rainSum + secondary.showersSum) > 0.1;
-              const showRain = !hasAnySnow || hasAnyRain;
-              const showSnow = hasAnySnow;
-              return (showRain ? comparisonRowHTML(`<span title="${t('tooltip.precipitation')}">${ICONS.rain}</span>`, 'precip', precipComparison(primary, secondary, isTomorrow)) : '')
-                   + (showSnow ? comparisonRowHTML(`<span title="${t('tooltip.snowfall')}">${ICONS.snow}</span>`, 'snow', snowComparison(primary, secondary, isTomorrow)) : '');
-            })() : ''}
-            ${cardOn('wind') ? comparisonRowHTML(`<span title="${t('tooltip.wind')}">${ICONS.wind}</span>`, 'wind', windComparison(primary, secondary)) : ''}
-            ${cardOn('pressure') ? comparisonRowHTML(`<span title="${t('tooltip.pressure')}">${ICONS.pressure}</span>`, 'pressure', pressureComparison(primary, secondary)) : ''}
-            ${cardOn('daylight') ? comparisonRowHTML(`<span title="${t('tooltip.daylight')}">${ICONS.daylight}</span>`, 'daylight', daylightComparison(primary, secondary)) : ''}
-            ${cardOn('uv') ? (() => {
-              const c = uvComparison(uvPrimaryPeak, uvSecondaryPeak);
-              return c ? comparisonRowHTML(`<span title="${t('tooltip.uv')}">${ICONS.uv}</span>`, 'uv', c) : '';
-            })() : ''}
-          </div>
-        </div>
-
-        ${statTableHTML(secondary, primary, secondaryLabel, primaryLabel, uvSecondaryPeak, uvPrimaryPeak)}
+          ${buildComparisonChart(compMetrics, primaryLabel, secondaryLabel)}
         </div>
 
         <div id="chart-slot"></div>
@@ -1502,6 +1493,20 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     }, 150);
   });
   chartResizeObserver.observe(chartSlot);
+
+  // Show the comparison chart scroll hint only when the SVG is actually wider
+  // than its container (i.e. horizontal scrolling is possible).
+  compScrollObserver?.disconnect();
+  const compScrollEl = root.querySelector<HTMLElement>('#comp-chart-scroll');
+  if (compScrollEl) {
+    const syncCompHint = () => {
+      const hint = compScrollEl.querySelector<SVGElement>('#comp-scroll-hint');
+      if (hint) hint.style.display = compScrollEl.scrollWidth > compScrollEl.clientWidth ? '' : 'none';
+    };
+    syncCompHint();
+    compScrollObserver = new ResizeObserver(syncCompHint);
+    compScrollObserver.observe(compScrollEl);
+  }
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
