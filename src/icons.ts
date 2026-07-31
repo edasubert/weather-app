@@ -1,15 +1,30 @@
 export const ICONS = {
   temp:     '🌡️',
   feels:    '🧑',
-  rain:     '💧',
+  rain:     '🌧️',
   showers:  '💦',
   snow:     '❄️',
   wind:     '💨',
   pressure: '🗜️',
   cloud:    '☁️',
-  daylight: '🌅',
-  uv:       '☀️',
+  daylight:   '🌅',
+  uv:         '☀️',
+  humidity:         '💧',
+  visibility:       '👁️',
+  gusts:            '💨',
+  precipHours:      '🌧️',
+  sunshine:         '😎',
 } as const;
+
+// Badge emojis rendered at the lower-right corner of a column's main emoji.
+// Add an entry here to attach a badge to any metric id.
+export const BADGE_ICONS: Partial<Record<string, string>> = {
+  precipHours: '🕐',
+  daylight: '🕐',
+  sunshine: '🕐',
+  gusts:       '💪',
+  visibility: '↔️',
+};
 
 // Next to a concrete apparent-temperature value the icon reflects it;
 // generic contexts (legend, comparison rows) keep the neutral icon.

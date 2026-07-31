@@ -1,25 +1,29 @@
 import type { DailyWeather, HourlyData } from './types';
 
 const DAILY_VARS = [
-  'weather_code',
   'temperature_2m_max',
   'temperature_2m_mean',
   'temperature_2m_min',
   'apparent_temperature_max',
   'apparent_temperature_mean',
   'apparent_temperature_min',
-  'precipitation_sum',
   'rain_sum',
   'showers_sum',
   'snowfall_sum',
+  'precipitation_hours',
+  'precipitation_probability_max',
   'wind_speed_10m_max',
-  'wind_direction_10m_dominant',
+  'wind_gusts_10m_max',
+  'visibility_min',
+  'visibility_mean',
+  'visibility_max',
   'sunrise',
   'sunset',
   'daylight_duration',
+  'sunshine_duration',
 ].join(',');
 
-const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover,wind_speed_10m,wind_direction_10m';
+const HOURLY_VARS = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,rain,showers,snowfall,surface_pressure,cloud_cover,wind_speed_10m,wind_direction_10m,relative_humidity_2m';
 
 // 'no_coverage': the model returns nothing for this location.
 // 'no_tomorrow': it has near-term data but doesn't forecast through tomorrow,
@@ -212,7 +216,16 @@ export async function fetchWeather(
   const yHourly  = parseHourly(data, 0);
   const tHourly  = parseHourly(data, 24);
   const tmHourly = parseHourly(data, 48);
-  const avgPressure = (h: HourlyData) => h.pressure.reduce((a, b) => a + b, 0) / 24;
+  const dailyStats = (h: HourlyData) => {
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    return {
+      pressureMean: avg(h.pressure),
+      humidityMin:  Math.min(...h.humidity),
+      humidityMean: avg(h.humidity),
+      humidityMax:  Math.max(...h.humidity),
+      cloudMean:    avg(h.cloud),
+    };
+  };
 
   const daily = data.daily as Record<string, unknown[]>;
   const allDays: TimelineDayInfo[] = (daily.time as string[]).map((date, i) => ({
@@ -236,9 +249,9 @@ export async function fetchWeather(
   const hourlyAll = toHourly(hourlyRaw, 0, nDays * 24);
 
   return {
-    yesterday: parseDay(data, 0, avgPressure(yHourly)),
-    today:     parseDay(data, 1, avgPressure(tHourly)),
-    tomorrow:  parseDay(data, 2, avgPressure(tmHourly)),
+    yesterday: parseDay(data, 0, dailyStats(yHourly)),
+    today:     parseDay(data, 1, dailyStats(tHourly)),
+    tomorrow:  parseDay(data, 2, dailyStats(tmHourly)),
     yesterdayHourly: yHourly,
     todayHourly:     tHourly,
     tomorrowHourly:  tmHourly,
@@ -248,27 +261,41 @@ export async function fetchWeather(
   };
 }
 
-function parseDay(data: Record<string, unknown>, i: number, pressureMean: number): DailyWeather {
+interface DailyStats {
+  pressureMean: number;
+  humidityMin: number; humidityMean: number; humidityMax: number;
+  cloudMean: number;
+}
+
+function parseDay(data: Record<string, unknown>, i: number, stats: DailyStats): DailyWeather {
   const d = data.daily as Record<string, unknown[]>;
   return {
     date: d.time[i] as string,
-    weatherCode: d.weather_code[i] as number,
     tempMax: d.temperature_2m_max[i] as number,
     tempMean: d.temperature_2m_mean[i] as number,
     tempMin: d.temperature_2m_min[i] as number,
     apparentTempMax: d.apparent_temperature_max[i] as number,
     apparentTempMean: d.apparent_temperature_mean[i] as number,
     apparentTempMin: d.apparent_temperature_min[i] as number,
-    precipitationSum: (d.precipitation_sum[i] as number | null) ?? 0,
-    rainSum: (d.rain_sum[i] as number | null) ?? 0,
-    showersSum: (d.showers_sum[i] as number | null) ?? 0,
+    rainSum:     (d.rain_sum[i]     as number | null) ?? 0,
+    showersSum:  (d.showers_sum[i]  as number | null) ?? 0,
     snowfallSum: (d.snowfall_sum[i] as number | null) ?? 0,
-    windSpeedMax: (d.wind_speed_10m_max[i] as number | null) ?? 0,
-    windDirection: (d.wind_direction_10m_dominant[i] as number | null) ?? 0,
-    pressureMean,
-    sunrise: (d.sunrise[i] as string | null) ?? '',
-    sunset: (d.sunset[i] as string | null) ?? '',
+    precipHours:       (d.precipitation_hours[i]           as number | null) ?? 0,
+    precipProbabilityMax: d.precipitation_probability_max[i] as number | null,
+    windSpeedMax: (d.wind_speed_10m_max[i]    as number | null) ?? 0,
+    gustMax:      (d.wind_gusts_10m_max[i]    as number | null) ?? 0,
+    pressureMean: stats.pressureMean,
+    sunrise:          (d.sunrise[i]          as string | null) ?? '',
+    sunset:           (d.sunset[i]           as string | null) ?? '',
     daylightDuration: (d.daylight_duration[i] as number | null) ?? 0,
+    sunshineDuration: (d.sunshine_duration[i] as number | null) ?? 0,
+    humidityMin:    stats.humidityMin,
+    humidityMean:   stats.humidityMean,
+    humidityMax:    stats.humidityMax,
+    visibilityMin:  ((d.visibility_min[i]  as number | null) ?? 0) / 1000,
+    visibilityMean: ((d.visibility_mean[i] as number | null) ?? 0) / 1000,
+    visibilityMax:  ((d.visibility_max[i]  as number | null) ?? 0) / 1000,
+    cloudMean:      stats.cloudMean,
   };
 }
 
@@ -301,6 +328,7 @@ function toHourly(h: Record<string, (number | null)[]>, start: number, len: numb
     cloud:        series('cloud_cover'),
     windSpeed:    series('wind_speed_10m'),
     windDirection: series('wind_direction_10m'),
+    humidity:     series('relative_humidity_2m'),
     // UV is model-independent and comes from the CAMS air-quality request; it's
     // merged into this series in main.ts. Left empty here.
     uvIndex:      [],

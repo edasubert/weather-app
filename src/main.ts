@@ -10,7 +10,7 @@ import { buildTimeline, setupTimelineTooltip, startWindField, timelineDayWidth, 
 import { buildAirChart, setupAirChartTooltip, type AirChartVisibility } from './airchart';
 import { buildPollenChart, setupPollenChartTooltip, type PollenChartVisibility } from './pollenchart';
 import { t, setLang, getLang, getLocale, LANGS, type Lang } from './i18n';
-import { ICONS, feelsIcon } from './icons';
+import { ICONS, BADGE_ICONS, feelsIcon } from './icons';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
@@ -20,7 +20,7 @@ let model = DEFAULT_MODEL;
 // Which parameters the cards and chart display. Order is the URL bitmask bit
 // order — APPEND only, never reorder, or shared `hide` URLs would change meaning.
 // `precip` covers all precipitation kinds (rain, showers, snow), matching the chart.
-const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'wind', 'pressure', 'daylight', 'uv'] as const;
+const CARD_PARAMS  = ['temp', 'apparentTemp', 'precip', 'precipHours', 'wind', 'gusts', 'humidity', 'visibility', 'cloud', 'pressure', 'daylight', 'sunshine', 'uv'] as const;
 const CHART_PARAMS = ['temp', 'apparentTemp', 'precip', 'pressure', 'cloud', 'wind', 'uv'] as const;
 
 type CardParam  = typeof CARD_PARAMS[number];
@@ -63,9 +63,10 @@ const pollenChartVisibility = (): PollenChartVisibility => ({
 const PARAM_ICON: Record<string, string> = {
   temp: ICONS.temp, apparentTemp: ICONS.feels, precip: ICONS.rain,
   wind: ICONS.wind, pressure: ICONS.pressure, daylight: ICONS.daylight, cloud: ICONS.cloud, uv: ICONS.uv,
+  humidity: ICONS.humidity, visibility: ICONS.visibility,
+  gusts: ICONS.gusts, precipHours: ICONS.precipHours, sunshine: ICONS.sunshine,
 };
 const paramLabel = (id: string): string =>
-  id === 'cloud'   ? t('tooltip.cloudCover') :
   id === 'showers' ? t('tooltip.showers') :
   t(`metric.${id}.title`);
 
@@ -408,6 +409,12 @@ interface CompBarMetric {
   secondaryMax?: number;
   scaleMin?: number; // override gMin for the error-bar y-axis (shared scale across metrics)
   scaleMax?: number; // override gMax for the error-bar y-axis
+  primaryFloatStart?: number;   // decimal hours 0-24: renders a floating bar from start→end
+  primaryFloatEnd?: number;
+  secondaryFloatStart?: number;
+  secondaryFloatEnd?: number;
+  primaryProbability?: number | null;   // 0-100; drives fill-opacity on precipitation bars
+  secondaryProbability?: number | null;
 }
 
 function buildComparisonChart(
@@ -432,7 +439,9 @@ function buildComparisonChart(
   for (let i = 0; i < metrics.length; i++) {
     const { id, emoji, primaryVal, secondaryVal, primaryLabel, secondaryLabel,
             unit: mUnit, diffLabel, primaryMin, primaryMax, secondaryMin, secondaryMax,
-            scaleMin, scaleMax } = metrics[i];
+            scaleMin, scaleMax,
+            primaryFloatStart, primaryFloatEnd, secondaryFloatStart, secondaryFloatEnd,
+            primaryProbability, secondaryProbability } = metrics[i];
     const cx  = i * COL_W + COL_W / 2;
 
     const secXL = cx - GAP / 2 - BAR_W;  // left edge of secondary bar
@@ -441,8 +450,6 @@ function buildComparisonChart(
     const priXL = cx + GAP / 2;           // left edge of primary bar
     const priXR = cx + GAP / 2 + BAR_W;  // right edge of primary bar
     const priCX = cx + 8;                 // centre of primary bar
-
-    let maxH: number;
 
     if (primaryMin !== undefined && primaryMax !== undefined &&
         secondaryMin !== undefined && secondaryMax !== undefined) {
@@ -472,30 +479,57 @@ function buildComparisonChart(
           `<line x1="${cL}" y1="${yMean.toFixed(1)}" x2="${cR}" y2="${yMean.toFixed(1)}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`,
         );
       }
-      maxH = MAX_H;
+
+    } else if (primaryFloatStart !== undefined && primaryFloatEnd !== undefined &&
+               secondaryFloatStart !== undefined && secondaryFloatEnd !== undefined) {
+      // ── Interval mode (daylight: sunrise→sunset on 0–24 h scale) ──────
+      // Matches the error-bar visual style (stem + end-caps, no mean tick).
+      // 0 h maps to BOTTOM, 24 h maps to BOTTOM − MAX_H.
+      const scY = (h: number) => BOTTOM - (h / 24) * MAX_H;
+
+      const yTop24 = (BOTTOM - MAX_H).toFixed(1);
+
+      for (const [cL, cR, cX, xL, fStart, fEnd, col] of [
+        [secXL, secXR, secCX, secXL, secondaryFloatStart, secondaryFloatEnd, 'var(--comp-bar-neg)'],
+        [priXL, priXR, priCX, priXL, primaryFloatStart,   primaryFloatEnd,   'var(--comp-bar-pos)'],
+      ] as [number, number, number, number, number, number, string][]) {
+        // Full 0–24 h stem + caps (matches temperature error-bar style)
+        parts.push(
+          `<line x1="${cX.toFixed(1)}" y1="${yTop24}" x2="${cX.toFixed(1)}" y2="${BOTTOM}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+          `<line x1="${cL.toFixed(1)}" y1="${yTop24}" x2="${cR.toFixed(1)}" y2="${yTop24}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+          `<line x1="${cL.toFixed(1)}" y1="${BOTTOM}" x2="${cR.toFixed(1)}" y2="${BOTTOM}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`,
+        );
+        // Daylight window overlaid as a filled bar (always full opacity)
+        const yBar = scY(fEnd);
+        const barH = (fEnd - fStart) / 24 * MAX_H;
+        parts.push(`<rect x="${xL.toFixed(1)}" y="${yBar.toFixed(1)}" width="${BAR_W}" height="${barH.toFixed(1)}" rx="3" fill="${col}" stroke="${col}" stroke-width="1"/>`);
+      }
 
     } else {
       // ── Regular bar mode ───────────────────────────────────────────────
-      const ref  = Math.max(Math.abs(primaryVal), Math.abs(secondaryVal));
+      const ref  = scaleMax ?? Math.max(Math.abs(primaryVal), Math.abs(secondaryVal));
       const priH = ref > 0 ? Math.max(primaryVal   !== 0 ? 3 : 0, (Math.abs(primaryVal)   / ref) * MAX_H) : 0;
       const secH = ref > 0 ? Math.max(secondaryVal !== 0 ? 3 : 0, (Math.abs(secondaryVal) / ref) * MAX_H) : 0;
 
-      // Fill opacity scales with relative diff: large diff → full opacity, near-zero → 0.20.
-      // Stroke stays full opacity so bar outlines are always visible.
-      const relDiff = ref > 0 ? Math.abs(primaryVal - secondaryVal) / ref : 0;
-      const fo = Math.min(1, Math.max(0.2, relDiff / 0.3)).toFixed(2);
+      // Precipitation bars use probability as fill-opacity (null/undefined = full opacity, i.e. observed past day)
+      const priFo = primaryProbability   != null ? (primaryProbability   / 100).toFixed(2) : '1';
+      const secFo = secondaryProbability != null ? (secondaryProbability / 100).toFixed(2) : '1';
 
-      if (secH >= 1) parts.push(`<rect x="${secXL.toFixed(1)}" y="${(BOTTOM - secH).toFixed(1)}" width="${BAR_W}" height="${secH.toFixed(1)}" rx="3" fill="var(--comp-bar-neg)" stroke="var(--comp-bar-neg)" stroke-width="1"/>`);
-      if (priH >= 1) parts.push(`<rect x="${priXL.toFixed(1)}" y="${(BOTTOM - priH).toFixed(1)}" width="${BAR_W}" height="${priH.toFixed(1)}" rx="3" fill="var(--comp-bar-pos)" fill-opacity="${fo}" stroke="var(--comp-bar-pos)" stroke-width="1"/>`);
-      maxH = Math.max(priH, secH);
+      if (secH >= 1) parts.push(`<rect x="${secXL.toFixed(1)}" y="${(BOTTOM - secH).toFixed(1)}" width="${BAR_W}" height="${secH.toFixed(1)}" rx="3" fill="var(--comp-bar-neg)" fill-opacity="${secFo}" stroke="var(--comp-bar-neg)" stroke-width="1"/>`);
+      if (priH >= 1) parts.push(`<rect x="${priXL.toFixed(1)}" y="${(BOTTOM - priH).toFixed(1)}" width="${BAR_W}" height="${priH.toFixed(1)}" rx="3" fill="var(--comp-bar-pos)" fill-opacity="${priFo}" stroke="var(--comp-bar-pos)" stroke-width="1"/>`);
     }
 
-    // Diff label between bar tops and emoji; emoji gap shrinks when no diff label
-    const emojiGap = diffLabel ? 24 : 15;
+    // Emoji and diff label sit in a fixed header row above all bars
+    const EMOJI_Y      = BOTTOM - MAX_H - 30;  // fixed: same row for every column
+    const DIFF_LABEL_Y = BOTTOM - MAX_H - 8;  // fixed: row just below emoji
     if (diffLabel) {
-      parts.push(`<text x="${cx}" y="${(BOTTOM - maxH - 8).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--chart-label)">${diffLabel}</text>`);
+      parts.push(`<text x="${cx}" y="${DIFF_LABEL_Y}" text-anchor="middle" font-size="9" fill="var(--chart-label)">${diffLabel}</text>`);
     }
-    parts.push(`<text x="${cx}" y="${(BOTTOM - maxH - emojiGap).toFixed(1)}" text-anchor="middle" font-size="16" role="img" aria-label="${paramLabel(id)}"><title>${paramLabel(id)}</title>${emoji}</text>`);
+    parts.push(`<text x="${cx}" y="${EMOJI_Y}" text-anchor="middle" font-size="16" role="img" aria-label="${paramLabel(id)}"><title>${paramLabel(id)}</title>${emoji}</text>`);
+    const badge = BADGE_ICONS[id];
+    if (badge) {
+      parts.push(`<text x="${(cx + 8).toFixed(1)}" y="${EMOJI_Y + 6}" text-anchor="middle" font-size="14" aria-hidden="true">${badge}</text>`);
+    }
 
     // Value labels below bars
     parts.push(
@@ -858,7 +892,7 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
   const rowHTML = (scope: 'card' | 'chart' | 'air' | 'pollen', id: string, checked: boolean): string => `
     <label class="flex items-center gap-3 py-2.5 px-1 cursor-pointer hover-item rounded-lg">
       <input type="checkbox" class="param-check w-4 h-4 accent-sky-500" data-scope="${scope}" data-id="${id}" ${checked ? 'checked' : ''} />
-      <span class="w-5 text-center shrink-0">${PARAM_ICON[id] ?? ''}</span>
+      <span class="w-6 shrink-0 flex justify-center">${PARAM_ICON[id] ? `<span style="position:relative;display:inline-block">${PARAM_ICON[id]}${BADGE_ICONS[id] ? `<span style="position:absolute;right:-0.3em;bottom:-0.1em;font-size:0.8em;line-height:1">${BADGE_ICONS[id]}</span>` : ''}</span>` : ''}</span>
       <span class="flex-1 text-sm text-body">${paramLabel(id)}</span>
     </label>`;
 
@@ -1243,34 +1277,88 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       const hasShowers = primary.showersSum > 0.1  || secondary.showersSum > 0.1;
       const hasSnow    = primary.snowfallSum > 0.1 || secondary.snowfallSum > 0.1;
       const showLiquid = !hasSnow || hasRain || hasShowers;
+      const pProb = primary.precipProbabilityMax, sProb = secondary.precipProbabilityMax;
       if (showLiquid) {
         const pR = primary.rainSum, sR = secondary.rainSum;
         const dR = pR - sR;
         compMetrics.push({ id: 'precip', emoji: ICONS.rain,
           primaryVal: pR, secondaryVal: sR, primaryLabel: fmtMm(pR), secondaryLabel: fmtMm(sR), unit: 'mm',
-          diffLabel: mkDiff(dR, Math.max(pR, sR), Math.abs(dR).toFixed(1) + ' mm') });
+          diffLabel: mkDiff(dR, Math.max(pR, sR), Math.abs(dR).toFixed(1) + ' mm'),
+          primaryProbability: pProb, secondaryProbability: sProb });
       }
       if (hasShowers) {
         const pS = primary.showersSum, sS = secondary.showersSum;
         const dS = pS - sS;
         compMetrics.push({ id: 'showers', emoji: ICONS.showers,
           primaryVal: pS, secondaryVal: sS, primaryLabel: fmtMm(pS), secondaryLabel: fmtMm(sS), unit: 'mm',
-          diffLabel: mkDiff(dS, Math.max(pS, sS), Math.abs(dS).toFixed(1) + ' mm') });
+          diffLabel: mkDiff(dS, Math.max(pS, sS), Math.abs(dS).toFixed(1) + ' mm'),
+          primaryProbability: pProb, secondaryProbability: sProb });
       }
       if (hasSnow) {
         const pSn = primary.snowfallSum, sSn = secondary.snowfallSum;
         const dSn = pSn - sSn;
         compMetrics.push({ id: 'snow', emoji: ICONS.snow,
           primaryVal: pSn, secondaryVal: sSn, primaryLabel: fmtMm(pSn), secondaryLabel: fmtMm(sSn), unit: 'cm',
-          diffLabel: mkDiff(dSn, Math.max(pSn, sSn), Math.abs(dSn).toFixed(1) + ' cm') });
+          diffLabel: mkDiff(dSn, Math.max(pSn, sSn), Math.abs(dSn).toFixed(1) + ' cm'),
+          primaryProbability: pProb, secondaryProbability: sProb });
       }
     }
-    if (cardOn('wind')) {
-      const pV = primary.windSpeedMax, sV = secondary.windSpeedMax;
-      const dW = pV - sV;
-      compMetrics.push({ id: 'wind', emoji: ICONS.wind,
-        primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'km/h',
-        diffLabel: mkDiff(dW, Math.max(pV, sV), fmtN(Math.abs(dW)) + ' km/h') });
+    if (cardOn('precipHours')) {
+      const pV = primary.precipHours, sV = secondary.precipHours;
+      compMetrics.push({ id: 'precipHours', emoji: ICONS.rain,
+        primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'h',
+        diffLabel: mkDiff(pV - sV, 24, fmtN(Math.abs(pV - sV)) + ' h'),
+        primaryFloatStart: 0, primaryFloatEnd: pV,
+        secondaryFloatStart: 0, secondaryFloatEnd: sV,
+      });
+    }
+    if (cardOn('wind') || cardOn('gusts')) {
+      const sharedWindMax = Math.max(
+        cardOn('wind')  ? Math.max(primary.windSpeedMax, secondary.windSpeedMax) : 0,
+        cardOn('gusts') ? Math.max(primary.gustMax,      secondary.gustMax)      : 0,
+      );
+      if (cardOn('wind')) {
+        const pV = primary.windSpeedMax, sV = secondary.windSpeedMax;
+        compMetrics.push({ id: 'wind', emoji: ICONS.wind,
+          primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'km/h',
+          diffLabel: mkDiff(pV - sV, Math.max(pV, sV), fmtN(Math.abs(pV - sV)) + ' km/h'),
+          scaleMax: sharedWindMax });
+      }
+      if (cardOn('gusts')) {
+        const pV = primary.gustMax, sV = secondary.gustMax;
+        compMetrics.push({ id: 'gusts', emoji: ICONS.wind,
+          primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: 'km/h',
+          diffLabel: mkDiff(pV - sV, Math.max(pV, sV), fmtN(Math.abs(pV - sV)) + ' km/h'),
+          scaleMax: sharedWindMax });
+      }
+    }
+    if (cardOn('humidity')) {
+      const diff = primary.humidityMean - secondary.humidityMean;
+      const ref  = Math.max(primary.humidityMax, secondary.humidityMax);
+      compMetrics.push({ id: 'humidity', emoji: ICONS.humidity,
+        primaryVal: primary.humidityMean, secondaryVal: secondary.humidityMean,
+        primaryLabel: fmtN(primary.humidityMean), secondaryLabel: fmtN(secondary.humidityMean), unit: '%',
+        diffLabel: mkDiff(diff, ref, fmtN(Math.abs(diff)) + '%'),
+        primaryMin: primary.humidityMin,     primaryMax: primary.humidityMax,
+        secondaryMin: secondary.humidityMin, secondaryMax: secondary.humidityMax,
+      });
+    }
+    if (cardOn('visibility')) {
+      const diff = primary.visibilityMean - secondary.visibilityMean;
+      const ref  = Math.max(primary.visibilityMax, secondary.visibilityMax);
+      compMetrics.push({ id: 'visibility', emoji: ICONS.visibility,
+        primaryVal: primary.visibilityMean, secondaryVal: secondary.visibilityMean,
+        primaryLabel: primary.visibilityMean.toFixed(1), secondaryLabel: secondary.visibilityMean.toFixed(1), unit: 'km',
+        diffLabel: mkDiff(diff, ref, Math.abs(diff).toFixed(1) + ' km'),
+        primaryMin: primary.visibilityMin,     primaryMax: primary.visibilityMax,
+        secondaryMin: secondary.visibilityMin, secondaryMax: secondary.visibilityMax,
+      });
+    }
+    if (cardOn('cloud')) {
+      const pV = primary.cloudMean, sV = secondary.cloudMean;
+      compMetrics.push({ id: 'cloud', emoji: ICONS.cloud,
+        primaryVal: pV, secondaryVal: sV, primaryLabel: fmtN(pV), secondaryLabel: fmtN(sV), unit: '%',
+        diffLabel: mkDiff(pV - sV, Math.max(pV, sV), fmtN(Math.abs(pV - sV)) + '%') });
     }
     if (cardOn('pressure')) {
       const pV = primary.pressureMean, sV = secondary.pressureMean;
@@ -1282,9 +1370,27 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     if (cardOn('daylight')) {
       const pD = primary.daylightDuration / 60, sD = secondary.daylightDuration / 60;
       const dL = pD - sD;
+      const parseHours = (iso: string): number => {
+        const m = iso.match(/T(\d{2}):(\d{2})/);
+        return m ? +m[1] + +m[2] / 60 : 0;
+      };
       compMetrics.push({ id: 'daylight', emoji: ICONS.daylight,
         primaryVal: pD, secondaryVal: sD, primaryLabel: fmtN(pD), secondaryLabel: fmtN(sD), unit: 'min',
-        diffLabel: mkDiff(dL, Math.max(pD, sD), fmtN(Math.abs(dL)) + ' min') });
+        diffLabel: mkDiff(dL, Math.max(pD, sD), fmtN(Math.abs(dL)) + ' min'),
+        primaryFloatStart:   parseHours(primary.sunrise),
+        primaryFloatEnd:     parseHours(primary.sunset),
+        secondaryFloatStart: parseHours(secondary.sunrise),
+        secondaryFloatEnd:   parseHours(secondary.sunset),
+      });
+    }
+    if (cardOn('sunshine')) {
+      const pV = primary.sunshineDuration / 3600, sV = secondary.sunshineDuration / 3600;
+      compMetrics.push({ id: 'sunshine', emoji: ICONS.sunshine,
+        primaryVal: pV, secondaryVal: sV, primaryLabel: pV.toFixed(1), secondaryLabel: sV.toFixed(1), unit: 'h',
+        diffLabel: mkDiff(pV - sV, 24, Math.abs(pV - sV).toFixed(1) + ' h'),
+        primaryFloatStart: 0, primaryFloatEnd: pV,
+        secondaryFloatStart: 0, secondaryFloatEnd: sV,
+      });
     }
     if (cardOn('uv') && uvPrimaryPeak != null) {
       const sUV = uvSecondaryPeak ?? 0;

@@ -201,6 +201,34 @@ export default {
       title: 'Snowfall',
       body: '<p><strong>Total snowfall depth</strong> accumulated over the day, expressed in centimetres of snow (not liquid equivalent).</p><p>Snowfall is shown separately from rain so you can see at a glance whether precipitation is falling as rain, snow, or both. Trace amounts below 0.1 cm are treated as no snowfall.</p><p class="opacity-60 text-xs">Source: <code>snowfall_sum</code> — {{docs}}</p>',
     },
+    gusts: {
+      title: 'Wind gusts',
+      body: '<p><strong>Wind gust speed</strong> — the peak instantaneous wind speed recorded during the day, at 10 m above ground. Gusts are typically 50–100% higher than sustained wind speed and are responsible for most wind damage, as well as making cycling and outdoor activities feel much harsher.</p><p class="opacity-60 text-xs">Source: <code>wind_gusts_10m_max</code> — {{docs}}</p>',
+    },
+    precipProbability: {
+      title: 'Rain probability',
+      body: '<p><strong>Peak daily probability of precipitation</strong> — the highest hourly probability of any measurable precipitation (rain, showers, or snow) forecast during the day. A high amount with low probability is a very different day from the same amount with high confidence.</p><p class="opacity-60 text-xs">Source: <code>precipitation_probability_max</code> — {{docs}}</p>',
+    },
+    precipHours: {
+      title: 'Rainy hours',
+      body: '<p><strong>Number of hours with measurable precipitation</strong> during the day. Complements the precipitation total: 10 mm in one hour is a downpour; the same total spread over ten hours is light all-day drizzle.</p><p class="opacity-60 text-xs">Source: <code>precipitation_hours</code> — {{docs}}</p>',
+    },
+    cloud: {
+      title: 'Cloud cover',
+      body: '<p><strong>Daily mean cloud cover</strong> — the average fraction of the sky covered by cloud over 24 hours, expressed as a percentage. 0% is a clear blue sky; 100% is fully overcast all day.</p><p class="opacity-60 text-xs">Source: <code>cloud_cover</code> (hourly mean) — {{docs}}</p>',
+    },
+    sunshine: {
+      title: 'Sunshine duration',
+      body: '<p><strong>Actual hours of direct sunshine</strong> — time during which direct solar radiation exceeds 120 W/m², the threshold used by the WMO to define sunshine. Unlike daylight duration (which just measures sunrise to sunset), this is zero on a fully overcast day.</p><p class="opacity-60 text-xs">Source: <code>sunshine_duration</code> — {{docs}}</p>',
+    },
+    humidity: {
+      title: 'Relative humidity',
+      body: '<p><strong>Relative humidity</strong> measures how much water vapour is in the air as a percentage of the maximum it could hold at that temperature. 100% means the air is saturated and condensation or fog can form; below 30% feels uncomfortably dry.</p><p>Shown as daily min / mean / max derived from the hourly series.</p><p class="opacity-60 text-xs">Source: <code>relative_humidity_2m</code> — {{docs}}</p>',
+    },
+    visibility: {
+      title: 'Visibility',
+      body: '<p><strong>Visibility</strong> is how far you can see horizontally in clear air, expressed in kilometres. Values below 1 km indicate fog or heavy precipitation; below 5 km means haze, mist or moderate precipitation; 10 km+ is a clear day.</p><p>Shown as daily min / mean / max derived from the hourly series.</p><p class="opacity-60 text-xs">Source: <code>visibility</code> — {{docs}}</p>',
+    },
     daylight: {
       title: 'Daylight duration',
       body: '<p><strong>Daylight duration</strong> — the time between sunrise and sunset.</p><p>The day-to-day change is largest around the equinoxes (up to 3–4 minutes per day at mid-latitudes) and smallest around the solstices.</p><p class="opacity-60 text-xs">Source: <code>sunrise</code> / <code>sunset</code> / <code>daylight_duration</code> — {{docs}}</p>',

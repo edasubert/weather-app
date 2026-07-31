@@ -1,22 +1,30 @@
 export interface DailyWeather {
   date: string;
-  weatherCode: number;
   tempMax: number;
   tempMean: number;
   tempMin: number;
   apparentTempMax: number;
   apparentTempMean: number;
   apparentTempMin: number;
-  precipitationSum: number;
   rainSum: number;
   showersSum: number;
   snowfallSum: number;
+  precipHours: number;
+  precipProbabilityMax: number | null;
   windSpeedMax: number;
-  windDirection: number;
+  gustMax: number;
   pressureMean: number;
   sunrise: string;
   sunset: string;
   daylightDuration: number;
+  sunshineDuration: number;
+  humidityMin: number;
+  humidityMean: number;
+  humidityMax: number;
+  visibilityMin: number;   // km
+  visibilityMean: number;  // km
+  visibilityMax: number;   // km
+  cloudMean: number;       // % daily mean from hourly
 }
 
 export interface HourlyData {
@@ -31,6 +39,7 @@ export interface HourlyData {
   windSpeed: number[];
   windDirection: number[];
   uvIndex: (number | null)[]; // from CAMS (air-quality); null past its ~7-day horizon
+  humidity: number[];         // %
 }
 
 export interface GeoResult {
