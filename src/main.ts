@@ -1466,12 +1466,13 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       });
     }
     if (cardOn('uv') && uvPrimaryPeak != null) {
-      const sUV = uvSecondaryPeak ?? 0;
-      const dU = uvPrimaryPeak - sUV;
+      const pUV = Math.round(uvPrimaryPeak);
+      const sUV = Math.round(uvSecondaryPeak ?? 0);
+      const dU = pUV - sUV;
       compMetrics.push({ id: 'uv', emoji: ICONS.uv,
-        primaryVal: uvPrimaryPeak, secondaryVal: sUV,
-        primaryLabel: fmtN(uvPrimaryPeak), secondaryLabel: fmtN(sUV), unit: '',
-        diffLabel: mkDiff(dU, Math.max(uvPrimaryPeak, sUV), fmtN(Math.abs(dU))) });
+        primaryVal: pUV, secondaryVal: sUV,
+        primaryLabel: fmtN(pUV), secondaryLabel: fmtN(sUV), unit: '',
+        diffLabel: mkDiff(dU, Math.max(pUV, sUV), fmtN(Math.abs(dU))) });
     }
     // Reorder to match user's cardOrder. Sub-metrics (showers, snow) inherit precip's position.
     const orderIdx = new Map<string, number>(cardOrder.map((id, i) => [id, i]));
