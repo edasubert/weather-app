@@ -28,6 +28,9 @@ type ChartParam = typeof CHART_PARAMS[number];
 // Default = everything shown.
 const cardVis  = new Set<string>(CARD_PARAMS);
 const chartVis = new Set<string>(CHART_PARAMS);
+// User-controlled column order for the comparison chart. Persisted in `co=` URL param.
+// Always a permutation of CARD_PARAMS; new metrics append at end, removed ones drop silently.
+let cardOrder: string[] = [...CARD_PARAMS];
 const cardOn  = (id: CardParam)  => cardVis.has(id);
 const chartOn = (id: ChartParam) => chartVis.has(id);
 const chartVisibility = (): ChartVisibility => ({
@@ -641,6 +644,14 @@ async function readUrlSettings(): Promise<void> {
     applyHideMask(AIR_PARAMS, airVis, parseInt(a ?? '', 36) || 0);
     applyHideMask(POLLEN_PARAMS, pollenVis, parseInt(po ?? '', 36) || 0);
   }
+  const co = p.get('co');
+  if (co) {
+    const known = new Set<string>(CARD_PARAMS);
+    const parsed = co.split(',').filter(id => known.has(id));
+    const parsedSet = new Set(parsed);
+    const trailing = [...CARD_PARAMS].filter(id => !parsedSet.has(id));
+    cardOrder = [...parsed, ...trailing];
+  }
   // Keep the locale load last — everything above is set synchronously,
   // so the bootstrap can apply the theme before this resolves
   const lg = p.get('lang');
@@ -672,6 +683,7 @@ function settingsParams(): URLSearchParams {
   const segs = masks.map(m => m.toString(36));
   while (segs.length > 2 && segs[segs.length - 1] === '0') segs.pop();
   if (masks.some(m => m)) p.set('hide', segs.join('.'));
+  if (cardOrder.join(',') !== [...CARD_PARAMS].join(',')) p.set('co', cardOrder.join(','));
   return p;
 }
 
@@ -919,6 +931,27 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
       <span class="flex-1 text-sm text-body">${paramLabel(id)}</span>
     </label>`;
 
+  const cardRowHTML = (id: string, idx: number, total: number): string => {
+    const checked = cardOn(id as CardParam);
+    const iconSpan = PARAM_ICON[id]
+      ? `<span style="position:relative;display:inline-block">${PARAM_ICON[id]}${BADGE_ICONS[id] ? `<span style="position:absolute;right:-0.3em;bottom:-0.1em;font-size:0.8em;line-height:1">${BADGE_ICONS[id]}</span>` : ''}</span>`
+      : '';
+    const upDim   = idx === 0          ? ' opacity-25 cursor-default pointer-events-none' : '';
+    const downDim = idx === total - 1  ? ' opacity-25 cursor-default pointer-events-none' : '';
+    return `
+      <div class="flex items-center gap-1 py-2.5 px-1 hover-item rounded-lg">
+        <label class="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+          <input type="checkbox" class="param-check w-4 h-4 accent-sky-500 shrink-0" data-scope="card" data-id="${id}" ${checked ? 'checked' : ''} />
+          <span class="w-6 shrink-0 flex justify-center">${iconSpan}</span>
+          <span class="flex-1 text-sm text-body truncate">${paramLabel(id)}</span>
+        </label>
+        <div class="flex flex-col shrink-0">
+          <button class="card-move-btn w-6 h-4 flex items-center justify-center text-[10px] text-muted hover:text-body${upDim}" data-id="${id}" data-dir="-1" aria-label="Move up">▲</button>
+          <button class="card-move-btn w-6 h-4 flex items-center justify-center text-[10px] text-muted hover:text-body${downDim}" data-id="${id}" data-dir="1" aria-label="Move down">▼</button>
+        </div>
+      </div>`;
+  };
+
   const section = (titleKey: string, rows: string): string => `
     <div class="rounded-2xl p-4 bg-surface hc:border-2 border-edge">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-1">${t(titleKey)}</h2>
@@ -933,7 +966,7 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
           <button id="settings-done" class="text-sm px-4 py-2 rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors">${t('settings.done')}</button>
         </div>
         <div class="flex flex-col gap-3">
-          ${section('settings.cards', CARD_PARAMS.map(id => rowHTML('card', id, cardOn(id))).join(''))}
+          ${section('settings.cards', cardOrder.map((id, i) => cardRowHTML(id, i, cardOrder.length)).join(''))}
           ${section('settings.chart', CHART_PARAMS.map(id => rowHTML('chart', id, chartOn(id))).join(''))}
           ${section('settings.air', AIR_PARAMS.map(id => rowHTML('air', id, airOn(id))).join(''))}
           ${section('settings.pollen', POLLEN_PARAMS.map(id => rowHTML('pollen', id, pollenOn(id))).join(''))}
@@ -949,6 +982,18 @@ function doRenderSettings(location: GeoResult, weather: WeatherData): void {
                 : pollenVis;
       if (cb.checked) set.add(cb.dataset.id!); else set.delete(cb.dataset.id!);
       setUrlParams(location);
+    });
+  });
+  document.querySelectorAll<HTMLButtonElement>('.card-move-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id!;
+      const dir = parseInt(btn.dataset.dir!);
+      const idx = cardOrder.indexOf(id);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= cardOrder.length) return;
+      [cardOrder[idx], cardOrder[newIdx]] = [cardOrder[newIdx], cardOrder[idx]];
+      setUrlParams(location);
+      doRenderSettings(location, weather);
     });
   });
   document.getElementById('settings-done')!.addEventListener('click', () => renderWeather(location, weather));
@@ -1428,6 +1473,10 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
         primaryLabel: fmtN(uvPrimaryPeak), secondaryLabel: fmtN(sUV), unit: '',
         diffLabel: mkDiff(dU, Math.max(uvPrimaryPeak, sUV), fmtN(Math.abs(dU))) });
     }
+    // Reorder to match user's cardOrder. Sub-metrics (showers, snow) inherit precip's position.
+    const orderIdx = new Map<string, number>(cardOrder.map((id, i) => [id, i]));
+    const getOrder = (id: string) => orderIdx.get(id) ?? orderIdx.get('precip') ?? cardOrder.length;
+    compMetrics.sort((a, b) => getOrder(a.id) - getOrder(b.id));
   }
 
   root.innerHTML = `
