@@ -14,7 +14,7 @@ import { t } from './i18n';
 
 const PL = 88; // left gutter for band labels
 const PR = 16;
-const PT = 8;
+const PT = 0;
 const ARROW_SPACE = 16; // extra SVG height at bottom reserved for the scroll-hint arrow
 const H  = 200 + ARROW_SPACE;
 const PB = 30; // day-label row
@@ -182,10 +182,6 @@ export function buildPollenChart(
 
   return `
     <div id="pollen-chart-container" class="rounded-2xl relative bg-surface hc:border-2 border-edge overflow-hidden mt-3">
-      <div class="flex items-center gap-2 px-5 pt-4">
-        <h2 class="text-sm font-semibold text-heading">${t('pollen.chartTitle')}</h2>
-        <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="pollen">i</button>
-      </div>
       <div class="relative">
         <div id="pollen-tl-scroll" style="overflow-x:auto">
           <div style="position:relative;width:${w}px">
@@ -210,9 +206,14 @@ export function buildPollenChart(
         <div style="position:absolute;top:0;left:0;width:${PL}px;height:${H}px;pointer-events:none;background:linear-gradient(to right, var(--color-surface) 86%, transparent)">
           <svg viewBox="0 0 ${PL} ${H}" width="${PL}" height="${H}" style="display:block;overflow:visible">${LBL_STYLE}${bandLabels.join('')}</svg>
         </div>
+        <div id="pollen-fade-right" style="position:absolute;top:0;right:0;width:32px;height:${H}px;pointer-events:none;background:linear-gradient(to left,var(--color-surface) 10%,transparent);transition:opacity 0.15s"></div>
       </div>
       <div id="pollen-tooltip" class="rounded-xl px-3 py-2 shadow-lg" style="display:none;position:absolute;pointer-events:none;z-index:10;background-color:var(--tooltip-bg);border:1px solid var(--tooltip-border)"></div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted px-5 pt-2 pb-4">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted px-5 py-3">
+        <span class="flex items-center gap-1.5 shrink-0 w-full sm:w-auto">
+          <h2 class="text-sm font-semibold text-heading">${t('pollen.chartTitle')}</h2>
+          <button class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" data-metric="pollen">i</button>
+        </span>
         ${legend}
       </div>
     </div>

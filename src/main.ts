@@ -570,9 +570,12 @@ function buildComparisonChart(
   );
 
   const metricIds = sorted.filter(m => !m.noData).map(m => m.id).join(',');
-  const legend = `<div style="display:flex;justify-content:center;align-items:center;gap:16px;padding:4px 0 2px;font-size:11px;color:var(--chart-label);"><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-neg);flex-shrink:0;"></div><span>${secondaryDayLabel}</span></div><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-pos);flex-shrink:0;"></div><span>${primaryDayLabel}</span></div><button id="comp-info-btn" data-metrics="${metricIds}" style="margin-left:4px;font-size:13px;opacity:0.5;line-height:1;background:none;border:none;cursor:pointer;padding:0 2px;color:inherit;" aria-label="About these metrics">ⓘ</button></div>`;
+  const legend = `<div style="display:flex;justify-content:center;align-items:center;gap:16px;padding:4px 0 2px;font-size:11px;color:var(--chart-label);"><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-neg);flex-shrink:0;"></div><span>${secondaryDayLabel}</span></div><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-pos);flex-shrink:0;"></div><span>${primaryDayLabel}</span></div><button id="comp-info-btn" data-metrics="${metricIds}" class="info-btn w-4 h-4 rounded-full text-[10px] font-bold border shrink-0 flex items-center justify-center transition-colors border-muted text-muted hover:border-accent hover:text-accent" aria-label="About these metrics">i</button></div>`;
 
-  return `<div><div class="overflow-x-auto" id="comp-chart-scroll"><svg width="${svgW}" height="${H}" aria-hidden="true">${parts.join('')}</svg></div>${legend}</div>`;
+  const fadeW = 32;
+  const fadeStyle = (dir: 'right' | 'left', id: string, extra = '') =>
+    `<div id="${id}" style="position:absolute;top:0;${dir === 'left' ? 'left' : 'right'}:0;width:${fadeW}px;height:${H}px;pointer-events:none;background:linear-gradient(to ${dir === 'left' ? 'right' : 'left'},var(--color-surface) 10%,transparent);transition:opacity 0.15s;${extra}"></div>`;
+  return `<div><div style="position:relative"><div class="overflow-x-auto" id="comp-chart-scroll"><svg width="${svgW}" height="${H}" aria-hidden="true">${parts.join('')}</svg></div>${fadeStyle('left', 'comp-fade-left', 'opacity:0')}${fadeStyle('right', 'comp-fade-right', 'opacity:1')}</div>${legend}</div>`;
 }
 
 
@@ -1598,7 +1601,14 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       const airContainer = airSlot.querySelector<HTMLElement>('#air-chart-container')!;
       setupAirChartTooltip(airContainer, timelineDays.slice(0, 7), air!.hourly, aVis);
       airContainer.querySelector<HTMLButtonElement>('.info-btn')?.addEventListener('click', () => openMetricModal('eaqi'));
-      airSlot.querySelector<HTMLElement>('#air-tl-scroll')!.scrollLeft = scrollDays * currentDayW;
+      const airScrollEl = airSlot.querySelector<HTMLElement>('#air-tl-scroll')!;
+      airScrollEl.scrollLeft = scrollDays * currentDayW;
+      const airFadeRight = airSlot.querySelector<HTMLElement>('#air-fade-right');
+      const syncAirFade = () => {
+        if (airFadeRight) airFadeRight.style.opacity = airScrollEl.scrollLeft < airScrollEl.scrollWidth - airScrollEl.clientWidth - 1 ? '1' : '0';
+      };
+      syncAirFade();
+      airScrollEl.addEventListener('scroll', syncAirFade, { passive: true });
     } else {
       airSlot.style.display = 'none';
       airSlot.innerHTML = '';
@@ -1615,7 +1625,14 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       const pollenContainer = pollenSlot.querySelector<HTMLElement>('#pollen-chart-container')!;
       setupPollenChartTooltip(pollenContainer, timelineDays.slice(0, 7), pollen!, pVis);
       pollenContainer.querySelector<HTMLButtonElement>('.info-btn')?.addEventListener('click', () => openMetricModal('pollen'));
-      pollenSlot.querySelector<HTMLElement>('#pollen-tl-scroll')!.scrollLeft = scrollDays * currentDayW;
+      const pollenScrollEl = pollenSlot.querySelector<HTMLElement>('#pollen-tl-scroll')!;
+      pollenScrollEl.scrollLeft = scrollDays * currentDayW;
+      const pollenFadeRight = pollenSlot.querySelector<HTMLElement>('#pollen-fade-right');
+      const syncPollenFade = () => {
+        if (pollenFadeRight) pollenFadeRight.style.opacity = pollenScrollEl.scrollLeft < pollenScrollEl.scrollWidth - pollenScrollEl.clientWidth - 1 ? '1' : '0';
+      };
+      syncPollenFade();
+      pollenScrollEl.addEventListener('scroll', syncPollenFade, { passive: true });
     } else {
       pollenSlot.style.display = 'none';
       pollenSlot.innerHTML = '';
@@ -1641,12 +1658,19 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
   compScrollObserver?.disconnect();
   const compScrollEl = root.querySelector<HTMLElement>('#comp-chart-scroll');
   if (compScrollEl) {
-    const syncCompHint = () => {
+    const fadeLeft  = document.getElementById('comp-fade-left');
+    const fadeRight = document.getElementById('comp-fade-right');
+    const syncCompFades = () => {
+      const sl = compScrollEl.scrollLeft;
+      const maxSl = compScrollEl.scrollWidth - compScrollEl.clientWidth;
+      if (fadeLeft)  fadeLeft.style.opacity  = sl > 1        ? '1' : '0';
+      if (fadeRight) fadeRight.style.opacity = sl < maxSl - 1 ? '1' : '0';
       const hint = compScrollEl.querySelector<SVGElement>('#comp-scroll-hint');
-      if (hint) hint.style.display = compScrollEl.scrollWidth > compScrollEl.clientWidth ? '' : 'none';
+      if (hint) hint.style.display = maxSl > 1 ? '' : 'none';
     };
-    syncCompHint();
-    compScrollObserver = new ResizeObserver(syncCompHint);
+    syncCompFades();
+    compScrollEl.addEventListener('scroll', syncCompFades, { passive: true });
+    compScrollObserver = new ResizeObserver(syncCompFades);
     compScrollObserver.observe(compScrollEl);
   }
 }
