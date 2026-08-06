@@ -543,10 +543,11 @@ function buildComparisonChart(
     if (diffLabel) {
       parts.push(`<text x="${cx}" y="${DIFF_LABEL_Y}" text-anchor="middle" font-size="9" fill="var(--chart-label)">${diffLabel}</text>`);
     }
-    parts.push(`<text x="${cx}" y="${EMOJI_Y}" text-anchor="middle" font-size="16" role="img" aria-label="${paramLabel(id)}"><title>${paramLabel(id)}</title>${emoji}</text>`);
+    const emojiId = `comp-emoji-${i}`;
+    parts.push(`<text id="${emojiId}" x="${cx}" y="${EMOJI_Y}" text-anchor="middle" font-size="16" role="img" aria-label="${paramLabel(id)}" data-tooltip="${paramLabel(id)}">${emoji}</text>`);
     const badge = BADGE_ICONS[id];
     if (badge) {
-      parts.push(`<text x="${(cx + 8).toFixed(1)}" y="${EMOJI_Y + 6}" text-anchor="middle" font-size="14" aria-hidden="true">${badge}</text>`);
+      parts.push(`<text x="${(cx + 8).toFixed(1)}" y="${EMOJI_Y + 6}" text-anchor="middle" font-size="14" data-tooltip="${paramLabel(id)}" data-tooltip-anchor="${emojiId}">${badge}</text>`);
     }
 
     // Value labels below bars
@@ -568,7 +569,8 @@ function buildComparisonChart(
     `<path id="comp-scroll-hint" d="M${aX1.toFixed(1)},${aY} L${aX2.toFixed(1)},${aY} M${(aX2 - 7).toFixed(1)},${(aY - 4).toFixed(1)} L${aX2.toFixed(1)},${aY} L${(aX2 - 7).toFixed(1)},${(aY + 4).toFixed(1)}" stroke="var(--chart-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.35" aria-hidden="true"/>`,
   );
 
-  const legend = `<div style="display:flex;justify-content:center;gap:16px;padding:4px 0 2px;font-size:11px;color:var(--chart-label);" aria-hidden="true"><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-neg);flex-shrink:0;"></div><span>${secondaryDayLabel}</span></div><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-pos);flex-shrink:0;"></div><span>${primaryDayLabel}</span></div></div>`;
+  const metricIds = sorted.filter(m => !m.noData).map(m => m.id).join(',');
+  const legend = `<div style="display:flex;justify-content:center;align-items:center;gap:16px;padding:4px 0 2px;font-size:11px;color:var(--chart-label);"><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-neg);flex-shrink:0;"></div><span>${secondaryDayLabel}</span></div><div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--comp-bar-pos);flex-shrink:0;"></div><span>${primaryDayLabel}</span></div><button id="comp-info-btn" data-metrics="${metricIds}" style="margin-left:4px;font-size:13px;opacity:0.5;line-height:1;background:none;border:none;cursor:pointer;padding:0 2px;color:inherit;" aria-label="About these metrics">ⓘ</button></div>`;
 
   return `<div><div class="overflow-x-auto" id="comp-chart-scroll"><svg width="${svgW}" height="${H}" aria-hidden="true">${parts.join('')}</svg></div>${legend}</div>`;
 }
@@ -1509,10 +1511,10 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
       <div id="modal-backdrop" class="absolute inset-0" style="background-color:rgba(0,0,0,0.5)"></div>
-      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl bg-surface hc:border-2 border-edge">
+      <div class="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl bg-surface hc:border-2 border-edge flex flex-col" style="max-height:85dvh">
         <button id="modal-close" class="absolute top-4 right-4 text-2xl leading-none transition-colors text-muted hover:text-body">&times;</button>
-        <h2 id="modal-title" class="text-base font-semibold text-heading mb-3 pr-6"></h2>
-        <div id="modal-body" class="text-sm text-detail flex flex-col gap-2"></div>
+        <h2 id="modal-title" class="text-base font-semibold text-heading mb-3 pr-6 shrink-0"></h2>
+        <div id="modal-body" class="text-sm text-detail flex flex-col gap-2 overflow-y-auto"></div>
       </div>
     </div>
 
@@ -1551,6 +1553,17 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
 
   document.querySelectorAll<HTMLButtonElement>('.info-btn').forEach(btn => {
     btn.addEventListener('click', () => openMetricModal(btn.dataset.metric!));
+  });
+
+  document.getElementById('comp-info-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('comp-info-btn') as HTMLButtonElement;
+    const ids = (btn.dataset.metrics ?? '').split(',').filter(Boolean);
+    const infos = ids.map(id => getMetricInfo(id));
+    modalTitle.textContent = t('settings.cards');
+    modalBody.innerHTML = infos.map((info, i) =>
+      `${i > 0 ? '<hr style="border:none;border-top:1px solid var(--color-edge);margin:10px 0">' : ''}<p style="font-weight:600;margin-bottom:4px">${info.title}</p>${info.body}`
+    ).join('');
+    modal.classList.remove('hidden');
   });
 
   // The chart renders 1:1 at the slot's measured width and re-renders on
@@ -1728,6 +1741,86 @@ async function handleGeolocate(): Promise<void> {
     }
   }
 }
+
+// ─── Custom tooltip ───────────────────────────────────────────────────────────
+// Replaces native `title` attribute (hover-only) with a positioned div that
+// also responds to tap on touch devices. Any element with data-tooltip="text"
+// gets the behaviour automatically via event delegation.
+
+function initAppTooltip(): void {
+  const tip = document.createElement('div');
+  tip.id = 'app-tooltip';
+  tip.style.cssText = [
+    'position:fixed',
+    'z-index:9999',
+    'padding:4px 8px',
+    'border-radius:6px',
+    'font-size:11px',
+    'pointer-events:none',
+    'white-space:nowrap',
+    'opacity:0',
+    'transition:opacity 0.1s',
+    'background:var(--tooltip-bg)',
+    'color:var(--tooltip-text-main)',
+    'border:1px solid var(--tooltip-border)',
+    'box-shadow:0 2px 8px rgba(0,0,0,0.18)',
+  ].join(';');
+  document.body.appendChild(tip);
+
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
+  let currentText = '';
+
+  const show = (text: string, anchor: Element) => {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    // Same label already visible — keep the tooltip exactly where it is
+    if (text === currentText && tip.style.opacity === '1') return;
+    currentText = text;
+    tip.textContent = text;
+    tip.style.opacity = '0';
+    tip.style.display = 'block';
+    const anchorId = (anchor as HTMLElement).dataset.tooltipAnchor;
+    const posEl = anchorId ? (document.getElementById(anchorId) ?? anchor) : anchor;
+    const r = posEl.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = r.left + r.width / 2 - tw / 2;
+    let y = r.top - th - 6;
+    if (y < 4) y = r.bottom + 6;
+    x = Math.max(6, Math.min(x, window.innerWidth - tw - 6));
+    tip.style.left = `${x}px`;
+    tip.style.top  = `${y}px`;
+    tip.style.opacity = '1';
+  };
+
+  const hide = (delay = 0) => {
+    const doHide = () => { tip.style.opacity = '0'; currentText = ''; };
+    if (delay) {
+      hideTimer = setTimeout(doHide, delay);
+    } else {
+      doHide();
+    }
+  };
+
+  // Desktop: hover — use a tiny grace period on mouseout so crossing from
+  // main emoji to badge (same label) doesn't cause a hide+reshow flicker
+  document.addEventListener('mouseover', (e) => {
+    const el = (e.target as Element).closest('[data-tooltip]');
+    if (el) show((el as HTMLElement).dataset.tooltip!, el);
+  });
+  document.addEventListener('mouseout', (e) => {
+    if ((e.target as Element).closest('[data-tooltip]')) hide(80);
+  });
+
+  // Touch: tap shows briefly then auto-hides
+  document.addEventListener('touchend', (e) => {
+    const el = (e.target as Element).closest('[data-tooltip]');
+    if (!el) { hide(); return; }
+    e.preventDefault();
+    show((el as HTMLElement).dataset.tooltip!, el);
+    hide(1800);
+  }, { passive: false });
+}
+
+initAppTooltip();
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
