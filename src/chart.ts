@@ -143,8 +143,17 @@ export function buildTimeline(
       windArrows.push(`<g transform="translate(${xP(i).toFixed(1)},${laneMid.toFixed(1)}) rotate(${dirTo.toFixed(0)}) scale(${s.toFixed(2)})" stroke="var(--chart-label)" stroke-width="1.2" fill="var(--chart-label)" style="opacity:0.75"><line x1="0" y1="5" x2="0" y2="-4"/><path d="M0,-8 L-3.2,-2.5 L3.2,-2.5 Z"/></g>`);
     }
   }
+  const windSpeedPath = vis.wind ? (() => {
+    const pad = 3;
+    const d = hourly.windSpeed.map((sp, i) => {
+      const x = xP(i).toFixed(1);
+      const y = (laneTop + pad + (1 - Math.min(sp, maxWind) / maxWind) * (WIND_LANE_H - pad * 2)).toFixed(1);
+      return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+    }).join(' ');
+    return `<path d="${d}" fill="none" stroke="var(--chart-label)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.3"/>`;
+  })() : '';
   const windLane = vis.wind
-    ? `<line x1="${PL}" y1="${laneTop.toFixed(1)}" x2="${(w - PR).toFixed(1)}" y2="${laneTop.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>${windArrows.join('')}`
+    ? `<line x1="${PL}" y1="${laneTop.toFixed(1)}" x2="${(w - PR).toFixed(1)}" y2="${laneTop.toFixed(1)}" stroke="var(--chart-grid)" stroke-width="1"/>${windSpeedPath}${windArrows.join('')}`
     : '';
 
   const hasAnyRain = hourly.rain.some(v => v > 0.05);
