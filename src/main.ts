@@ -415,6 +415,7 @@ interface CompBarMetric {
   secondaryFloatEnd?: number;
   primaryProbability?: number | null;   // 0-100; drives fill-opacity on precipitation bars
   secondaryProbability?: number | null;
+  noData?: boolean;  // both days have no data; column moves to end and renders a placeholder
 }
 
 function buildComparisonChart(
@@ -424,24 +425,31 @@ function buildComparisonChart(
 ): string {
   if (metrics.length === 0) return '';
 
+  // No-data columns move to the end so they don't interrupt the main sequence
+  const sorted = [...metrics].sort((a, b) => (a.noData ? 1 : 0) - (b.noData ? 1 : 0));
+
   const COL_W  = 56;
   const H      = 192;
   const BOTTOM = 148;
   const MAX_H  = 90;
   const BAR_W  = 12;
   const GAP    = 4;
-  const svgW   = metrics.length * COL_W;
+  const svgW   = sorted.length * COL_W;
 
+  const hasNoData = sorted.some(m => m.noData);
   const parts: string[] = [
+    hasNoData
+      ? `<defs><pattern id="comp-nodata" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="var(--chart-grid)" stroke-width="2.5"/></pattern></defs>`
+      : '',
     `<line x1="0" y1="${BOTTOM}" x2="${svgW}" y2="${BOTTOM}" stroke="var(--chart-grid)" stroke-width="1"/>`,
   ];
 
-  for (let i = 0; i < metrics.length; i++) {
+  for (let i = 0; i < sorted.length; i++) {
     const { id, emoji, primaryVal, secondaryVal, primaryLabel, secondaryLabel,
             unit: mUnit, diffLabel, primaryMin, primaryMax, secondaryMin, secondaryMax,
             scaleMin, scaleMax,
             primaryFloatStart, primaryFloatEnd, secondaryFloatStart, secondaryFloatEnd,
-            primaryProbability, secondaryProbability } = metrics[i];
+            primaryProbability, secondaryProbability, noData } = sorted[i];
     const cx  = i * COL_W + COL_W / 2;
 
     const secXL = cx - GAP / 2 - BAR_W;  // left edge of secondary bar
@@ -451,7 +459,17 @@ function buildComparisonChart(
     const priXR = cx + GAP / 2 + BAR_W;  // right edge of primary bar
     const priCX = cx + 8;                 // centre of primary bar
 
-    if (primaryMin !== undefined && primaryMax !== undefined &&
+    if (noData) {
+      // ── No-data placeholder ───────────────────────────────────────────
+      const plW  = priXR - secXL;
+      const plX  = secXL;
+      const plY  = BOTTOM - MAX_H;
+      parts.push(
+        `<rect x="${plX.toFixed(1)}" y="${plY}" width="${plW.toFixed(1)}" height="${MAX_H}" rx="3" fill="url(#comp-nodata)" opacity="0.4"/>`,
+        `<rect x="${plX.toFixed(1)}" y="${plY}" width="${plW.toFixed(1)}" height="${MAX_H}" rx="3" fill="none" stroke="var(--chart-grid)" stroke-width="1"/>`,
+        `<text x="${cx}" y="${(BOTTOM - MAX_H / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--chart-label)">No data</text>`,
+      );
+    } else if (primaryMin !== undefined && primaryMax !== undefined &&
         secondaryMin !== undefined && secondaryMax !== undefined) {
       // ── Error-bar mode (temperature metrics) ──────────────────────────
       const gMin = scaleMin ?? Math.min(primaryMin, secondaryMin);
@@ -1344,14 +1362,19 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
       });
     }
     if (cardOn('visibility')) {
-      const diff = primary.visibilityMean - secondary.visibilityMean;
-      const ref  = Math.max(primary.visibilityMax, secondary.visibilityMax);
+      const pMean = primary.visibilityMean, sMean = secondary.visibilityMean;
+      const noData = pMean == null && sMean == null;
+      const pMin = primary.visibilityMin ?? 0, pMax = primary.visibilityMax ?? 0;
+      const sMin = secondary.visibilityMin ?? 0, sMax = secondary.visibilityMax ?? 0;
+      const ref  = Math.max(pMax, sMax);
+      const diff = (pMean ?? 0) - (sMean ?? 0);
       compMetrics.push({ id: 'visibility', emoji: ICONS.visibility,
-        primaryVal: primary.visibilityMean, secondaryVal: secondary.visibilityMean,
-        primaryLabel: primary.visibilityMean.toFixed(1), secondaryLabel: secondary.visibilityMean.toFixed(1), unit: 'km',
-        diffLabel: mkDiff(diff, ref, Math.abs(diff).toFixed(1) + ' km'),
-        primaryMin: primary.visibilityMin,     primaryMax: primary.visibilityMax,
-        secondaryMin: secondary.visibilityMin, secondaryMax: secondary.visibilityMax,
+        primaryVal: pMean ?? 0, secondaryVal: sMean ?? 0,
+        primaryLabel: pMean != null ? fmtN(pMean) : '—', secondaryLabel: sMean != null ? fmtN(sMean) : '—', unit: 'km',
+        diffLabel: noData ? undefined : mkDiff(diff, ref, Math.abs(diff).toFixed(1) + ' km'),
+        primaryMin: pMin, primaryMax: pMax,
+        secondaryMin: sMin, secondaryMax: sMax,
+        noData,
       });
     }
     if (cardOn('cloud')) {

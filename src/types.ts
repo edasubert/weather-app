@@ -21,9 +21,9 @@ export interface DailyWeather {
   humidityMin: number;
   humidityMean: number;
   humidityMax: number;
-  visibilityMin: number;   // km
-  visibilityMean: number;  // km
-  visibilityMax: number;   // km
+  visibilityMin: number | null;   // km; null when model doesn't support this variable
+  visibilityMean: number | null;
+  visibilityMax: number | null;
   cloudMean: number;       // % daily mean from hourly
 }
 

@@ -292,9 +292,9 @@ function parseDay(data: Record<string, unknown>, i: number, stats: DailyStats): 
     humidityMin:    stats.humidityMin,
     humidityMean:   stats.humidityMean,
     humidityMax:    stats.humidityMax,
-    visibilityMin:  ((d.visibility_min[i]  as number | null) ?? 0) / 1000,
-    visibilityMean: ((d.visibility_mean[i] as number | null) ?? 0) / 1000,
-    visibilityMax:  ((d.visibility_max[i]  as number | null) ?? 0) / 1000,
+    visibilityMin:  d.visibility_min[i]  != null ? (d.visibility_min[i]  as number) / 1000 : null,
+    visibilityMean: d.visibility_mean[i] != null ? (d.visibility_mean[i] as number) / 1000 : null,
+    visibilityMax:  d.visibility_max[i]  != null ? (d.visibility_max[i]  as number) / 1000 : null,
     cloudMean:      stats.cloudMean,
   };
 }
