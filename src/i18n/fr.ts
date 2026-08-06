@@ -128,6 +128,8 @@ export default {
     olive: "Pollen d'olivier",
     ragweed: "Pollen d'ambroisie",
     uv: 'Indice UV',
+    newMoon: 'Nouvelle lune',
+    fullMoon: 'Pleine lune',
   },
   error: {
     loading: 'Chargement de la météo…',

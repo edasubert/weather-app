@@ -122,6 +122,8 @@ export default {
     o3: 'Ozone (O₃)',
     so2: 'Sulphur dioxide (SO₂)',
     uv: 'UV index',
+    newMoon: 'New moon',
+    fullMoon: 'Full moon',
     alder: 'Alder pollen',
     birch: 'Birch pollen',
     grass: 'Grass pollen',

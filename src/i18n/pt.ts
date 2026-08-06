@@ -128,6 +128,8 @@ export default {
     olive: 'Pólen de oliveira',
     ragweed: 'Pólen de ambrósia',
     uv: 'Índice UV',
+    newMoon: 'Lua nova',
+    fullMoon: 'Lua cheia',
   },
   error: {
     loading: 'Carregando clima…',

@@ -128,6 +128,8 @@ export default {
     olive: 'Пилок оливи',
     ragweed: 'Пилок амброзії',
     uv: 'УФ-індекс',
+    newMoon: 'Новий місяць',
+    fullMoon: 'Повний місяць',
   },
   error: {
     loading: 'Завантажуємо погоду…',

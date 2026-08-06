@@ -122,6 +122,8 @@ export default {
     o3: 'Ozono (O₃)',
     so2: 'Dióxido de azufre (SO₂)',
     uv: 'Índice UV',
+    newMoon: 'Luna nueva',
+    fullMoon: 'Luna llena',
     alder: 'Polen de aliso',
     birch: 'Polen de abedul',
     grass: 'Polen de gramíneas',

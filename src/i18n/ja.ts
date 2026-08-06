@@ -128,6 +128,8 @@ export default {
     olive: 'オリーブ花粉',
     ragweed: 'ブタクサ花粉',
     uv: 'UVインデックス',
+    newMoon: '新月',
+    fullMoon: '満月',
   },
   error: {
     loading: '天気を読み込み中…',

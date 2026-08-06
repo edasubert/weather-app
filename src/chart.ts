@@ -242,6 +242,41 @@ export function buildTimeline(
     }
   }
 
+  // Moon phase markers — new moon 🌑 and full moon 🌕 in the bottom axis row.
+  // Uses a linear synodic model (29.53 d, ref new moon 2000-01-06 18:14 UTC);
+  // accuracy is typically < 1 day, sufficient for a day-level indicator.
+  const moonMarkers: string[] = [];
+  {
+    const SYNODIC_MS = 29.53058770576 * 86400 * 1000;
+    const REF_NEW_MS = Date.UTC(2000, 0, 6, 18, 14);
+    const yMoon = 18; // floats over the chart near the top edge
+
+    const d0str = days[0]?.sunrise?.slice(0, 10) ?? '';
+    const dNstr = days[nDays - 1]?.sunrise?.slice(0, 10) ?? '';
+    if (d0str.length >= 10 && dNstr.length >= 10) {
+      const toUTC = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+      const t0 = toUTC(d0str);
+      const tN = toUTC(dNstr) + 86400000; // end of last day
+      // First new moon at or before chart start
+      const ageAtStart = (((t0 - REF_NEW_MS) % SYNODIC_MS) + SYNODIC_MS) % SYNODIC_MS;
+      let nm = t0 - ageAtStart;
+      while (nm <= tN) {
+        for (const [ts, emoji, tipKey] of [
+          [nm,                    '🌑', 'tooltip.newMoon'] as const,
+          [nm + SYNODIC_MS / 2,  '🌕', 'tooltip.fullMoon'] as const,
+        ]) {
+          if (ts >= t0 && ts < tN) {
+            const dayIdx = Math.min(nDays - 1, Math.floor((ts - t0) / 86400000));
+            const cx = (xH(dayIdx * 24) + xH((dayIdx + 1) * 24)) / 2;
+            const backdrop = `<circle cx="${cx.toFixed(1)}" cy="${(yMoon - 4).toFixed(1)}" r="9" fill="var(--chart-label)" opacity="0.3"/>`;
+            moonMarkers.push(`${backdrop}<text x="${cx.toFixed(1)}" y="${yMoon.toFixed(1)}" text-anchor="middle" style="font-size:13px" data-tooltip="${t(tipKey)}">${emoji}</text>`);
+          }
+        }
+        nm += SYNODIC_MS;
+      }
+    }
+  }
+
   const nowMarker = nowHours !== null && nowHours >= 0 && nowHours <= n
     ? (() => {
         const x = xH(nowHours);
@@ -284,6 +319,7 @@ export function buildTimeline(
               ${vis.pressure ? `<circle class="hover-dot" r="3.5" cx="0" cy="0" fill="${PRESSURE_COLOR}" stroke-width="1.5" style="stroke:var(--dot-bg)"/>` : ''}
             </g>
             <rect id="chart-overlay" x="${PL}" y="${PT}" width="${cw}" height="${hoverBottom - PT}" fill="transparent" pointer-events="all" style="cursor:crosshair"/>
+            ${moonMarkers.join('')}
           </svg>
           ${vis.wind ? `<canvas id="wind-canvas" style="position:absolute;left:0;top:${laneTop}px;width:${w}px;height:${windLaneH}px;pointer-events:none"></canvas>` : ''}
           <svg width="140" height="14" aria-hidden="true" style="position:absolute;bottom:2px;left:60px;opacity:0.35"><path d="M0,7 L133,7 M126,3 L133,7 L126,11" stroke="var(--chart-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>

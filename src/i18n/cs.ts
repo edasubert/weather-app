@@ -122,6 +122,8 @@ export default {
     o3: 'Ozon (O₃)',
     so2: 'Oxid siřičitý (SO₂)',
     uv: 'UV index',
+    newMoon: 'Nov',
+    fullMoon: 'Úplněk',
     alder: 'Pyl olše',
     birch: 'Pyl břízy',
     grass: 'Pyl trav',
