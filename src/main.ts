@@ -11,6 +11,7 @@ import { buildAirChart, setupAirChartTooltip, type AirChartVisibility } from './
 import { buildPollenChart, setupPollenChartTooltip, type PollenChartVisibility } from './pollenchart';
 import { t, setLang, getLang, getLocale, LANGS, type Lang } from './i18n';
 import { ICONS, BADGE_ICONS, feelsIcon } from './icons';
+import { solarAltitudeHourly } from './solar';
 import type { DailyWeather, GeoResult, HourlyData } from './types';
 
 const root = document.getElementById('app')!;
@@ -1634,9 +1635,13 @@ function doRenderWeather(location: GeoResult, weather: WeatherData): void {
     const prevScroll = chartSlot.querySelector<HTMLElement>('#tl-scroll');
     const scrollDays = prevScroll && currentDayW ? prevScroll.scrollLeft / currentDayW : (isTomorrow ? 1 : 0);
     const vis = chartVisibility();
-    chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours, vis);
+    const nHours = timelineDays.length * 24;
+    const d0 = weather.days[0].date;
+    const firstSlotUtcMs = Date.UTC(+d0.slice(0, 4), +d0.slice(5, 7) - 1, +d0.slice(8, 10)) - weather.utcOffsetSeconds * 1000;
+    const solarAlt = solarAltitudeHourly(location.latitude, location.longitude, firstSlotUtcMs, nHours, 15);
+    chartSlot.innerHTML = buildTimeline(timelineDays, weather.hourlyAll, unit, innerWidth, nowHours, vis, solarAlt);
     const container = chartSlot.querySelector<HTMLElement>('#chart-container')!;
-    setupTimelineTooltip(container, timelineDays, weather.hourlyAll, unit, vis);
+    setupTimelineTooltip(container, timelineDays, weather.hourlyAll, unit, vis, solarAlt);
     currentDayW = timelineDayWidth(innerWidth);
     chartSlot.querySelector<HTMLElement>('#tl-scroll')!.scrollLeft = scrollDays * currentDayW;
     windStop = vis.wind ? startWindField(container, weather.hourlyAll) : null;

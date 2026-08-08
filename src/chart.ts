@@ -1,6 +1,11 @@
 import type { HourlyData } from './types';
 import { t, fmtNum } from './i18n';
-import { ICONS, feelsIcon } from './icons';
+import { ICONS, BADGE_ICONS, feelsIcon } from './icons';
+
+const badged = (icon: string, key: string): string => {
+  const b = BADGE_ICONS[key];
+  return b ? `<span style="position:relative;display:inline-block">${icon}<span style="position:absolute;right:-0.3em;bottom:-0.1em;font-size:0.8em;line-height:1">${b}</span></span>` : icon;
+};
 
 const PL = 52;
 const PR = 60;
@@ -19,6 +24,7 @@ const FEELS_COLOR    = '#eab308';         // yellow
 const PRECIP_COLOR   = '#38bdf8';         // sky
 const SNOW_COLOR     = 'var(--snow-color)'; // black (light) / white (dark)
 const PRESSURE_COLOR = '#a78bfa';         // violet
+const SOLAR_COLOR    = '#f59e0b';         // amber
 const CLOUD_COLOR    = 'var(--chart-label)'; // adapts to theme
 
 // UV index — WHO/WMO category colours (hardcoded, theme-independent) for the
@@ -99,6 +105,7 @@ export function buildTimeline(
   viewportWidth: number,
   nowHours: number | null = null,
   vis: ChartVisibility = ALL_VISIBLE,
+  solarAltitude?: number[],
 ): string {
   const nDays = days.length;
   const n     = nDays * 24;
@@ -290,6 +297,32 @@ export function buildTimeline(
   const cloudPts = hourly.cloud.map((c, i) => `L${xP(i).toFixed(1)},${(PT + (c / 100) * TL_CH).toFixed(1)}`).join('');
   const cloudFill = `<path d="M${xP(0).toFixed(1)},${PT}${cloudPts}L${xP(n - 1).toFixed(1)},${PT}Z" fill="${CLOUD_COLOR}" fill-opacity="0.18"/>`;
 
+  const solarLine = solarAltitude && solarAltitude.length >= n
+    ? (() => {
+        const SOLAR_MIN = -90, SOLAR_MAX = 90, THRESHOLD = 30;
+        const yS = (alt: number) => PT + TL_CH - ((Math.max(SOLAR_MIN, Math.min(SOLAR_MAX, alt)) - SOLAR_MIN) / (SOLAR_MAX - SOLAR_MIN)) * TL_CH;
+        const yThresh = yS(THRESHOLD);
+        const sph = solarAltitude.length / n; // steps per hour (e.g. 4 for 15-min)
+        const d = solarAltitude.map((alt, i) => `${i === 0 ? 'M' : 'L'}${xH(i / sph).toFixed(2)},${yS(alt).toFixed(1)}`).join(' ');
+        const yHorizon = yS(0);
+        const hw = slotW / 2; // half an hour in pixels
+        const horizonTicks = solarAltitude.slice(0, -1).flatMap((a0, i) => {
+          const a1 = solarAltitude[i + 1];
+          if ((a0 < 0) === (a1 < 0)) return [];
+          const xCross = xH((i + (-a0 / (a1 - a0))) / sph);
+          return [`<line x1="${(xCross - hw).toFixed(1)}" y1="${yHorizon.toFixed(1)}" x2="${(xCross + hw).toFixed(1)}" y2="${yHorizon.toFixed(1)}" stroke="white" stroke-width="1.5" opacity="0.7"/>`];
+        });
+        const attrs = `fill="none" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round" stroke-linecap="round"`;
+        return `<defs>
+          <clipPath id="solar-below"><rect x="${PL}" y="${yThresh.toFixed(1)}" width="${cw}" height="${(PT + TL_CH - yThresh).toFixed(1)}"/></clipPath>
+          <clipPath id="solar-above"><rect x="${PL}" y="${PT}" width="${cw}" height="${(yThresh - PT).toFixed(1)}"/></clipPath>
+        </defs>
+        <path d="${d}" ${attrs} stroke="white" opacity="0.55" clip-path="url(#solar-below)"/>
+        <path d="${d}" ${attrs} stroke="${SOLAR_COLOR}" opacity="0.85" clip-path="url(#solar-above)"/>
+        ${horizonTicks.join('')}`;
+      })()
+    : '';
+
   return `
     <div id="chart-container" class="rounded-2xl relative bg-surface hc:border-2 border-edge overflow-hidden">
       <div class="relative">
@@ -302,6 +335,7 @@ export function buildTimeline(
             ${grid.join('')}
             ${dayLines.join('')}
             ${vis.cloud ? cloudFill : ''}
+            ${solarLine}
             ${vis.precip && hasAnyRain ? bars(hourly.rain, maxRain, PRECIP_COLOR, rainOff, 'precip-hatch') : ''}
             ${vis.precip && hasAnySnow ? bars(hourly.snow, maxSnow, SNOW_COLOR,   snowOff, 'snow-hatch') : ''}
             ${vis.pressure ? `<path d="${linePath(press, minPressure, maxPressure)}" fill="none" stroke="${PRESSURE_COLOR}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
@@ -336,35 +370,39 @@ export function buildTimeline(
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted px-5 pt-2 pb-4">
         ${vis.temp ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR}"></span><span data-tooltip="${t('tooltip.temperature')}">${ICONS.temp}</span>
+          <span style="display:inline-block;width:18px;height:2px;background:${TEMP_COLOR}"></span><span data-tooltip="${t('tooltip.temperature')}">${badged(ICONS.temp, 'temp')}</span>
         </span>` : ''}
         ${vis.apparentTemp ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${FEELS_COLOR}"></span><span data-tooltip="${t('tooltip.apparentTemp')}">${ICONS.feels}</span>
+          <span style="display:inline-block;width:18px;height:2px;background:${FEELS_COLOR}"></span><span data-tooltip="${t('tooltip.apparentTemp')}">${badged(ICONS.feels, 'feels')}</span>
         </span>` : ''}
         ${vis.precip && hasAnyRain ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid ${PRECIP_COLOR};overflow:hidden"><span style="display:block;width:100%;height:100%;background:${PRECIP_COLOR};opacity:0.6"></span></span><span data-tooltip="${t('tooltip.precipitation')}">${ICONS.rain}</span>
+          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid ${PRECIP_COLOR};overflow:hidden"><span style="display:block;width:100%;height:100%;background:${PRECIP_COLOR};opacity:0.6"></span></span><span data-tooltip="${t('tooltip.precipitation')}">${badged(ICONS.rain, 'rain')}</span>
         </span>` : ''}
         ${vis.precip && hasAnySnow ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--snow-color);overflow:hidden"><span style="display:block;width:100%;height:100%;background:var(--snow-color);opacity:0.6"></span></span><span data-tooltip="${t('tooltip.snowfall')}">${ICONS.snow}</span>
+          <span style="display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--snow-color);overflow:hidden"><span style="display:block;width:100%;height:100%;background:var(--snow-color);opacity:0.6"></span></span><span data-tooltip="${t('tooltip.snowfall')}">${badged(ICONS.snow, 'snow')}</span>
         </span>` : ''}
         ${vis.pressure ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR}"></span><span data-tooltip="${t('tooltip.pressure')}">${ICONS.pressure}</span>
+          <span style="display:inline-block;width:18px;height:2px;background:${PRESSURE_COLOR}"></span><span data-tooltip="${t('tooltip.pressure')}">${badged(ICONS.pressure, 'pressure')}</span>
         </span>` : ''}
         ${vis.cloud ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px"></span><span data-tooltip="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
+          <span style="display:inline-block;width:14px;height:10px;background:var(--chart-label);opacity:0.28;border-radius:2px"></span><span data-tooltip="${t('tooltip.cloudCover')}">${badged(ICONS.cloud, 'cloud')}</span>
         </span>` : ''}
         ${vis.wind ? `
         <span class="flex items-center gap-1.5">
-          <span style="color:var(--chart-label)">↑</span><span data-tooltip="${t('tooltip.wind')}">${ICONS.wind}</span>
+          <span style="color:var(--chart-label)">↑</span><span data-tooltip="${t('tooltip.wind')}">${badged(ICONS.wind, 'wind')}</span>
         </span>` : ''}
         ${vis.uv && hasUV ? `
         <span class="flex items-center gap-1.5">
-          <span style="display:inline-block;width:18px;height:8px;border-radius:2px;background:linear-gradient(to right,#4eb400,#f7e400,#f85900,#d8001d,#6b49c8)"></span><span data-tooltip="${t('tooltip.uv')}">${ICONS.uv}</span>
+          <span style="display:inline-block;width:18px;height:8px;border-radius:2px;background:linear-gradient(to right,#4eb400,#f7e400,#f85900,#d8001d,#6b49c8)"></span><span data-tooltip="${t('tooltip.uv')}">${badged(ICONS.uv, 'uv')}</span>
+        </span>` : ''}
+        ${solarAltitude ? `
+        <span class="flex items-center gap-1.5">
+          <svg width="18" height="6" style="display:inline-block;flex-shrink:0"><line x1="0" y1="3" x2="8" y2="3" stroke="white" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.55"/><line x1="10" y1="3" x2="18" y2="3" stroke="${SOLAR_COLOR}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.85"/></svg><span data-tooltip="${t('tooltip.solarAltitude')}">${badged(ICONS.solar, 'solar')}</span>
         </span>` : ''}
       </div>
     </div>
@@ -377,6 +415,7 @@ export function setupTimelineTooltip(
   hourly: HourlyData,
   unit: 'C' | 'F',
   vis: ChartVisibility = ALL_VISIBLE,
+  solarAltitude?: number[],
 ): void {
   const svg        = container.querySelector<SVGSVGElement>('#tl-svg')!;
   const overlay    = container.querySelector<SVGRectElement>('#chart-overlay')!;
@@ -388,6 +427,7 @@ export function setupTimelineTooltip(
   const n     = days.length * 24;
   const cw    = svg.viewBox.baseVal.width - PL - PR;
   const slotW = cw / n;
+  const solarSph = solarAltitude ? Math.round(solarAltitude.length / n) : 1;
 
   const { cvt, minT, maxT, minPressure, maxPressure } = computeRange(hourly, unit);
   const temps = hourly.temp.map(cvt);
@@ -435,29 +475,32 @@ export function setupTimelineTooltip(
       <div style="font-weight:600;color:var(--tooltip-text-main);margin-bottom:4px;font-size:12px">${dayLabel}, ${hh}</div>
       <div style="display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:11px">
         ${vis.temp ? `
-        <span style="color:${TEMP_COLOR}" data-tooltip="${t('tooltip.temperature')}">${ICONS.temp}</span>
+        <span style="color:${TEMP_COLOR}" data-tooltip="${t('tooltip.temperature')}">${badged(ICONS.temp, 'temp')}</span>
         <span style="color:var(--tooltip-text-main)">${fmt(temps[idx])}</span>` : ''}
         ${vis.apparentTemp ? `
-        <span style="color:${FEELS_COLOR}" data-tooltip="${t('tooltip.apparentTemp')}">${feelsIcon(hourly.apparentTemp[idx])}</span>
+        <span style="color:${FEELS_COLOR}" data-tooltip="${t('tooltip.apparentTemp')}">${badged(feelsIcon(hourly.apparentTemp[idx]), 'feels')}</span>
         <span style="color:var(--tooltip-text-main)">${fmt(feels[idx])}</span>` : ''}
         ${vis.precip && hasAnyRain ? `
-        <span style="color:${PRECIP_COLOR}" data-tooltip="${t('tooltip.precipitation')}">${ICONS.rain}</span>
+        <span style="color:${PRECIP_COLOR}" data-tooltip="${t('tooltip.precipitation')}">${badged(ICONS.rain, 'rain')}</span>
         <span style="color:var(--tooltip-text-main)">${rainFmt(hourly.rain[idx])}${probStr}</span>` : ''}
         ${vis.precip && hasAnySnow ? `
-        <span style="color:var(--snow-color)" data-tooltip="${t('tooltip.snowfall')}">${ICONS.snow}</span>
+        <span style="color:var(--snow-color)" data-tooltip="${t('tooltip.snowfall')}">${badged(ICONS.snow, 'snow')}</span>
         <span style="color:var(--tooltip-text-main)">${snowFmt(hourly.snow[idx])}${hasAnyRain ? '' : probStr}</span>` : ''}
         ${vis.pressure ? `
-        <span style="color:${PRESSURE_COLOR}" data-tooltip="${t('tooltip.pressure')}">${ICONS.pressure}</span>
+        <span style="color:${PRESSURE_COLOR}" data-tooltip="${t('tooltip.pressure')}">${badged(ICONS.pressure, 'pressure')}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(press[idx])} hPa</span>` : ''}
         ${vis.cloud ? `
-        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.cloudCover')}">${ICONS.cloud}</span>
+        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.cloudCover')}">${badged(ICONS.cloud, 'cloud')}</span>
         <span style="color:var(--tooltip-text-main)">${hourly.cloud[idx]}%</span>` : ''}
         ${vis.wind ? `
-        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.wind')}">${ICONS.wind}</span>
+        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.wind')}">${badged(ICONS.wind, 'wind')}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(hourly.windSpeed[idx])} km/h <span style="display:inline-block;transform:rotate(${(hourly.windDirection[idx] + 180).toFixed(0)}deg)">↑</span> ${compass(hourly.windDirection[idx])}</span>` : ''}
         ${vis.uv && hasUV && uvNow != null ? `
-        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.uv')}">${ICONS.uv}</span>
+        <span style="color:var(--tooltip-text-sub)" data-tooltip="${t('tooltip.uv')}">${badged(ICONS.uv, 'uv')}</span>
         <span style="color:var(--tooltip-text-main)">${Math.round(uvNow)} · ${t(UV_CAT_KEYS[uvCategory(uvNow)])}</span>` : ''}
+        ${(() => { const sa = solarAltitude?.[idx * solarSph]; return sa != null ? `
+        <span style="color:${sa >= 30 ? SOLAR_COLOR : 'var(--tooltip-text-sub)'}" data-tooltip="${t('tooltip.solarAltitude')}">${badged(ICONS.solar, 'solar')}</span>
+        <span style="color:${sa >= 30 ? SOLAR_COLOR : 'var(--tooltip-text-main)'}">${Math.round(sa)}°</span>` : ''; })()}
       </div>
     `;
 

@@ -9,6 +9,7 @@ export const ICONS = {
   cloud:    '☁️',
   daylight:   '🌅',
   uv:         '☀️',
+  solar:      '☀️',
   humidity:         '💧',
   visibility:       '👁️',
   gusts:            '💨',
@@ -24,6 +25,8 @@ export const BADGE_ICONS: Partial<Record<string, string>> = {
   sunshine: '🕐',
   gusts:       '💪',
   visibility: '↔️',
+  uv: '💪',
+  solar: '↕️',
 };
 
 // Next to a concrete apparent-temperature value the icon reflects it;

@@ -122,6 +122,7 @@ export default {
     o3: 'Ozone (O₃)',
     so2: 'Sulphur dioxide (SO₂)',
     uv: 'UV index',
+    solarAltitude: 'Solar elevation',
     newMoon: 'New moon',
     fullMoon: 'Full moon',
     alder: 'Alder pollen',
